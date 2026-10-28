@@ -85,16 +85,23 @@ install_node_20_binary() {
 
   local tmp_dir
   tmp_dir="$(mktemp -d)"
-  trap 'rm -rf "${tmp_dir}"' RETURN
 
-  curl -fsSL "${base_url}/${tarball}" -o "${tmp_dir}/${tarball}"
-  tar -xJf "${tmp_dir}/${tarball}" -C "${tmp_dir}"
+  if ! curl -fsSL "${base_url}/${tarball}" -o "${tmp_dir}/${tarball}"; then
+    rm -rf "${tmp_dir}"
+    return 1
+  fi
+
+  if ! tar -xJf "${tmp_dir}/${tarball}" -C "${tmp_dir}"; then
+    rm -rf "${tmp_dir}"
+    return 1
+  fi
 
   local extracted_dir
   extracted_dir="$(find "${tmp_dir}" -maxdepth 1 -type d -name 'node-v20*' | head -n 1)"
 
   if [[ -z "${extracted_dir}" ]]; then
     echo "Node.js archive extract failed for ${tarball}." >&2
+    rm -rf "${tmp_dir}"
     return 1
   fi
 
@@ -105,6 +112,7 @@ install_node_20_binary() {
   sudo mkdir -p /usr/local/lib
   sudo cp -R "${extracted_dir}/lib/node_modules" /usr/local/lib/node_modules
 
+  rm -rf "${tmp_dir}"
   hash -r
 }
 
