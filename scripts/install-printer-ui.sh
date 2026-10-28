@@ -14,6 +14,7 @@ ENV_FILE="/etc/default/printer-ui"
 PORT="${PRINTER_UI_PORT:-4409}"
 HOST="${PRINTER_UI_HOST:-127.0.0.1}"
 AUTO_INSTALL_NODE="${AUTO_INSTALL_NODE:-1}"
+INSTALL_NODE_METHOD="${INSTALL_NODE_METHOD:-binary}"
 
 echo "Installing Printer UI from ${REPO_DIR}"
 
@@ -46,6 +47,67 @@ install_node_20_debian() {
   sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 nodejs
 }
 
+install_node_20_binary() {
+  local machine
+  machine="$(uname -m)"
+  local node_arch
+  case "${machine}" in
+    aarch64|arm64)
+      node_arch="arm64"
+      ;;
+    armv7l|armv6l)
+      node_arch="armv7l"
+      ;;
+    x86_64|amd64)
+      node_arch="x64"
+      ;;
+    *)
+      echo "Unsupported CPU architecture for binary Node install: ${machine}" >&2
+      return 1
+      ;;
+  esac
+
+  local node_release="${NODE_20_RELEASE:-latest-v20.x}"
+  local base_url="https://nodejs.org/dist/${node_release}"
+
+  echo "Installing Node.js 20.x binary for ${node_arch} from ${base_url}..."
+
+  local shasums
+  shasums="$(curl -fsSL "${base_url}/SHASUMS256.txt")"
+
+  local tarball
+  tarball="$(printf '%s\n' "${shasums}" | awk -v arch="${node_arch}" '$2 ~ ("linux-" arch "\\.tar\\.xz$") { print $2; exit }')"
+
+  if [[ -z "${tarball}" ]]; then
+    echo "Could not find a Node.js tarball for architecture ${node_arch}." >&2
+    return 1
+  fi
+
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  trap 'rm -rf "${tmp_dir}"' RETURN
+
+  curl -fsSL "${base_url}/${tarball}" -o "${tmp_dir}/${tarball}"
+  tar -xJf "${tmp_dir}/${tarball}" -C "${tmp_dir}"
+
+  local extracted_dir
+  extracted_dir="$(find "${tmp_dir}" -maxdepth 1 -type d -name 'node-v20*' | head -n 1)"
+
+  if [[ -z "${extracted_dir}" ]]; then
+    echo "Node.js archive extract failed for ${tarball}." >&2
+    return 1
+  fi
+
+  sudo cp -f "${extracted_dir}/bin/node" /usr/local/bin/node
+  sudo cp -f "${extracted_dir}/bin/npm" /usr/local/bin/npm
+  sudo cp -f "${extracted_dir}/bin/npx" /usr/local/bin/npx
+  sudo rm -rf /usr/local/lib/node_modules
+  sudo mkdir -p /usr/local/lib
+  sudo cp -R "${extracted_dir}/lib/node_modules" /usr/local/lib/node_modules
+
+  hash -r
+}
+
 ensure_node_20() {
   local has_node=0
   if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
@@ -68,11 +130,22 @@ ensure_node_20() {
     exit 1
   fi
 
-  if command -v apt-get >/dev/null 2>&1; then
-    install_node_20_debian
-  else
-    echo "Automatic Node install is only implemented for apt-based systems." >&2
-    echo "Install Node.js 20+ manually and re-run this installer." >&2
+  local installed=0
+  if [[ "${INSTALL_NODE_METHOD}" == "binary" || "${INSTALL_NODE_METHOD}" == "auto" ]]; then
+    if install_node_20_binary; then
+      installed=1
+    fi
+  fi
+
+  if [[ "${installed}" -eq 0 && ( "${INSTALL_NODE_METHOD}" == "apt" || "${INSTALL_NODE_METHOD}" == "auto" || "${INSTALL_NODE_METHOD}" == "binary" ) ]]; then
+    if command -v apt-get >/dev/null 2>&1; then
+      install_node_20_debian
+      installed=1
+    fi
+  fi
+
+  if [[ "${installed}" -eq 0 ]]; then
+    echo "Automatic Node install failed. Install Node.js 20+ manually and re-run this installer." >&2
     exit 1
   fi
 
