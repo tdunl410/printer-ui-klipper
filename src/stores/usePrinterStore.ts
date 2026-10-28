@@ -52,10 +52,6 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
     set((state) => ({ commandQueue: [status, ...state.commandQueue].slice(0, 8) }));
   };
 
-  const runSocketRpc = (method: string, params: Record<string, unknown> = {}) => {
-    socketClient?.send({ jsonrpc: '2.0', method, params, id: Date.now() });
-  };
-
   const httpClient = new MoonrakerHttpClient(defaultConnection().moonrakerBaseUrl);
   const fetchSnapshot = async () => {
     const { connection } = get();
