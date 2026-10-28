@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Printer UI — Connectivity</title>
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body>
+  <main class="device">
+    <section class="screen">
+      <header class="header">
+        <div>
+          <div class="printer-title">Connectivity</div>
+          <div class="subline">Moonraker + Network</div>
+        </div>
+        <a href="settings.html" class="icon-btn">⚙ Settings</a>
+      </header>
+
+      <section class="status-row">
+        <article class="status-chip"><div class="k">Moonraker</div><div class="v status-ok">Online</div></article>
+        <article class="status-chip"><div class="k">Wi-Fi</div><div class="v status-ok">Connected</div></article>
+        <article class="status-chip"><div class="k">Ethernet</div><div class="v">Inactive</div></article>
+      </section>
+
+      <section class="card">
+        <div class="card-label">Connection</div>
+        <div class="card-title">Moonraker</div>
+        <div class="kv"><span>URL</span><strong>http://printer.local</strong></div>
+        <div class="kv"><span>Status</span><strong class="status-ok">Connected</strong></div>
+        <div class="kv"><span>WebSocket</span><strong class="status-ok">Streaming</strong></div>
+        <div class="btn-row">
+          <div class="btn">Reconnect</div>
+          <div class="btn">Switch Host</div>
+          <div class="btn">Test API</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-label">Wireless</div>
+        <div class="card-title">Wi-Fi</div>
+        <div class="kv"><span>SSID</span><strong>Workshop-5G</strong></div>
+        <div class="kv"><span>Signal</span><strong>-58 dBm</strong></div>
+        <div class="kv"><span>IP Address</span><strong>192.168.1.42</strong></div>
+        <div class="kv"><span>Gateway</span><strong>192.168.1.1</strong></div>
+        <div class="btn-row">
+          <div class="btn">Scan</div>
+          <div class="btn">Forget</div>
+          <div class="btn">Hotspot</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-label">Wired</div>
+        <div class="card-title">Ethernet</div>
+        <div class="kv"><span>Link</span><strong>Disconnected</strong></div>
+        <div class="kv"><span>Mode</span><strong>DHCP</strong></div>
+        <div class="btn-row">
+          <div class="btn">Enable</div>
+          <div class="btn">Static IP</div>
+          <div class="btn">Diagnostics</div>
+        </div>
+      </section>
+
+      <a href="settings.html" class="back-btn">← Back</a>
+
+      <nav class="dock">
+        <a href="index.html">Home</a>
+        <a href="print.html">Print</a>
+        <a href="control.html">Control</a>
+        <a href="settings.html" class="active">Settings</a>
+      </nav>
+    </section>
+  </main>
+  <script src="js/app.js"></script>
+</body>
+</html>

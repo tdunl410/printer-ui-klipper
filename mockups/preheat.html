@@ -14,10 +14,17 @@
           <div class="printer-title">Preheat</div>
           <div class="subline">Nozzle + Bed + Chamber</div>
         </div>
-        <a href="settings.html" class="icon-btn">Settings</a>
+        <a href="settings.html" class="icon-btn">⚙ Settings</a>
       </header>
 
+      <section class="status-row">
+        <article class="status-chip"><div class="k">Nozzle</div><div class="v">24/240</div></article>
+        <article class="status-chip"><div class="k">Bed</div><div class="v">60/100</div></article>
+        <article class="status-chip"><div class="k">Chamber</div><div class="v">38/45</div></article>
+      </section>
+
       <section class="card">
+        <div class="card-label">Set Targets</div>
         <div class="card-title">Temperature Setpoints</div>
         <div class="kv"><span>Nozzle</span><strong>24 / 240°C</strong></div>
         <div class="btn-row">
@@ -42,6 +49,39 @@
       </section>
 
       <section class="card">
+        <div class="card-label">Live Monitoring</div>
+        <div class="card-title">All Temperatures</div>
+
+        <div class="temp-legend">
+          <span><i class="dot nozzle"></i>Nozzle</span>
+          <span><i class="dot bed"></i>Bed</span>
+          <span><i class="dot chamber"></i>Chamber</span>
+          <span><i class="dot ambient"></i>Ambient</span>
+          <span><i class="dot controller"></i>Controller</span>
+          <span><i class="dot pi"></i>Raspberry Pi</span>
+        </div>
+
+        <div class="temp-graph-wrap">
+          <svg class="temp-graph" viewBox="0 0 320 150" preserveAspectRatio="none" aria-label="Temperature graph">
+            <g class="grid">
+              <line x1="0" y1="20" x2="320" y2="20"></line>
+              <line x1="0" y1="50" x2="320" y2="50"></line>
+              <line x1="0" y1="80" x2="320" y2="80"></line>
+              <line x1="0" y1="110" x2="320" y2="110"></line>
+              <line x1="0" y1="140" x2="320" y2="140"></line>
+            </g>
+            <polyline class="line nozzle" points="0,142 20,120 40,95 60,70 80,52 100,40 120,34 140,30 160,28 180,26 200,24 220,22 240,21 260,20 280,20 300,20 320,20"></polyline>
+            <polyline class="line bed" points="0,145 20,138 40,130 60,115 80,104 100,95 120,88 140,82 160,77 180,73 200,70 220,66 240,63 260,61 280,59 300,58 320,56"></polyline>
+            <polyline class="line chamber" points="0,146 20,145 40,143 60,141 80,139 100,137 120,135 140,133 160,132 180,130 200,128 220,126 240,124 260,123 280,121 300,120 320,118"></polyline>
+            <polyline class="line ambient" points="0,147 20,146 40,146 60,145 80,145 100,145 120,144 140,144 160,143 180,143 200,142 220,142 240,141 260,141 280,140 300,140 320,139"></polyline>
+            <polyline class="line controller" points="0,146 20,145 40,144 60,144 80,143 100,142 120,141 140,140 160,139 180,138 200,137 220,136 240,135 260,134 280,133 300,132 320,131"></polyline>
+            <polyline class="line pi" points="0,145 20,144 40,142 60,141 80,140 100,138 120,137 140,136 160,134 180,133 200,132 220,131 240,130 260,129 280,128 300,127 320,126"></polyline>
+          </svg>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-label">Material Presets</div>
         <div class="card-title">Presets</div>
         <div class="btn-row">
           <div class="btn">PLA</div>
@@ -51,6 +91,7 @@
       </section>
 
       <section class="card">
+        <div class="card-label">Sensor Health</div>
         <div class="card-title">Sensors</div>
         <div class="kv"><span>Toolhead Ambient</span><strong>30°C</strong></div>
         <div class="kv"><span>Electronics Bay</span><strong>34°C</strong></div>
@@ -58,6 +99,13 @@
       </section>
 
       <a href="index.html" class="back-btn">← Back</a>
+
+      <nav class="dock">
+        <a href="index.html">Home</a>
+        <a href="print.html">Print</a>
+        <a href="control.html" class="active">Control</a>
+        <a href="settings.html">Settings</a>
+      </nav>
     </section>
   </main>
   <script src="js/app.js"></script>

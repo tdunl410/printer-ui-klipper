@@ -14,10 +14,17 @@
           <div class="printer-title">Extrude</div>
           <div class="subline">Load, Unload, Purge</div>
         </div>
-        <a href="settings.html" class="icon-btn">Settings</a>
+        <a href="settings.html" class="icon-btn">⚙ Settings</a>
       </header>
 
+      <section class="status-row">
+        <article class="status-chip"><div class="k">Nozzle</div><div class="v">224/230</div></article>
+        <article class="status-chip"><div class="k">Extruder</div><div class="v">Ready</div></article>
+        <article class="status-chip"><div class="k">Step</div><div class="v">5mm</div></article>
+      </section>
+
       <section class="card">
+        <div class="card-label">Readiness</div>
         <div class="card-title">Extruder State</div>
         <div class="kv"><span>Nozzle Temp</span><strong>224 / 230°C</strong></div>
         <div class="kv"><span>Current Material</span><strong>ASA (Slot 3)</strong></div>
@@ -25,6 +32,7 @@
       </section>
 
       <section class="card">
+        <div class="card-label">Manual Actions</div>
         <div class="card-title">Extrusion Controls</div>
         <div class="btn-row">
           <div class="btn">Retract -5</div>
@@ -40,6 +48,7 @@
       </section>
 
       <section class="card">
+        <div class="card-label">Automation</div>
         <div class="card-title">Macros</div>
         <div class="macro-item">LOAD_FILAMENT</div>
         <div class="macro-item">UNLOAD_FILAMENT</div>
@@ -47,6 +56,13 @@
       </section>
 
       <a href="index.html" class="back-btn">← Back</a>
+
+      <nav class="dock">
+        <a href="index.html">Home</a>
+        <a href="print.html">Print</a>
+        <a href="control.html" class="active">Control</a>
+        <a href="settings.html">Settings</a>
+      </nav>
     </section>
   </main>
   <script src="js/app.js"></script>

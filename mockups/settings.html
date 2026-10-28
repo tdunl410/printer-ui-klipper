@@ -12,31 +12,35 @@
       <header class="header">
         <div>
           <div class="printer-title">Settings</div>
-          <div class="subline">Navigation + System + Theme</div>
+          <div class="subline">Navigation + Network + System</div>
         </div>
-        <a href="index.html" class="icon-btn">Home</a>
+        <a href="index.html" class="icon-btn">⌂ Home</a>
       </header>
 
+      <section class="status-row">
+        <article class="status-chip"><div class="k">Profile</div><div class="v">Voron 2.4</div></article>
+        <article class="status-chip"><div class="k">Firmware</div><div class="v">Online</div></article>
+        <article class="status-chip"><div class="k">Theme</div><div class="v">Purple</div></article>
+      </section>
+
       <section class="card">
+        <div class="card-label">Navigation</div>
         <div class="card-title">Pages</div>
         <div class="settings-nav">
-          <a class="action-link" href="index.html">Dashboard</a>
-          <a class="action-link" href="print.html">Print</a>
-          <a class="action-link" href="files.html">Files</a>
-          <a class="action-link" href="move.html">Move</a>
-          <a class="action-link" href="preheat.html">Preheat</a>
-          <a class="action-link" href="extrude.html">Extrude</a>
-          <a class="action-link" href="control.html">Console</a>
+          <a class="action-link" href="index.html">Dashboard →</a>
+          <a class="action-link" href="print.html">Print →</a>
+          <a class="action-link" href="files.html">Files →</a>
+          <a class="action-link" href="move.html">Move →</a>
+          <a class="action-link" href="preheat.html">Preheat →</a>
+          <a class="action-link" href="extrude.html">Extrude →</a>
+          <a class="action-link" href="control.html">Console →</a>
+          <a class="action-link" href="connectivity.html">Connectivity →</a>
+          <a class="action-link" href="updates.html">Updates →</a>
         </div>
       </section>
 
       <section class="card">
-        <div class="card-title">Connection</div>
-        <div class="kv"><span>Moonraker URL</span><strong>http://printer.local</strong></div>
-        <div class="kv"><span>Status</span><strong class="status-ok">Connected</strong></div>
-      </section>
-
-      <section class="card">
+        <div class="card-label">Appearance</div>
         <div class="card-title">Theme</div>
         <div>
           <span class="theme-chip"><span class="swatch" style="background:#7b4dff"></span>Purple (default)</span>
@@ -47,6 +51,22 @@
       </section>
 
       <section class="card">
+        <div class="card-label">Interface</div>
+        <div class="card-title">Screen & Input</div>
+        <div class="kv"><span>Language</span><strong>English</strong></div>
+        <div class="kv"><span>Touch Sounds</span><strong>On</strong></div>
+        <div class="kv"><span>Lock During Print</span><strong>Enabled</strong></div>
+        <div class="kv"><span>Auto Dim</span><strong>2 min</strong></div>
+        <div class="btn-row">
+          <div class="btn">Brightness</div>
+          <div class="btn">Screensaver</div>
+          <div class="btn">Calibrate Touch</div>
+        </div>
+      </section>
+
+
+      <section class="card">
+        <div class="card-label">Maintenance</div>
         <div class="card-title">System Actions</div>
         <div class="btn-row">
           <div class="btn">Restart Klipper</div>
@@ -55,14 +75,15 @@
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-title">Display</div>
-        <div class="kv"><span>Orientation</span><strong>Portrait</strong></div>
-        <div class="kv"><span>Scale</span><strong>Full Height</strong></div>
-        <div class="kv"><span>Touch Sounds</span><strong>On</strong></div>
-      </section>
 
       <a href="index.html" class="back-btn">← Back</a>
+
+      <nav class="dock">
+        <a href="index.html">Home</a>
+        <a href="print.html">Print</a>
+        <a href="control.html">Control</a>
+        <a href="settings.html" class="active">Settings</a>
+      </nav>
     </section>
   </main>
   <script src="js/app.js"></script>

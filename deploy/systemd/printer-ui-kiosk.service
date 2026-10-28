@@ -1,0 +1,16 @@
+[Unit]
+Description=Printer UI Chromium Kiosk
+After=graphical.target printer-ui.service
+Wants=printer-ui.service
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+ExecStart=/bin/bash -lc 'CHROME_BIN=$(command -v chromium-browser || command -v chromium || command -v google-chrome || true); if [[ -z "$CHROME_BIN" ]]; then echo "Chromium not found"; exit 1; fi; "$CHROME_BIN" --kiosk --app=http://127.0.0.1:4409 --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars'
+Restart=always
+RestartSec=3
+User=pi
+Group=pi
+
+[Install]
+WantedBy=graphical.target

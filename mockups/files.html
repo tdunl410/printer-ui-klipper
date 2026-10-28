@@ -14,10 +14,17 @@
           <div class="printer-title">Model Files</div>
           <div class="subline">USB + Local + Network</div>
         </div>
-        <a href="settings.html" class="icon-btn">Settings</a>
+        <a href="settings.html" class="icon-btn">⚙ Settings</a>
       </header>
 
+      <section class="status-row">
+        <article class="status-chip"><div class="k">Ready</div><div class="v">12 Files</div></article>
+        <article class="status-chip"><div class="k">Storage</div><div class="v">3.2 GB</div></article>
+        <article class="status-chip"><div class="k">Queue</div><div class="v">1 Job</div></article>
+      </section>
+
       <section class="card">
+        <div class="card-label">Recent Jobs</div>
         <div class="card-title">Recent</div>
         <div class="file-item">enclosure_bracket_v12.gcode</div>
         <div class="file-item">electronics_cover_v4.gcode</div>
@@ -26,7 +33,11 @@
       </section>
 
       <section class="card">
+        <div class="card-label">Selected File</div>
         <div class="card-title">Selected File</div>
+        <div class="media-thumb" style="margin-bottom:10px;">
+          <img src="../assets/printer-render.png" alt="Selected file preview" />
+        </div>
         <div class="kv"><span>Name</span><strong>enclosure_bracket_v12.gcode</strong></div>
         <div class="kv"><span>Material</span><strong>ASA</strong></div>
         <div class="kv"><span>Est. Time</span><strong>4h 52m</strong></div>
@@ -34,6 +45,7 @@
       </section>
 
       <section class="card">
+        <div class="card-label">Actions</div>
         <div class="btn-row">
           <div class="btn accent">Print Now</div>
           <div class="btn">Rename</div>
@@ -42,6 +54,13 @@
       </section>
 
       <a href="index.html" class="back-btn">← Back</a>
+
+      <nav class="dock">
+        <a href="index.html">Home</a>
+        <a href="print.html">Print</a>
+        <a href="control.html" class="active">Control</a>
+        <a href="settings.html">Settings</a>
+      </nav>
     </section>
   </main>
   <script src="js/app.js"></script>

@@ -1,0 +1,16 @@
+[Unit]
+Description=Printer UI Static Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/printer-ui
+ExecStart=/usr/bin/node /opt/printer-ui/server/static-server.mjs
+Restart=always
+RestartSec=2
+User=pi
+Group=pi
+
+[Install]
+WantedBy=multi-user.target

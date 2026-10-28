@@ -1,31 +1,73 @@
-# Klipper Portrait UI Concept
+# Klipper Portrait Touch UI
 
-This workspace contains:
-- Product/technical documentation for a modern Klipper touch UI intended as an alternative to KlipperScreen
-- A first-pass clickable mockup set designed for a portrait Waveshare 7.9" touchscreen
-- A tokenized purple-first theme foundation
+Production-oriented touchscreen UI for Klipper printers, designed for portrait Waveshare panels and Moonraker integration.
 
-## Docs
-- `docs/klipperscreen-modern-spec.md`
-- `docs/feature-parity-matrix.md`
+## Implemented
+- React + TypeScript + Vite app with route-per-screen architecture.
+- Mockup-matching portrait UI frame (`400x1280` locked ratio) and touch-first components.
+- Moonraker REST snapshot fetch + WebSocket live updates with reconnect behavior.
+- Core operator routes: Home, Print, Files, Move, Preheat, Extrude, Console, Settings, Connectivity, Updates.
+- Command action layer for print lifecycle, heater/fan controls, movement, extrusion, and macros.
+- Command queue feedback toast (`pending/success/error`) and confirm gates for destructive actions.
+- Theme tokens with runtime switching (purple default + blue/green/rose).
 
-## Mockups
-- `mockups/index.html` (Dashboard)
-- `mockups/print.html` (Print lifecycle + tune)
-- `mockups/files.html` (Model library)
-- `mockups/move.html` (Movement, homing, fan speeds)
-- `mockups/preheat.html` (Nozzle/bed/chamber set + sensors)
-- `mockups/extrude.html` (Extrusion workflow)
-- `mockups/control.html` (Macros/console)
-- `mockups/settings.html` (Navigation hub + system/theme)
+## Repository Layout
+- `src/transport` Moonraker HTTP and WebSocket clients
+- `src/services` command methods wrapping mutating actions
+- `src/stores` Zustand live state/store
+- `src/screens` routed UI screens
+- `src/components` shared frame/layout and feedback UI
+- `server/static-server.mjs` production static file server for kiosk deployment
+- `scripts/install-printer-ui.sh` install/build/systemd setup
+- `scripts/update-printer-ui.sh` update path after `git pull`
 
-## Render Asset
-Place your provided render image at:
-- `assets/printer-render.png`
+## Local Development
+```bash
+npm install
+npm run dev
+```
 
-## Next Iteration Inputs
-To refine quickly, provide feedback on:
-1. Layout density (more compact vs more breathing room)
-2. Settings menu structure and number of destinations
-3. Which KlipperScreen workflows should be prioritized first for implementation
-4. Preferred purple palette (more muted vs more saturated)
+## Build
+```bash
+npm run build
+npm run preview
+```
+
+## Full Printer Installation (Clone-and-Install)
+Run on your printer host user (non-root, must have `sudo`):
+
+```bash
+git clone <your-repo-url> printer_ui
+cd printer_ui
+chmod +x scripts/install-printer-ui.sh scripts/update-printer-ui.sh
+./scripts/install-printer-ui.sh
+```
+
+This installs:
+- `/opt/printer-ui/dist` static frontend files
+- `/opt/printer-ui/server/static-server.mjs` runtime server
+- `/etc/default/printer-ui` server runtime environment
+- `printer-ui.service` systemd service (enabled + started)
+- `printer-ui-kiosk.service` systemd template for Chromium kiosk
+
+Service URLs:
+- Default host/port: `127.0.0.1:4409`
+- Configure via env vars before install: `PRINTER_UI_HOST`, `PRINTER_UI_PORT`
+
+Enable kiosk mode:
+```bash
+sudo systemctl enable --now printer-ui-kiosk.service
+```
+
+## Update After Changes
+```bash
+./scripts/update-printer-ui.sh
+```
+
+## Moonraker Connectivity
+- Edit Base URL and WebSocket URL from the `Connectivity` screen.
+- Values persist in local storage and are used on reconnect/boot.
+
+## Notes
+- Hardware emergency stop remains out-of-band and should remain physical/hardware-first.
+- Existing docs and mockups are kept in `docs/` and `mockups/` for parity tracking and further iteration.

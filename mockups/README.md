@@ -11,6 +11,8 @@ Open any page in a browser to view portrait mockups for the 7.9" touchscreen con
 - `extrude.html` — Extrusion/load/unload controls
 - `control.html` — Macros + console
 - `settings.html` — Navigation hub + system/theme settings
+- `connectivity.html` — Moonraker + Wi-Fi/Ethernet settings
+- `updates.html` — Core versions, update queue, logs/recovery
 
 ## Navigation Model
 - All primary page navigation is accessed from the top-right `Settings` button.
