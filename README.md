@@ -37,7 +37,7 @@ npm run preview
 Run on your printer host user (non-root, must have `sudo`):
 
 ```bash
-git clone <your-repo-url> printer_ui
+git clone https://github.com/tdunl410/printer-ui-klipper.git printer_ui
 cd printer_ui
 chmod +x scripts/install-printer-ui.sh scripts/update-printer-ui.sh
 ./scripts/install-printer-ui.sh
