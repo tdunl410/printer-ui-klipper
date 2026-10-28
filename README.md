@@ -43,6 +43,8 @@ chmod +x scripts/install-printer-ui.sh scripts/update-printer-ui.sh
 ./scripts/install-printer-ui.sh
 ```
 
+The installer now auto-installs/upgrades Node.js 20+ on Raspberry Pi OS/Debian (apt-based) when needed.
+
 This installs:
 - `/opt/printer-ui/dist` static frontend files
 - `/opt/printer-ui/server/static-server.mjs` runtime server
@@ -53,6 +55,17 @@ This installs:
 Service URLs:
 - Default host/port: `127.0.0.1:4409`
 - Configure via env vars before install: `PRINTER_UI_HOST`, `PRINTER_UI_PORT`
+
+If you want to disable automatic Node installation:
+```bash
+AUTO_INSTALL_NODE=0 ./scripts/install-printer-ui.sh
+```
+
+Manual Node fallback (if your image blocks auto-install):
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
 
 Enable kiosk mode:
 ```bash

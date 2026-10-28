@@ -13,18 +13,67 @@ KIOSK_SERVICE_FILE="/etc/systemd/system/printer-ui-kiosk.service"
 ENV_FILE="/etc/default/printer-ui"
 PORT="${PRINTER_UI_PORT:-4409}"
 HOST="${PRINTER_UI_HOST:-127.0.0.1}"
+AUTO_INSTALL_NODE="${AUTO_INSTALL_NODE:-1}"
 
 echo "Installing Printer UI from ${REPO_DIR}"
 
-if ! command -v node >/dev/null 2>&1; then
-  echo "Node.js is required. Install Node 20+ first." >&2
-  exit 1
-fi
+node_major_version() {
+  node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo "0"
+}
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "npm is required. Install Node.js/npm first." >&2
-  exit 1
-fi
+install_node_20_debian() {
+  echo "Installing Node.js 20.x via NodeSource apt repository..."
+  sudo apt-get update
+  sudo apt-get install -y ca-certificates curl gnupg
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+}
+
+ensure_node_20() {
+  local has_node=0
+  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    has_node=1
+  fi
+
+  if [[ "${has_node}" -eq 1 ]]; then
+    local current_major
+    current_major="$(node_major_version)"
+    if [[ "${current_major}" -ge 20 ]]; then
+      return 0
+    fi
+    echo "Detected Node.js ${current_major}.x, but 20+ is required."
+  else
+    echo "Node.js and npm are not installed."
+  fi
+
+  if [[ "${AUTO_INSTALL_NODE}" != "1" ]]; then
+    echo "Node.js 20+ is required. Install it manually, or re-run with AUTO_INSTALL_NODE=1." >&2
+    exit 1
+  fi
+
+  if command -v apt-get >/dev/null 2>&1; then
+    install_node_20_debian
+  else
+    echo "Automatic Node install is only implemented for apt-based systems." >&2
+    echo "Install Node.js 20+ manually and re-run this installer." >&2
+    exit 1
+  fi
+
+  if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+    echo "Node.js installation did not complete successfully." >&2
+    exit 1
+  fi
+
+  local new_major
+  new_major="$(node_major_version)"
+  if [[ "${new_major}" -lt 20 ]]; then
+    echo "Installed Node.js ${new_major}.x, but 20+ is required." >&2
+    exit 1
+  fi
+}
+
+ensure_node_20
+NODE_BIN="$(command -v node)"
 
 pushd "${REPO_DIR}" >/dev/null
 
@@ -54,7 +103,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=${ENV_FILE}
-ExecStart=/usr/bin/node ${INSTALL_DIR}/server/static-server.mjs
+ExecStart=${NODE_BIN} ${INSTALL_DIR}/server/static-server.mjs
 Restart=always
 RestartSec=2
 User=${USER}
