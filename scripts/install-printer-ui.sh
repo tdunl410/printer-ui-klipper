@@ -23,10 +23,27 @@ node_major_version() {
 
 install_node_20_debian() {
   echo "Installing Node.js 20.x via NodeSource apt repository..."
-  sudo apt-get update
-  sudo apt-get install -y ca-certificates curl gnupg
+  sudo apt-get clean
+  sudo apt-get update -o Acquire::Retries=3
+
+  local prereq_missing=()
+  if ! dpkg -s ca-certificates >/dev/null 2>&1; then
+    prereq_missing+=(ca-certificates)
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    prereq_missing+=(curl)
+  fi
+  if ! command -v gpg >/dev/null 2>&1; then
+    prereq_missing+=(gnupg)
+  fi
+
+  if [[ "${#prereq_missing[@]}" -gt 0 ]]; then
+    sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 "${prereq_missing[@]}"
+  fi
+
   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-  sudo apt-get install -y nodejs
+  sudo apt-get update -o Acquire::Retries=3
+  sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 nodejs
 }
 
 ensure_node_20() {
