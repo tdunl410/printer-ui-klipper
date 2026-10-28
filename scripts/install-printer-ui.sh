@@ -106,11 +106,11 @@ install_node_20_binary() {
   fi
 
   sudo cp -f "${extracted_dir}/bin/node" /usr/local/bin/node
-  sudo cp -f "${extracted_dir}/bin/npm" /usr/local/bin/npm
-  sudo cp -f "${extracted_dir}/bin/npx" /usr/local/bin/npx
   sudo rm -rf /usr/local/lib/node_modules
   sudo mkdir -p /usr/local/lib
   sudo cp -R "${extracted_dir}/lib/node_modules" /usr/local/lib/node_modules
+  sudo ln -sfn ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
+  sudo ln -sfn ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
   rm -rf "${tmp_dir}"
   hash -r
