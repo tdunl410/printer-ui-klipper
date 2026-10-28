@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Printer UI — Extrude</title>
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body>
+  <main class="device">
+    <section class="screen">
+      <header class="header">
+        <div>
+          <div class="printer-title">Extrude</div>
+          <div class="subline">Load, Unload, Purge</div>
+        </div>
+        <a href="settings.html" class="icon-btn">Settings</a>
+      </header>
+
+      <section class="card">
+        <div class="card-title">Extruder State</div>
+        <div class="kv"><span>Nozzle Temp</span><strong>224 / 230°C</strong></div>
+        <div class="kv"><span>Current Material</span><strong>ASA (Slot 3)</strong></div>
+        <div class="kv"><span>Extrusion Distance</span><strong>5mm step</strong></div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">Extrusion Controls</div>
+        <div class="btn-row">
+          <div class="btn">Retract -5</div>
+          <div class="btn accent">Extrude +5</div>
+          <div class="btn">Extrude +20</div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="btn-row">
+          <div class="btn">Load Filament</div>
+          <div class="btn">Unload</div>
+          <div class="btn">Purge</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">Macros</div>
+        <div class="macro-item">LOAD_FILAMENT</div>
+        <div class="macro-item">UNLOAD_FILAMENT</div>
+        <div class="macro-item">PURGE_NOZZLE</div>
+      </section>
+
+      <a href="index.html" class="back-btn">← Back</a>
+    </section>
+  </main>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Printer UI — Settings</title>
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body>
+  <main class="device">
+    <section class="screen">
+      <header class="header">
+        <div>
+          <div class="printer-title">Settings</div>
+          <div class="subline">Navigation + System + Theme</div>
+        </div>
+        <a href="index.html" class="icon-btn">Home</a>
+      </header>
+
+      <section class="card">
+        <div class="card-title">Pages</div>
+        <div class="settings-nav">
+          <a class="action-link" href="index.html">Dashboard</a>
+          <a class="action-link" href="print.html">Print</a>
+          <a class="action-link" href="files.html">Files</a>
+          <a class="action-link" href="move.html">Move</a>
+          <a class="action-link" href="preheat.html">Preheat</a>
+          <a class="action-link" href="extrude.html">Extrude</a>
+          <a class="action-link" href="control.html">Console</a>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">Connection</div>
+        <div class="kv"><span>Moonraker URL</span><strong>http://printer.local</strong></div>
+        <div class="kv"><span>Status</span><strong class="status-ok">Connected</strong></div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">Theme</div>
+        <div>
+          <span class="theme-chip"><span class="swatch" style="background:#7b4dff"></span>Purple (default)</span>
+          <span class="theme-chip"><span class="swatch" style="background:#1d8bff"></span>Blue</span>
+          <span class="theme-chip"><span class="swatch" style="background:#1fbf5b"></span>Green</span>
+          <span class="theme-chip"><span class="swatch" style="background:#d15ca2"></span>Rose</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">System Actions</div>
+        <div class="btn-row">
+          <div class="btn">Restart Klipper</div>
+          <div class="btn">Restart Host</div>
+          <div class="btn">Shutdown</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">Display</div>
+        <div class="kv"><span>Orientation</span><strong>Portrait</strong></div>
+        <div class="kv"><span>Scale</span><strong>Full Height</strong></div>
+        <div class="kv"><span>Touch Sounds</span><strong>On</strong></div>
+      </section>
+
+      <a href="index.html" class="back-btn">← Back</a>
+    </section>
+  </main>
+  <script src="js/app.js"></script>
+</body>
+</html>

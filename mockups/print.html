@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Printer UI — Print</title>
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body>
+  <main class="device">
+    <section class="screen">
+      <header class="header">
+        <div>
+          <div class="printer-title">Active Print</div>
+          <div class="subline">Part: enclosure_bracket_v12.gcode</div>
+        </div>
+        <a href="settings.html" class="icon-btn">Settings</a>
+      </header>
+
+      <section class="card">
+        <div class="card-title">Progress</div>
+        <div class="kv"><span>Status</span><strong>Printing</strong></div>
+        <div class="kv"><span>Completion</span><strong>47%</strong></div>
+        <div class="kv"><span>Time Elapsed</span><strong>02:19</strong></div>
+        <div class="kv"><span>ETA</span><strong>02:31</strong></div>
+      </section>
+
+      <section class="grid-2">
+        <article class="card">
+          <div class="card-title">Temperatures</div>
+          <div class="kv"><span>Hotend</span><strong>235 / 240°C</strong></div>
+          <div class="kv"><span>Bed</span><strong>99 / 100°C</strong></div>
+          <div class="kv"><span>Chamber</span><strong>43 / 45°C</strong></div>
+        </article>
+        <article class="card">
+          <div class="card-title">Tune</div>
+          <div class="kv"><span>Speed</span><strong>100%</strong></div>
+          <div class="kv"><span>Flow</span><strong>98%</strong></div>
+          <div class="kv"><span>Part Fan</span><strong>35%</strong></div>
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="card-title">Actions</div>
+        <div class="btn-row">
+          <div class="btn accent">Pause</div>
+          <div class="btn">Stop</div>
+          <div class="btn">Emergency</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">Quick Tune</div>
+        <div class="btn-row">
+          <div class="btn">Speed -10</div>
+          <div class="btn">Flow +5</div>
+          <div class="btn">Fan +10</div>
+        </div>
+      </section>
+
+      <a href="index.html" class="back-btn">← Back</a>
+    </section>
+  </main>
+  <script src="js/app.js"></script>
+</body>
+</html>
