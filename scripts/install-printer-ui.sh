@@ -228,7 +228,7 @@ Wants=printer-ui.service
 [Service]
 Type=simple
 Environment=DISPLAY=:0
-ExecStart=/bin/bash -lc 'CHROME_BIN=$(command -v chromium-browser || command -v chromium || command -v google-chrome || true); if [[ -z "$CHROME_BIN" ]]; then echo "Chromium not found"; exit 1; fi; "$CHROME_BIN" --kiosk --app=http://${HOST}:${PORT} --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars'
+ExecStart=/bin/bash -lc 'CHROME_BIN=\$(command -v chromium-browser || command -v chromium || command -v google-chrome || true); if [[ -z "\$CHROME_BIN" ]]; then echo "Chromium not found"; exit 1; fi; "\$CHROME_BIN" --kiosk --app=http://${HOST}:${PORT} --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars'
 Restart=always
 RestartSec=3
 User=${USER}
