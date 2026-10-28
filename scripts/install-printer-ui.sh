@@ -22,6 +22,10 @@ node_major_version() {
   node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo "0"
 }
 
+npm_is_healthy() {
+  command -v npm >/dev/null 2>&1 && npm --version >/dev/null 2>&1
+}
+
 install_node_20_debian() {
   echo "Installing Node.js 20.x via NodeSource apt repository..."
   sudo apt-get clean
@@ -118,7 +122,7 @@ install_node_20_binary() {
 
 ensure_node_20() {
   local has_node=0
-  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+  if command -v node >/dev/null 2>&1 && npm_is_healthy; then
     has_node=1
   fi
 
@@ -130,7 +134,11 @@ ensure_node_20() {
     fi
     echo "Detected Node.js ${current_major}.x, but 20+ is required."
   else
-    echo "Node.js and npm are not installed."
+    if command -v node >/dev/null 2>&1; then
+      echo "Node.js exists, but npm is missing or broken. Repairing Node toolchain..."
+    else
+      echo "Node.js and npm are not installed."
+    fi
   fi
 
   if [[ "${AUTO_INSTALL_NODE}" != "1" ]]; then
@@ -157,7 +165,7 @@ ensure_node_20() {
     exit 1
   fi
 
-  if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+  if ! command -v node >/dev/null 2>&1 || ! npm_is_healthy; then
     echo "Node.js installation did not complete successfully." >&2
     exit 1
   fi
