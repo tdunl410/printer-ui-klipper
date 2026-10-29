@@ -186,6 +186,8 @@ ensure_node_20() {
 }
 
 ensure_kiosk_runtime() {
+  local apt_opts=("-o" "Acquire::Retries=5" "-o" "Acquire::ForceIPv4=true")
+
   local chrome_bin
   chrome_bin="$(command -v chromium-browser || command -v chromium || command -v google-chrome || true)"
   local need_install=0
@@ -214,18 +216,36 @@ ensure_kiosk_runtime() {
   fi
 
   echo "Installing kiosk runtime dependencies (xinit + chromium)..."
-  sudo apt-get update -o Acquire::Retries=3
+
+  if ! sudo apt-get "${apt_opts[@]}" update; then
+    echo "Initial apt update failed. Resetting apt metadata and retrying..."
+    sudo apt-get clean
+    sudo rm -rf /var/lib/apt/lists/*
+    sudo apt-get "${apt_opts[@]}" update
+  fi
 
   if ! command -v xinit >/dev/null 2>&1; then
-    sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xinit xserver-xorg
+    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends xinit xserver-xorg
   fi
 
   chrome_bin="$(command -v chromium-browser || command -v chromium || true)"
   if [[ -z "${chrome_bin}" ]]; then
     if package_available chromium-browser; then
-      sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 chromium-browser
+      if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium-browser; then
+        echo "chromium-browser install failed, refreshing apt metadata and retrying once..."
+        sudo apt-get clean
+        sudo rm -rf /var/lib/apt/lists/*
+        sudo apt-get "${apt_opts[@]}" update
+        sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium-browser
+      fi
     elif package_available chromium; then
-      sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 chromium
+      if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium; then
+        echo "chromium install failed, refreshing apt metadata and retrying once..."
+        sudo apt-get clean
+        sudo rm -rf /var/lib/apt/lists/*
+        sudo apt-get "${apt_opts[@]}" update
+        sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium
+      fi
     else
       echo "No chromium package found in apt repositories." >&2
       exit 1
