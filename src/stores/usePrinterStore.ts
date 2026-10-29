@@ -646,6 +646,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               });
               const derived = deriveTemperatures(dynamicCache, next.temperatures);
               next.temperatures = { ...next.temperatures, ...derived };
+              const auxLive = dynamicCache['output_pin aux_fan'];
+              if (auxLive) next.fanChamberPercent = toPercent(auxLive.value, next.fanChamberPercent);
             }
 
             if (status.toolhead?.position) {
