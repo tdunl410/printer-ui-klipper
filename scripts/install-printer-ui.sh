@@ -16,6 +16,7 @@ PORT="${PRINTER_UI_PORT:-4409}"
 HOST="${PRINTER_UI_HOST:-127.0.0.1}"
 AUTO_INSTALL_NODE="${AUTO_INSTALL_NODE:-1}"
 INSTALL_NODE_METHOD="${INSTALL_NODE_METHOD:-binary}"
+AUTO_INSTALL_KIOSK_DEPS="${AUTO_INSTALL_KIOSK_DEPS:-1}"
 
 echo "Installing Printer UI from ${REPO_DIR}"
 
@@ -25,6 +26,11 @@ node_major_version() {
 
 npm_is_healthy() {
   command -v npm >/dev/null 2>&1 && npm --version >/dev/null 2>&1
+}
+
+package_available() {
+  local pkg="$1"
+  apt-cache show "${pkg}" >/dev/null 2>&1
 }
 
 install_node_20_debian() {
@@ -179,7 +185,62 @@ ensure_node_20() {
   fi
 }
 
+ensure_kiosk_runtime() {
+  local chrome_bin
+  chrome_bin="$(command -v chromium-browser || command -v chromium || command -v google-chrome || true)"
+  local need_install=0
+
+  if ! command -v xinit >/dev/null 2>&1; then
+    need_install=1
+  fi
+
+  if [[ -z "${chrome_bin}" ]]; then
+    need_install=1
+  fi
+
+  if [[ "${need_install}" -eq 0 ]]; then
+    return 0
+  fi
+
+  if [[ "${AUTO_INSTALL_KIOSK_DEPS}" != "1" ]]; then
+    echo "Kiosk runtime dependencies are missing (xinit/chromium)." >&2
+    echo "Install manually or rerun with AUTO_INSTALL_KIOSK_DEPS=1." >&2
+    exit 1
+  fi
+
+  if ! command -v apt-get >/dev/null 2>&1; then
+    echo "Cannot auto-install kiosk dependencies: apt-get not found." >&2
+    exit 1
+  fi
+
+  echo "Installing kiosk runtime dependencies (xinit + chromium)..."
+  sudo apt-get update -o Acquire::Retries=3
+
+  if ! command -v xinit >/dev/null 2>&1; then
+    sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xinit xserver-xorg
+  fi
+
+  chrome_bin="$(command -v chromium-browser || command -v chromium || true)"
+  if [[ -z "${chrome_bin}" ]]; then
+    if package_available chromium-browser; then
+      sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 chromium-browser
+    elif package_available chromium; then
+      sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 chromium
+    else
+      echo "No chromium package found in apt repositories." >&2
+      exit 1
+    fi
+  fi
+
+  chrome_bin="$(command -v chromium-browser || command -v chromium || command -v google-chrome || true)"
+  if [[ -z "${chrome_bin}" ]]; then
+    echo "Chromium install did not provide a runnable browser binary." >&2
+    exit 1
+  fi
+}
+
 ensure_node_20
+ensure_kiosk_runtime
 NODE_BIN="$(command -v node)"
 
 pushd "${REPO_DIR}" >/dev/null
