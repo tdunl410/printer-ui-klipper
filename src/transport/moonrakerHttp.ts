@@ -57,6 +57,24 @@ export class MoonrakerHttpClient {
     return (await response.json()) as Record<string, unknown>;
   }
 
+  async historyTotals() {
+    const response = await fetch(`${this.baseUrl}/server/history/totals`);
+    if (!response.ok) {
+      throw new Error(`History totals failed: ${response.status}`);
+    }
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  async databaseItem(namespace: string, key: string) {
+    const response = await fetch(
+      `${this.baseUrl}/server/database/item?${new URLSearchParams({ namespace, key })}`,
+    );
+    if (!response.ok) {
+      throw new Error(`Database item failed: ${response.status}`);
+    }
+    return (await response.json()) as Record<string, unknown>;
+  }
+
   async rpcCall(method: string, params: Record<string, unknown> = {}) {
     const response = await fetch(`${this.baseUrl}/printer/gcode/script`, {
       method: 'POST',

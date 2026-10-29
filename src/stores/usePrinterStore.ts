@@ -76,9 +76,13 @@ const toState = (value: string): JobState['state'] => {
   return 'idle';
 };
 
-const readHeater = (status: Record<string, any>, key: string) => ({
-  current: Number(status[key]?.temperature ?? 0),
-  target: Number(status[key]?.target ?? 0),
+const readHeater = (
+  status: Record<string, any>,
+  key: string,
+  fallback: { current: number; target: number },
+) => ({
+  current: Number(status[key]?.temperature ?? fallback.current),
+  target: Number(status[key]?.target ?? fallback.target),
 });
 
 const getDynamicTemperatureObjects = (status: Record<string, any>, objects: string[]) => {
@@ -148,7 +152,7 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
     const { connection } = get();
     const scopedHttp = httpClient.withBaseUrl(connection.moonrakerBaseUrl);
 
-    const [objectsRes, filesRes, systemRes, networkRes, objectListRes, updateRes] = await Promise.allSettled([
+    const [objectsRes, filesRes, systemRes, networkRes, objectListRes, updateRes, historyRes, mainsailGeneralRes] = await Promise.allSettled([
       scopedHttp.queryObjects({
         toolhead: ['position'],
         gcode_move: ['speed_factor', 'extrude_factor'],
@@ -165,6 +169,8 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
       scopedHttp.networkInfo(),
       scopedHttp.listObjects(),
       scopedHttp.updateStatus(),
+      scopedHttp.historyTotals(),
+      scopedHttp.databaseItem('mainsail', 'general'),
     ]);
 
     const objectNames = objectListRes.status === 'fulfilled'
@@ -187,8 +193,9 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
         }
       }
 
-      const nozzle = readHeater(status, 'extruder');
-      const bed = readHeater(status, 'heater_bed');
+      const currentState = get();
+      const nozzle = readHeater(status, 'extruder', currentState.temperatures.nozzle);
+      const bed = readHeater(status, 'heater_bed', currentState.temperatures.bed);
 
       const sensors = Object.entries(dynamicStatus).reduce<Record<string, { current: number; target: number }>>((acc, [key, value]) => {
         const sensorName = key.includes(' ') ? key.split(' ').slice(1).join(' ') : key;
@@ -200,7 +207,7 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
       }, {});
 
       const chamberCandidate = Object.entries(sensors).find(([name]) => /chamber/i.test(name));
-      const chamber = chamberCandidate?.[1] ?? sensors.chamber ?? defaultTemperatures.chamber;
+      const chamber = chamberCandidate?.[1] ?? sensors.chamber ?? currentState.temperatures.chamber;
 
       const chamberFanEntry = Object.entries(dynamicStatus).find(([name]) => /chamber.*fan|fan.*chamber/i.test(name));
 
@@ -209,9 +216,9 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
       const controllerCandidates = sensorEntries.filter(([name]) => /mcu|board|controller|electronics/i.test(name));
       const piCandidates = sensorEntries.filter(([name]) => /pi|raspberry|soc|cpu/i.test(name));
 
-      const ambient = ambientCandidates[0]?.[1].current ?? chamber.current ?? 0;
-      const controller = controllerCandidates[0]?.[1].current ?? 0;
-      const raspberryPi = piCandidates[0]?.[1].current ?? 0;
+      const ambient = ambientCandidates[0]?.[1].current ?? currentState.temperatures.ambient;
+      const controller = controllerCandidates[0]?.[1].current ?? currentState.temperatures.controller;
+      const raspberryPi = piCandidates[0]?.[1].current ?? currentState.temperatures.raspberryPi;
 
       const printDuration = Number(status.print_stats?.print_duration ?? 0);
       const progress = Number(status.display_status?.progress ?? 0);
@@ -292,17 +299,45 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
     }
 
     if (systemRes.status === 'fulfilled') {
-      set((state) => ({
+      set({
         versions: {
           moonraker: String((systemRes.value.result as any)?.moonraker_version?.version ?? ''),
           klipper: String((systemRes.value.result as any)?.klipper_version ?? ''),
         },
+      });
+    }
+
+    if (historyRes.status === 'fulfilled') {
+      const root = ((historyRes.value.result as any) || {}) as Record<string, any>;
+      const totals = (root.job_totals ?? root.totals ?? root) as Record<string, any>;
+      const totalSeconds = Number(totals.total_time ?? totals.print_time ?? 0);
+      const totalJobs = Number(totals.total_jobs ?? totals.count ?? 0);
+      const totalFilamentMm = Number(totals.total_filament_used ?? totals.filament_used ?? 0);
+
+      set({
         stats: {
-          totalTimeHours: Number((systemRes.value.result as any)?.cpu_info?.uptime_hours ?? state.stats.totalTimeHours),
-          printCount: state.stats.printCount,
-          filamentKg: state.stats.filamentKg,
+          totalTimeHours: totalSeconds / 3600,
+          printCount: Number.isFinite(totalJobs) ? totalJobs : 0,
+          filamentKg: Number.isFinite(totalFilamentMm) ? totalFilamentMm / 1000 / 1000 : 0,
         },
-      }));
+      });
+    }
+
+    if (mainsailGeneralRes.status === 'fulfilled') {
+      const value = ((mainsailGeneralRes.value.result as any) || {}).value;
+      const general = typeof value === 'object' && value !== null ? value : {};
+      const printerName =
+        String(
+          (general as any).printer_name ??
+            (general as any).printerName ??
+            (general as any).machine_name ??
+            (general as any).instance_name ??
+            '',
+        ) || '';
+
+      if (printerName) {
+        set({ profileName: printerName });
+      }
     }
 
     if (networkRes.status === 'fulfilled') {
