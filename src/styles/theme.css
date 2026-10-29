@@ -318,11 +318,12 @@ body {
 }
 
 .btn {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 10px;
-  min-height: 52px;
-  background: var(--surface-strong);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 4px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  padding: 12px 10px;
+  min-height: 56px;
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   text-align: center;
   font-weight: 600;
@@ -339,10 +340,15 @@ body {
   opacity: 0.5;
 }
 
+.btn:active:not(:disabled) {
+  background: rgba(var(--accent-rgb), 0.18);
+}
+
 .btn.accent {
   background: rgba(var(--accent-rgb), 0.12);
   color: var(--accent-text);
-  border-color: rgba(var(--accent-rgb), 0.35);
+  border-color: rgba(var(--accent-rgb), 0.25);
+  border-bottom-color: var(--accent);
 }
 
 .file-item,
