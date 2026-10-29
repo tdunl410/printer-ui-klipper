@@ -4,6 +4,7 @@ import { Dialog } from '../components/Dialog';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 import { pct } from '../utils/format';
+import printerRender from '../../assets/printer-render.png';
 
 export function PrintScreen() {
   const commands = useCommands();
@@ -33,7 +34,7 @@ export function PrintScreen() {
       <section className="card">
         <div className="card-label">Current Job</div>
         <div className="media-thumb">
-          <img src="/assets/printer-render.png" alt="Current print visualization" />
+          <img src={printerRender} alt="Current print visualization" />
         </div>
       </section>
 

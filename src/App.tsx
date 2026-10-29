@@ -17,9 +17,10 @@ export default function App() {
   const boot = usePrinterStore((state) => state.boot);
   const disconnect = usePrinterStore((state) => state.disconnect);
   const jobState = usePrinterStore((state) => state.job.state);
+  const connectionState = usePrinterStore((state) => state.connectionState);
   const pendingPrintLaunch = usePrinterStore((state) => state.pendingPrintLaunch);
   const location = useLocation();
-  const activePrint = jobState === 'printing' || jobState === 'paused' || pendingPrintLaunch;
+  const activePrint = (jobState === 'printing' || jobState === 'paused' || pendingPrintLaunch) && connectionState === 'online';
 
   useEffect(() => {
     boot();

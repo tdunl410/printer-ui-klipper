@@ -131,23 +131,26 @@ const resolvePrinterState = (status: Record<string, any>, fallback: JobState['st
   const candidates: string[] = [];
   collectStateCandidates(status, candidates);
 
-  const resolved = candidates.find((candidate) => {
-    const normalized = candidate.trim().toLowerCase();
-    return (
-      normalized === 'printing' ||
-      normalized === 'paused' ||
-      normalized === 'complete' ||
-      normalized === 'error' ||
-      normalized === 'shutdown' ||
-      normalized === 'startup' ||
-      normalized === 'starting' ||
-      normalized === 'booting' ||
-      normalized === 'idle' ||
-      normalized === 'ready' ||
-      normalized === 'standby' ||
-      normalized === 'offline' ||
-      normalized === 'halted'
-    );
+  const explicit = candidates
+    .map((candidate) => candidate.trim().toLowerCase())
+    .filter((candidate) => [
+      'printing',
+      'paused',
+      'complete',
+      'error',
+      'shutdown',
+      'startup',
+      'starting',
+      'booting',
+      'idle',
+      'ready',
+      'standby',
+      'offline',
+      'halted',
+    ].includes(candidate));
+
+  const resolved = explicit.find((candidate) => {
+    return candidate === 'printing' || candidate === 'paused' || candidate === 'complete' || candidate === 'error' || candidate === 'shutdown' || candidate === 'startup' || candidate === 'starting' || candidate === 'booting' || candidate === 'idle' || candidate === 'ready' || candidate === 'standby' || candidate === 'offline' || candidate === 'halted';
   });
 
   if (!resolved) return fallback;
@@ -634,39 +637,21 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               };
             }
 
-            if (status.display_status?.progress !== undefined) {
+            const nextPrinterState = resolvePrinterState(status, next.job.state);
+            const isActivePrintState = nextPrinterState === 'printing' || nextPrinterState === 'paused';
+            next.pendingPrintLaunch = isActivePrintState ? next.pendingPrintLaunch : false;
+
+            if (nextPrinterState !== 'printing' && nextPrinterState !== 'paused' && nextPrinterState !== 'shutdown' && nextPrinterState !== 'startup') {
               next.job = {
                 ...next.job,
-                progress: Number(status.display_status.progress),
+                state: nextPrinterState,
+                progress: 0,
+                elapsed: '00:00',
+                eta: '00:00',
+                remaining: '00:00',
               };
             }
 
-            if (status.print_stats) {
-              const current = status.print_stats;
-              const printDuration = Number(current.print_duration ?? 0);
-              const progress = Number(status.display_status?.progress ?? next.job.progress);
-              const totalDuration = progress > 0 ? printDuration / progress : Number(current.total_duration ?? 0);
-              const remainingSeconds = Math.max(0, totalDuration - printDuration);
-              next.job = {
-                ...next.job,
-                filename: String(current.filename ?? next.job.filename),
-                state: resolvePrinterState(status, next.job.state),
-                elapsed: hhmmFromSeconds(printDuration),
-                eta: hhmmFromSeconds(remainingSeconds),
-                remaining: hhmmFromSeconds(remainingSeconds),
-                layer:
-                  typeof current.info?.current_layer === 'number' && typeof current.info?.total_layer === 'number'
-                    ? `${current.info.current_layer}/${current.info.total_layer}`
-                    : next.job.layer,
-              };
-            }
-
-            if (status.webhooks?.state || status.idle_timeout?.state || status.printer_state?.state) {
-              next.job = {
-                ...next.job,
-                state: resolvePrinterState(status, next.job.state),
-              };
-            }
             return next;
           });
         },
