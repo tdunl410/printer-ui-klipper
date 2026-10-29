@@ -67,6 +67,9 @@ let dynamicObjects: string[] = [];
 let dynamicCache: Record<string, any> = {};
 let lastSocketUpdate = 0;
 let statusCache: Record<string, any> = {};
+let snapshotCount = 0;
+const slowCache = new Map<string, unknown>();
+const SLOW_POLL_EVERY = 12;
 let snapshotInFlight = false;
 const socketIsLive = () => Date.now() - lastSocketUpdate < 5000;
 
@@ -314,6 +317,15 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     const { connection } = get();
     const scopedHttp = httpClient.withBaseUrl(connection.moonrakerBaseUrl);
 
+    // Heavy endpoints can hang for seconds; refresh them rarely so they never clog the connection pool
+    const refreshSlow = snapshotCount++ % SLOW_POLL_EVERY === 0;
+    const slow = async <T,>(key: string, load: () => Promise<T>): Promise<T> => {
+      if (!refreshSlow && slowCache.has(key)) return slowCache.get(key) as T;
+      const value = await load();
+      slowCache.set(key, value);
+      return value;
+    };
+
     const [objectsRes, filesRes, systemRes, networkRes, objectListRes, updateRes, historyRes, mainsailGeneralRes, serverInfoRes] = await Promise.allSettled([
       scopedHttp.queryObjects({
         toolhead: ['position'],
@@ -328,13 +340,13 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         idle_timeout: ['state'],
         printer_state: ['state'],
       }),
-      scopedHttp.listFiles('gcodes'),
-      scopedHttp.systemInfo(),
-      scopedHttp.networkInfo(),
+      slow('files', () => scopedHttp.listFiles('gcodes')),
+      slow('system', () => scopedHttp.systemInfo()),
+      slow('network', () => scopedHttp.networkInfo()),
       scopedHttp.listObjects(),
-      scopedHttp.updateStatus(),
-      scopedHttp.historyTotals(),
-      scopedHttp.databaseItem('mainsail', 'general'),
+      slow('update', () => scopedHttp.updateStatus()),
+      slow('history', () => scopedHttp.historyTotals()),
+      slow('mainsail', () => scopedHttp.databaseItem('mainsail', 'general')),
       scopedHttp.serverInfo(),
     ]);
 
@@ -579,6 +591,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     flowPercent: 100,
     zOffset: 0,
     boot: () => {
+      slowCache.clear();
+      snapshotCount = 0;
       const existing = socketClient;
       if (existing) {
         existing.close();
