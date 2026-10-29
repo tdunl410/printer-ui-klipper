@@ -4,7 +4,7 @@ import emergencyIcon from '../../assets/emergency.svg';
 import pauseIcon from '../../assets/pause.svg';
 import resumeIcon from '../../assets/resume.svg';
 import { Dialog } from '../components/Dialog';
-import { BackButton, Layout } from '../components/Layout';
+import { Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 import { pct } from '../utils/format';
 import printerRender from '../../assets/printer-render.png';
@@ -111,7 +111,6 @@ export function PrintScreen() {
         </div>
       </section>
 
-      <BackButton to="/" />
 
       {confirmAction === 'stop' ? (
         <Dialog

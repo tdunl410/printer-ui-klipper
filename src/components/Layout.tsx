@@ -91,8 +91,3 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
     </section>
   );
 }
-
-export function BackButton({ to = '/' }: { to?: string }) {
-  void to;
-  return null;
-}

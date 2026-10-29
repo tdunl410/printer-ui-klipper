@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BackButton, Layout } from '../components/Layout';
+import { Layout } from '../components/Layout';
 import { usePrinterStore } from '../stores/usePrinterStore';
 
 export function ConnectivityScreen() {
@@ -78,7 +78,6 @@ export function ConnectivityScreen() {
         <div className="kv"><span>Gateway</span><strong>{ethernet?.gateway || '-'}</strong></div>
       </section>
 
-      <BackButton to="/settings" />
     </Layout>
   );
 }

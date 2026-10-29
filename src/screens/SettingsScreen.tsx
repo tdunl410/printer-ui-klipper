@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Dialog } from '../components/Dialog';
-import { BackButton, Layout } from '../components/Layout';
+import { Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 const themeOptions = [
@@ -93,7 +93,6 @@ export function SettingsScreen() {
         </div>
       </section>
 
-      <BackButton to="/" />
 
       {confirmAction ? (
         <Dialog

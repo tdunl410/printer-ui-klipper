@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog } from '../components/Dialog';
-import { BackButton, Layout } from '../components/Layout';
+import { Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 interface FilePreview {
@@ -169,7 +169,6 @@ export function FilesScreen() {
         {filteredFiles.length === 0 ? <div className="macro-item">No files match the current filter.</div> : null}
       </section>
 
-      <BackButton to="/settings" />
 
       {popupFile ? (
         <Dialog

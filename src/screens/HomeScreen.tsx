@@ -1,52 +1,20 @@
-import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import extrudeIcon from '../../assets/extrude.svg';
 import heaterIcon from '../../assets/heater.svg';
 import moveIcon from '../../assets/move.svg';
 import networkIcon from '../../assets/network.svg';
 import printerRender from '../../assets/printer-render.png';
+import { HeaterKeypad, useHeaterKeypad } from '../components/HeaterKeypad';
 import { Layout } from '../components/Layout';
-import { useCommands } from '../stores/usePrinterStore';
 import { usePrinterStore } from '../stores/usePrinterStore';
 
 export function HomeScreen() {
-  const commands = useCommands();
   const profileName = usePrinterStore((state) => state.profileName);
   const connectionState = usePrinterStore((state) => state.connectionState);
   const job = usePrinterStore((state) => state.job);
   const temperatures = usePrinterStore((state) => state.temperatures);
   const stats = usePrinterStore((state) => state.stats);
-  const runAction = usePrinterStore((state) => state.runAction);
-  const [activeKeypad, setActiveKeypad] = useState<'extruder' | 'heater_bed' | 'chamber' | null>(null);
-  const [inputTarget, setInputTarget] = useState('');
-
-  const targetMap = useMemo(
-    () => ({
-      extruder: temperatures.nozzle.target,
-      heater_bed: temperatures.bed.target,
-      chamber: temperatures.chamber.target,
-    }),
-    [temperatures.bed.target, temperatures.chamber.target, temperatures.nozzle.target],
-  );
-
-  const openKeypad = (heater: 'extruder' | 'heater_bed' | 'chamber') => {
-    setActiveKeypad(heater);
-    setInputTarget(String(Math.max(0, Math.round(targetMap[heater]))));
-  };
-
-  const closeKeypad = () => {
-    setActiveKeypad(null);
-    setInputTarget('');
-  };
-
-  const applyTarget = () => {
-    if (!activeKeypad) return;
-    const parsed = Number(inputTarget);
-    if (!Number.isFinite(parsed)) return;
-    const safeTarget = Math.max(0, Math.round(parsed));
-    void runAction(`Set ${activeKeypad}`, () => commands.setHeater(activeKeypad, safeTarget));
-    closeKeypad();
-  };
+  const keypad = useHeaterKeypad();
 
   const printRoute = job.state === 'printing' || job.state === 'paused' ? '/print' : '/files';
   const connectionBadge = connectionState === 'online' ? 'Ready to Print' : 'Disconnected';
@@ -75,13 +43,13 @@ export function HomeScreen() {
 
       <div className="hero">
         <img src={printerRender} alt="Printer render" />
-        <button type="button" className="pill temp-pill" style={{ left: 16, top: 26 }} onClick={() => openKeypad('extruder')}>
+        <button type="button" className="pill temp-pill" style={{ left: 16, top: 26 }} onClick={() => keypad.open('extruder')}>
           {Math.round(temperatures.nozzle.current)}°C <span className="target">/{Math.round(temperatures.nozzle.target)}°C</span>
         </button>
-        <button type="button" className="pill temp-pill" style={{ right: 16, bottom: 20 }} onClick={() => openKeypad('heater_bed')}>
+        <button type="button" className="pill temp-pill" style={{ right: 16, bottom: 20 }} onClick={() => keypad.open('heater_bed')}>
           {Math.round(temperatures.bed.current)}°C <span className="target">/{Math.round(temperatures.bed.target)}°C</span>
         </button>
-        <button type="button" className="pill temp-pill" style={{ right: 16, top: 26 }} onClick={() => openKeypad('chamber')}>
+        <button type="button" className="pill temp-pill" style={{ right: 16, top: 26 }} onClick={() => keypad.open('chamber')}>
           {Math.round(temperatures.chamber.current)}°C <span className="target">/{Math.round(temperatures.chamber.target)}°C</span>
         </button>
       </div>
@@ -127,34 +95,7 @@ export function HomeScreen() {
         </Link>
       </section>
 
-      {activeKeypad ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <section className="modal-card">
-            <div className="card-label">Set Target</div>
-            <div className="card-title">{activeKeypad === 'extruder' ? 'Nozzle' : activeKeypad === 'heater_bed' ? 'Bed' : 'Chamber'} Temperature</div>
-            <div className="temp-input-display">{inputTarget || '0'}°C</div>
-            <div className="numpad-grid">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className="btn"
-                  onClick={() => setInputTarget((prev) => `${prev}${value}`.replace(/^0+(\d)/, '$1'))}
-                >
-                  {value}
-                </button>
-              ))}
-              <button type="button" className="btn" onClick={() => setInputTarget('')}>Clear</button>
-              <button type="button" className="btn" onClick={() => setInputTarget((prev) => `${prev}0`.replace(/^0+(\d)/, '$1'))}>0</button>
-              <button type="button" className="btn" onClick={() => setInputTarget((prev) => prev.slice(0, -1))}>⌫</button>
-            </div>
-            <div className="btn-row top-gap">
-              <button type="button" className="btn accent" onClick={applyTarget}>Set</button>
-              <button type="button" className="btn" onClick={closeKeypad}>Close</button>
-            </div>
-          </section>
-        </div>
-      ) : null}
+      <HeaterKeypad keypad={keypad} />
     </Layout>
   );
 }

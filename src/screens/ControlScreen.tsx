@@ -1,4 +1,4 @@
-import { BackButton, Layout } from '../components/Layout';
+import { Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 export function ControlScreen() {
@@ -54,7 +54,6 @@ export function ControlScreen() {
         </div>
       </section>
 
-      <BackButton to="/" />
     </Layout>
   );
 }

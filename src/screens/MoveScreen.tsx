@@ -4,7 +4,7 @@ import arrowLeft from '../../assets/arrow-left.svg';
 import arrowRight from '../../assets/arrow-right.svg';
 import arrowUp from '../../assets/arrow-up.svg';
 import homeIcon from '../../assets/home.svg';
-import { BackButton, Layout } from '../components/Layout';
+import { Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 export function MoveScreen() {
@@ -98,7 +98,6 @@ export function MoveScreen() {
         </div>
       </section>
 
-      <BackButton to="/settings" />
     </Layout>
   );
 }
