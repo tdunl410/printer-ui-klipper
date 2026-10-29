@@ -5,7 +5,7 @@ const KLIPPER_STATES: KlipperState[] = ['ready', 'startup', 'shutdown', 'error',
 export const toPercent = (raw: unknown, fallback: number) => {
   const numeric = Number(raw);
   if (!Number.isFinite(numeric)) return fallback;
-  if (numeric <= 1) return Math.round(numeric * 100);
+  if (numeric >= 0 && numeric <= 1) return Math.round(numeric * 100);
   return Math.round(Math.max(0, Math.min(100, numeric)));
 };
 

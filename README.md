@@ -106,3 +106,7 @@ sudo systemctl restart printer-ui-kiosk.service
 ```
 
 
+## Disabling klipperscreen
+```
+sudo systemctl disable --now KlipperScreen.service
+```
