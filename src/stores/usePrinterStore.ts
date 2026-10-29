@@ -6,6 +6,7 @@ import type {
   ConnectionState,
   FileEntry,
   JobState,
+  KlipperState,
   MachineStats,
   PositionState,
   PrinterTemperatures,
@@ -45,8 +46,8 @@ interface PrinterStore {
   setConnectionUrls: (baseUrl: string, wsUrl: string) => void;
   runAction: (label: string, action: () => Promise<unknown>) => Promise<void>;
   setSelectedFile: (path: string) => void;
-  pendingPrintLaunch: boolean;
-  setPendingPrintLaunch: (value: boolean) => void;
+  klipperState: KlipperState;
+  klipperMessage: string;
 }
 
 type PrinterSetState = (
@@ -64,8 +65,7 @@ let pollTimer: number | undefined;
 let dynamicObjects: string[] = [];
 let dynamicCache: Record<string, any> = {};
 let lastSocketUpdate = 0;
-let pendingLaunchAt = 0;
-const LAUNCH_GRACE_MS = 20000;
+let statusCache: Record<string, any> = {};
 let snapshotInFlight = false;
 const socketIsLive = () => Date.now() - lastSocketUpdate < 5000;
 
@@ -110,60 +110,20 @@ const toPercent = (raw: unknown, fallback: number) => {
   return Math.round(Math.max(0, Math.min(100, numeric)));
 };
 
-const collectStateCandidates = (value: unknown, out: string[]) => {
-  if (typeof value === 'string') {
-    const normalized = value.trim();
-    if (normalized) {
-      out.push(normalized);
-    }
-    return;
-  }
+const KLIPPER_STATES: KlipperState[] = ['ready', 'startup', 'shutdown', 'error', 'disconnected'];
 
-  if (Array.isArray(value)) {
-    value.forEach((entry) => collectStateCandidates(entry, out));
-    return;
-  }
-
-  if (value && typeof value === 'object') {
-    Object.entries(value as Record<string, unknown>).forEach(([key, nested]) => {
-      if (/state|status/i.test(key) || key === 'printer' || key === 'webhooks' || key === 'idle_timeout') {
-        collectStateCandidates(nested, out);
-      }
-    });
-  }
+const normalizeKlipperState = (raw: unknown, fallback: KlipperState): KlipperState => {
+  const value = String(raw ?? '').trim().toLowerCase();
+  return (KLIPPER_STATES as string[]).includes(value) ? (value as KlipperState) : fallback;
 };
 
-const resolvePrinterState = (status: Record<string, any>, fallback: JobState['state']) => {
-  const candidates: string[] = [];
-  collectStateCandidates(status, candidates);
-
-  const explicit = candidates
-    .map((candidate) => candidate.trim().toLowerCase())
-    .filter((candidate) => [
-      'printing',
-      'paused',
-      'complete',
-      'error',
-      'shutdown',
-      'startup',
-      'starting',
-      'booting',
-      'idle',
-      'ready',
-      'standby',
-      'offline',
-      'halted',
-    ].includes(candidate));
-
-  const resolved = explicit.find((candidate) => {
-    return candidate === 'printing' || candidate === 'paused' || candidate === 'complete' || candidate === 'error' || candidate === 'shutdown' || candidate === 'startup' || candidate === 'starting' || candidate === 'booting' || candidate === 'idle' || candidate === 'ready' || candidate === 'standby' || candidate === 'offline' || candidate === 'halted';
-  });
-
-  if (!resolved) return fallback;
-  const normalized = resolved.trim().toLowerCase();
-  if (normalized === 'printing' || normalized === 'paused' || normalized === 'complete' || normalized === 'error') return normalized;
-  if (normalized === 'shutdown' || normalized === 'offline' || normalized === 'halted') return 'shutdown';
-  if (normalized === 'startup' || normalized === 'starting' || normalized === 'booting') return 'startup';
+// Mirrors Mainsail: Klipper's own state wins over the print_stats state
+const computeJobState = (klipper: KlipperState, printState: unknown): JobState['state'] => {
+  if (klipper === 'startup') return 'startup';
+  if (klipper === 'shutdown' || klipper === 'disconnected') return 'shutdown';
+  if (klipper === 'error') return 'error';
+  const value = String(printState ?? '').trim().toLowerCase();
+  if (value === 'printing' || value === 'paused' || value === 'complete' || value === 'error') return value;
   return 'idle';
 };
 
@@ -353,7 +313,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     const { connection } = get();
     const scopedHttp = httpClient.withBaseUrl(connection.moonrakerBaseUrl);
 
-    const [objectsRes, filesRes, systemRes, networkRes, objectListRes, updateRes, historyRes, mainsailGeneralRes] = await Promise.allSettled([
+    const [objectsRes, filesRes, systemRes, networkRes, objectListRes, updateRes, historyRes, mainsailGeneralRes, serverInfoRes] = await Promise.allSettled([
       scopedHttp.queryObjects({
         toolhead: ['position'],
         gcode_move: ['speed_factor', 'extrude_factor'],
@@ -374,7 +334,15 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       scopedHttp.updateStatus(),
       scopedHttp.historyTotals(),
       scopedHttp.databaseItem('mainsail', 'general'),
+      scopedHttp.serverInfo(),
     ]);
+
+    // Moonraker's server info stays available when Klipper is shut down or disconnected
+    const serverInfo = serverInfoRes.status === 'fulfilled' ? ((serverInfoRes.value.result as any) || {}) : undefined;
+    let klipperState: KlipperState = get().klipperState;
+    if (serverInfo) {
+      klipperState = serverInfo.klippy_connected === false ? 'disconnected' : normalizeKlipperState(serverInfo.klippy_state, klipperState);
+    }
 
     const objectNames = objectListRes.status === 'fulfilled'
       ? ((((objectListRes.value.result as any) || {}).objects as string[] | undefined) ?? [])
@@ -382,6 +350,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
     if (objectsRes.status === 'fulfilled') {
       const status = (((objectsRes.value.result as any) || {}).status || {}) as Record<string, any>;
+      statusCache = { webhooks: status.webhooks ?? {}, print_stats: status.print_stats ?? {} };
+      if (status.webhooks?.state) klipperState = normalizeKlipperState(status.webhooks.state, klipperState);
 
       dynamicObjects = getDynamicTemperatureObjects(status, objectNames);
       socketClient?.subscribe(dynamicObjects);
@@ -459,7 +429,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           ...state.job,
           filename: String(status.print_stats?.filename || ''),
           progress,
-          state: resolvePrinterState(status, state.job.state),
+          state: computeJobState(klipperState, status.print_stats?.state),
           elapsed: hhmmFromSeconds(printDuration),
           eta: hhmmFromSeconds(remainingSeconds),
           remaining: hhmmFromSeconds(remainingSeconds),
@@ -468,12 +438,19 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               ? `${currentLayer}/${totalLayer}`
               : '-',
         },
+        klipperState,
+        klipperMessage: String(status.webhooks?.state_message ?? ''),
         logs: [
           status.webhooks?.state_message ? String(status.webhooks.state_message) : `State: ${String(status.webhooks?.state ?? status.print_stats?.state ?? 'unknown')}`,
           ...state.logs,
         ].slice(0, 40),
         };
       });
+    } else if (serverInfo) {
+      set((state) => ({
+        klipperState,
+        job: { ...state.job, state: computeJobState(klipperState, statusCache.print_stats?.state) },
+      }));
     }
 
     if (filesRes.status === 'fulfilled') {
@@ -622,6 +599,18 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         () => set({ connectionState: 'online' }),
         () => set({ connectionState: 'offline' }),
         (payload) => {
+          const method = (payload as { method?: string } | null)?.method;
+          if (method === 'notify_klippy_ready') {
+            socketClient?.resubscribe();
+            void fetchSnapshot();
+            return;
+          }
+          if (method === 'notify_klippy_shutdown' || method === 'notify_klippy_disconnected') {
+            set({ klipperState: method === 'notify_klippy_shutdown' ? 'shutdown' : 'disconnected' });
+            void fetchSnapshot();
+            return;
+          }
+
           const status = parseStatusPayload(payload);
           if (!status) return;
           lastSocketUpdate = Date.now();
@@ -668,19 +657,21 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               };
             }
 
-            const nextPrinterState = resolvePrinterState(status, next.job.state);
-            const isActivePrintState = nextPrinterState === 'printing' || nextPrinterState === 'paused';
-            // Keep the launch flag through the idle->printing transition; only drop it after the grace period
-            if (!isActivePrintState && Date.now() - pendingLaunchAt > LAUNCH_GRACE_MS) next.pendingPrintLaunch = false;
-
-            if (nextPrinterState !== 'printing' && nextPrinterState !== 'paused' && nextPrinterState !== 'shutdown' && nextPrinterState !== 'startup') {
+            if (status.webhooks || status.print_stats) {
+              statusCache = {
+                webhooks: { ...statusCache.webhooks, ...status.webhooks },
+                print_stats: { ...statusCache.print_stats, ...status.print_stats },
+              };
+              next.klipperState = normalizeKlipperState(statusCache.webhooks.state, next.klipperState);
+              next.klipperMessage = String(statusCache.webhooks.state_message ?? next.klipperMessage);
+              const jobState = computeJobState(next.klipperState, statusCache.print_stats.state);
               next.job = {
                 ...next.job,
-                state: nextPrinterState,
-                progress: 0,
-                elapsed: '00:00',
-                eta: '00:00',
-                remaining: '00:00',
+                state: jobState,
+                filename: String(statusCache.print_stats.filename ?? next.job.filename),
+                ...(jobState === 'printing' || jobState === 'paused' || jobState === 'shutdown' || jobState === 'startup'
+                  ? {}
+                  : { progress: 0, elapsed: '00:00', eta: '00:00', remaining: '00:00' }),
               };
             }
 
@@ -752,11 +743,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         selectedFile: state.files.find((entry) => entry.path === path) ?? state.selectedFile,
       }));
     },
-    pendingPrintLaunch: false,
-    setPendingPrintLaunch: (value: boolean) => {
-      pendingLaunchAt = value ? Date.now() : 0;
-      set({ pendingPrintLaunch: value });
-    },
+    klipperState: 'ready',
+    klipperMessage: '',
   };
 });
 

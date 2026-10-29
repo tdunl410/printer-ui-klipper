@@ -1031,3 +1031,22 @@ body {
 .preset-row .macro-item strong {
   font-size: 12px;
 }
+
+.state-message {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #11151d;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.state-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

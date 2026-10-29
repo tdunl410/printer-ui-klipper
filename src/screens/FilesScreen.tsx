@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Dialog } from '../components/Dialog';
 import { Layout } from '../components/Layout';
 import { KeyboardInput } from '../components/OnScreenKeyboard';
@@ -24,14 +23,12 @@ function bytesToSize(value?: number) {
 
 export function FilesScreen() {
   const commands = useCommands();
-  const navigate = useNavigate();
   const files = usePrinterStore((state) => state.files);
   const selectedFile = usePrinterStore((state) => state.selectedFile);
   const setSelectedFile = usePrinterStore((state) => state.setSelectedFile);
   const connection = usePrinterStore((state) => state.connection);
   const runAction = usePrinterStore((state) => state.runAction);
   const activeJob = usePrinterStore((state) => state.job);
-  const setPendingPrintLaunch = usePrinterStore((state) => state.setPendingPrintLaunch);
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [renameFilePath, setRenameFilePath] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
@@ -79,18 +76,9 @@ export function FilesScreen() {
   const popupModified = popupFile?.modified ? new Date(popupFile.modified * 1000).toLocaleString() : '-';
   const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
 
+  // App navigates to the print screen once Klipper reports the print as started
   const launchPrint = (path: string) => {
-    setPendingPrintLaunch(true);
-    void runAction('Print Selected', async () => {
-      try {
-        return await commands.startPrint(path);
-      } catch (error) {
-        setPendingPrintLaunch(false);
-        navigate('/files');
-        throw error;
-      }
-    });
-    navigate('/print');
+    void runAction('Print Selected', () => commands.startPrint(path));
     setOpenFile(null);
   };
 

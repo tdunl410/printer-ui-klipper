@@ -16,6 +16,8 @@ export interface PrinterTemperatures {
   sensors: Record<string, HeaterState>;
 }
 
+export type KlipperState = 'ready' | 'startup' | 'shutdown' | 'error' | 'disconnected';
+
 export interface JobState {
   filename: string;
   progress: number;

@@ -6,6 +6,7 @@ import { ControlScreen } from './screens/ControlScreen';
 import { ExtrudeScreen } from './screens/ExtrudeScreen';
 import { FilesScreen } from './screens/FilesScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { KlipperStateScreen } from './screens/KlipperStateScreen';
 import { PreheatScreen } from './screens/PreheatScreen';
 import { PrintScreen } from './screens/PrintScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -17,9 +18,10 @@ export default function App() {
   const disconnect = usePrinterStore((state) => state.disconnect);
   const jobState = usePrinterStore((state) => state.job.state);
   const connectionState = usePrinterStore((state) => state.connectionState);
-  const pendingPrintLaunch = usePrinterStore((state) => state.pendingPrintLaunch);
+  const klipperState = usePrinterStore((state) => state.klipperState);
   const location = useLocation();
-  const activePrint = (jobState === 'printing' || jobState === 'paused' || pendingPrintLaunch) && connectionState === 'online';
+  const klipperDown = klipperState !== 'ready' && connectionState === 'online';
+  const activePrint = (jobState === 'printing' || jobState === 'paused') && connectionState === 'online';
 
   useEffect(() => {
     boot();
@@ -28,6 +30,8 @@ export default function App() {
 
   return (
     <DeviceFrame>
+      {klipperDown ? <KlipperStateScreen /> : (
+        <>
       {activePrint && location.pathname !== '/print' ? <Navigate to="/print" replace /> : null}
       <Routes>
         <Route path="/" element={<HomeScreen />} />
@@ -42,6 +46,8 @@ export default function App() {
         <Route path="/updates" element={<UpdatesScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+        </>
+      )}
     </DeviceFrame>
   );
 }

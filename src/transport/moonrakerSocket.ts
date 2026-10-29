@@ -49,6 +49,11 @@ export class MoonrakerSocket {
     this.sendSubscribe([...this.subscribeObjects, ...this.extraObjects]);
   }
 
+  // Klipper restarts drop the connection's subscriptions
+  resubscribe() {
+    this.sendSubscribe([...this.subscribeObjects, ...this.extraObjects]);
+  }
+
   private sendSubscribe(objects: string[]) {
     this.send({
       jsonrpc: '2.0',

@@ -11,7 +11,7 @@ export function ExtrudeScreen() {
   const macros = usePrinterStore((state) => state.macros);
   const runAction = usePrinterStore((state) => state.runAction);
   const [extrudeDistance, setExtrudeDistance] = useState(5);
-  const [extrudeSpeed, setExtrudeSpeed] = useState(180);
+  const [extrudeSpeed, setExtrudeSpeed] = useState(25);
   const distanceOptions = [1, 5, 10, 25];
   const speedOptions = [1, 5, 10, 25];
   const extrusionMacros = macros.filter((name) => /filament|purge|extrude|load|unload/i.test(name)).slice(0, 5);

@@ -111,6 +111,10 @@ export class CommandService {
     return this.gcode('M84');
   }
 
+  async firmwareRestart() {
+    return this.http.post('/printer/firmware_restart');
+  }
+
   async systemAction(action: 'restart-klipper' | 'restart-host' | 'shutdown') {
     if (action === 'restart-klipper') {
       return this.http.post('/machine/services/restart', { service: 'klipper' });

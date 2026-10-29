@@ -20,7 +20,6 @@ export function PrintScreen() {
   const [confirmAction, setConfirmAction] = useState<'stop' | 'emergency' | null>(null);
   const connection = usePrinterStore((state) => state.connection);
   const [thumbnailUrl, setThumbnailUrl] = useState<string>();
-  const pendingPrintLaunch = usePrinterStore((state) => state.pendingPrintLaunch);
   const isPaused = job.state === 'paused';
 
   useEffect(() => {
@@ -34,7 +33,7 @@ export function PrintScreen() {
     };
   }, [connection.moonrakerBaseUrl, job.filename]);
 
-  if (!pendingPrintLaunch && job.state !== 'printing' && job.state !== 'paused' && job.state !== 'shutdown' && job.state !== 'startup') {
+  if (job.state !== 'printing' && job.state !== 'paused') {
     return <Navigate to="/files" replace />;
   }
 
@@ -116,14 +115,6 @@ export function PrintScreen() {
             onClick={() => setConfirmAction('stop')}
           >
             Stop
-          </button>
-          <button
-            type="button"
-            className="btn with-icon"
-            onClick={() => setConfirmAction('emergency')}
-          >
-            <img className="button-icon" src={emergencyIcon} alt="" aria-hidden="true" />
-            Emergency
           </button>
         </div>
       </section>

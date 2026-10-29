@@ -60,6 +60,14 @@ export class MoonrakerHttpClient {
     return (await response.json()) as Record<string, unknown>;
   }
 
+  async serverInfo() {
+    const response = await fetch(`${this.baseUrl}/server/info`);
+    if (!response.ok) {
+      throw new Error(`Server info failed: ${response.status}`);
+    }
+    return (await response.json()) as Record<string, unknown>;
+  }
+
   async historyTotals() {
     const response = await fetch(`${this.baseUrl}/server/history/totals`);
     if (!response.ok) {
