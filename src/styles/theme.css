@@ -1118,3 +1118,25 @@ body {
 .tune-step.active {
   background: rgba(var(--accent-rgb), 0.45);
 }
+
+.ex-temp { display: flex; align-items: center; margin: 6px 0 12px; }
+.ex-temp-value { font-size: 34px; font-weight: 700; }
+.ex-temp-sub { color: var(--muted, #8b93a7); font-size: 14px; margin-top: 2px; }
+.ex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ex-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  min-height: 96px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 4px solid var(--tile-c); background: rgba(255, 255, 255, 0.04);
+  color: inherit; font: inherit; font-weight: 600; font-size: 16px;
+}
+.ex-tile img { width: 34px; height: 34px; }
+.ex-tile:active { background: rgba(var(--accent-rgb), 0.18); }
+.ex-tile.c-blue { --tile-c: #1d8bff; }
+.ex-tile.c-green { --tile-c: #8bc300; }
+.ex-tile.c-pink { --tile-c: #f2456b; }
+.ex-tile.c-orange { --tile-c: #e8780a; }
+.ex-label { text-align: center; color: var(--muted, #8b93a7); font-size: 14px; margin: 14px 0 6px; }
+.ex-seg { display: grid; grid-template-columns: repeat(4, 1fr); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.08); }
+.ex-seg button { min-height: 52px; background: rgba(255, 255, 255, 0.04); color: inherit; border: 0; font: inherit; font-weight: 600; font-size: 17px; }
+.ex-seg button + button { border-left: 1px solid rgba(255, 255, 255, 0.08); }
+.ex-seg button.active { background: var(--accent); color: #fff; }
