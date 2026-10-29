@@ -118,12 +118,54 @@ const readHeater = (
   target: Number(status[key]?.target ?? fallback.target),
 });
 
+const dynamicFieldsForObject = (name: string) => {
+  if (name.startsWith('output_pin ')) {
+    return ['value'];
+  }
+
+  if (
+    name.startsWith('temperature_sensor ') ||
+    name.startsWith('temperature_fan ') ||
+    name.startsWith('heater_generic ')
+  ) {
+    return ['temperature', 'target', 'speed'];
+  }
+
+  if (
+    name.startsWith('fan_generic ') ||
+    name.startsWith('controller_fan ') ||
+    name.startsWith('heater_fan ')
+  ) {
+    return ['speed'];
+  }
+
+  return ['temperature', 'target', 'speed', 'value'];
+};
+
+const resolveObjectName = (name: string, objects: string[]) => {
+  const trimmed = name.trim();
+  if (!trimmed) return undefined;
+  if (objects.includes(trimmed)) return trimmed;
+
+  const candidates = [
+    `temperature_sensor ${trimmed}`,
+    `temperature_fan ${trimmed}`,
+    `heater_generic ${trimmed}`,
+    `fan_generic ${trimmed}`,
+    `controller_fan ${trimmed}`,
+    `heater_fan ${trimmed}`,
+    `output_pin ${trimmed}`,
+  ];
+
+  return candidates.find((candidate) => objects.includes(candidate));
+};
+
 const getDynamicTemperatureObjects = (status: Record<string, any>, objects: string[]) => {
   const fromHeaters = [
     ...((status.heaters?.available_heaters as string[] | undefined) ?? []),
     ...((status.heaters?.available_sensors as string[] | undefined) ?? []),
     ...((status.heaters?.available_monitors as string[] | undefined) ?? []),
-  ];
+  ].map((name) => resolveObjectName(String(name), objects)).filter((name): name is string => Boolean(name));
 
   const fromObjectList = objects.filter((name) => {
     return (
@@ -132,7 +174,8 @@ const getDynamicTemperatureObjects = (status: Record<string, any>, objects: stri
       name.startsWith('heater_generic ') ||
       name.startsWith('fan_generic ') ||
       name.startsWith('controller_fan ') ||
-      name.startsWith('heater_fan ')
+      name.startsWith('heater_fan ') ||
+      name.startsWith('output_pin ')
     );
   });
 
@@ -217,7 +260,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
       let dynamicStatus: Record<string, any> = {};
       if (dynamicObjects.length > 0) {
-        const dynamicQuery = Object.fromEntries(dynamicObjects.map((name) => [name, ['temperature', 'target', 'speed']]));
+        const dynamicQuery = Object.fromEntries(dynamicObjects.map((name) => [name, dynamicFieldsForObject(name)]));
         try {
           const dynamicRes = await scopedHttp.queryObjects(dynamicQuery);
           dynamicStatus = (((dynamicRes.result as any) || {}).status || {}) as Record<string, any>;
@@ -258,7 +301,10 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         (chamberSensorEntry?.[1] as any)?.temperature ?? chamberCandidate?.[1]?.current ?? currentState.temperatures.chamber.current,
       );
       const chamberTarget = Number(
-        (chamberControlEntry?.[1] as any)?.target ?? chamberCandidate?.[1]?.target ?? currentState.temperatures.chamber.target,
+        (chamberControlEntry?.[1] as any)?.target
+          ?? (chamberControlEntry?.[1] as any)?.target_temp
+          ?? chamberCandidate?.[1]?.target
+          ?? currentState.temperatures.chamber.target,
       );
 
       const chamber = {

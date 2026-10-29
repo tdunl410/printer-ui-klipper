@@ -69,8 +69,9 @@ export class CommandService {
 
   async setFan(percent: number, fan = 'fan') {
     if (fan === 'fan') {
-      const boundedS = Math.max(0, Math.min(percent, 55));
-      return this.gcode(`M106 S${Math.round(boundedS)}`);
+      const boundedPercent = Math.max(0, Math.min(percent, 100));
+      const speedValue = Math.round((boundedPercent / 100) * 255);
+      return this.gcode(`M106 S${speedValue}`);
     }
 
     if (fan === 'aux_fan' || fan === 'chamber_fan') {
