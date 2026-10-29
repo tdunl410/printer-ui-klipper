@@ -2,17 +2,22 @@ import { useMemo, useState } from 'react';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
-function tempY(value: number) {
-  const clamped = Math.max(0, Math.min(300, value));
-  return 145 - (clamped / 300) * 125;
-}
+const GRAPH_TOP = 20;
+const GRAPH_BOTTOM = 140;
+const GRAPH_LEFT = 34;
+const GRAPH_RIGHT = 320;
+const GRAPH_HEIGHT = GRAPH_BOTTOM - GRAPH_TOP;
+const GRID_LINES = 5;
 
-function line(series: number[]) {
+function line(series: number[], minTemp: number, maxTemp: number) {
   if (series.length === 0) return '';
   const span = Math.max(1, series.length - 1);
+  const tempSpan = Math.max(1, maxTemp - minTemp);
   const points = series.map((value, index) => {
-    const x = (index / span) * 320;
-    return `${x.toFixed(1)},${tempY(value).toFixed(1)}`;
+    const x = GRAPH_LEFT + (index / span) * (GRAPH_RIGHT - GRAPH_LEFT);
+    const clamped = Math.min(maxTemp, Math.max(minTemp, value));
+    const y = GRAPH_BOTTOM - ((clamped - minTemp) / tempSpan) * GRAPH_HEIGHT;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
   return points.join(' ');
 }
@@ -60,6 +65,50 @@ export function PreheatScreen() {
   };
 
   const sensorEntries = Object.entries(temperatures.sensors);
+
+  const graphScale = useMemo(() => {
+    const allSeries = [
+      temperatureHistory.nozzle ?? [temperatures.nozzle.current],
+      temperatureHistory.bed ?? [temperatures.bed.current],
+      temperatureHistory.chamber ?? [temperatures.chamber.current],
+      temperatureHistory.ambient ?? [temperatures.ambient],
+      temperatureHistory.controller ?? [temperatures.controller],
+      temperatureHistory.raspberryPi ?? [temperatures.raspberryPi],
+      ...sensorEntries.map(([name]) => temperatureHistory[name] ?? [temperatures.sensors[name].current]),
+    ];
+
+    const values = allSeries.flat().filter((value) => Number.isFinite(value));
+    const minValue = values.length > 0 ? Math.min(...values) : 0;
+    const maxValue = values.length > 0 ? Math.max(...values) : 50;
+    const rawSpan = Math.max(5, maxValue - minValue);
+    const padding = Math.max(2, rawSpan * 0.12);
+    const minTemp = Math.max(0, Math.floor(minValue - padding));
+    const maxTemp = Math.max(minTemp + 5, Math.ceil(maxValue + padding));
+
+    const ticks = Array.from({ length: GRID_LINES }, (_, index) => {
+      const t = index / (GRID_LINES - 1);
+      const y = GRAPH_TOP + t * GRAPH_HEIGHT;
+      const value = Math.round(maxTemp - t * (maxTemp - minTemp));
+      return { y, value };
+    });
+
+    return { minTemp, maxTemp, ticks };
+  }, [
+    sensorEntries,
+    temperatureHistory.ambient,
+    temperatureHistory.bed,
+    temperatureHistory.chamber,
+    temperatureHistory.controller,
+    temperatureHistory.nozzle,
+    temperatureHistory.raspberryPi,
+    temperatures.ambient,
+    temperatures.bed.current,
+    temperatures.chamber.current,
+    temperatures.controller,
+    temperatures.nozzle.current,
+    temperatures.raspberryPi,
+    temperatures.sensors,
+  ]);
 
   return (
     <Layout title="Preheat" subtitle="Nozzle + Bed + Chamber">
@@ -116,23 +165,28 @@ export function PreheatScreen() {
         <div className="temp-graph-wrap">
           <svg className="temp-graph" viewBox="0 0 320 150" preserveAspectRatio="none" aria-label="Temperature graph">
             <g className="grid">
-              <line x1="0" y1="20" x2="320" y2="20"></line>
-              <line x1="0" y1="50" x2="320" y2="50"></line>
-              <line x1="0" y1="80" x2="320" y2="80"></line>
-              <line x1="0" y1="110" x2="320" y2="110"></line>
-              <line x1="0" y1="140" x2="320" y2="140"></line>
+              {graphScale.ticks.map((tick) => (
+                <line key={`grid-${tick.y}`} x1={GRAPH_LEFT} y1={tick.y} x2={GRAPH_RIGHT} y2={tick.y}></line>
+              ))}
             </g>
-            <polyline className="line nozzle" points={line(temperatureHistory.nozzle ?? [temperatures.nozzle.current])}></polyline>
-            <polyline className="line bed" points={line(temperatureHistory.bed ?? [temperatures.bed.current])}></polyline>
-            <polyline className="line chamber" points={line(temperatureHistory.chamber ?? [temperatures.chamber.current])}></polyline>
-            <polyline className="line ambient" points={line(temperatureHistory.ambient ?? [temperatures.ambient])}></polyline>
-            <polyline className="line controller" points={line(temperatureHistory.controller ?? [temperatures.controller])}></polyline>
-            <polyline className="line pi" points={line(temperatureHistory.raspberryPi ?? [temperatures.raspberryPi])}></polyline>
+            <g>
+              {graphScale.ticks.map((tick) => (
+                <text key={`label-${tick.y}`} x={2} y={tick.y + 3} fill="var(--text-muted)" fontSize="9">
+                  {tick.value}°
+                </text>
+              ))}
+            </g>
+            <polyline className="line nozzle" points={line(temperatureHistory.nozzle ?? [temperatures.nozzle.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+            <polyline className="line bed" points={line(temperatureHistory.bed ?? [temperatures.bed.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+            <polyline className="line chamber" points={line(temperatureHistory.chamber ?? [temperatures.chamber.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+            <polyline className="line ambient" points={line(temperatureHistory.ambient ?? [temperatures.ambient], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+            <polyline className="line controller" points={line(temperatureHistory.controller ?? [temperatures.controller], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+            <polyline className="line pi" points={line(temperatureHistory.raspberryPi ?? [temperatures.raspberryPi], graphScale.minTemp, graphScale.maxTemp)}></polyline>
             {sensorEntries.map(([name]) => (
               <polyline
                 key={name}
                 className="line"
-                points={line(temperatureHistory[name] ?? [temperatures.sensors[name].current])}
+                points={line(temperatureHistory[name] ?? [temperatures.sensors[name].current], graphScale.minTemp, graphScale.maxTemp)}
                 style={{ stroke: 'var(--text-muted)' }}
               ></polyline>
             ))}

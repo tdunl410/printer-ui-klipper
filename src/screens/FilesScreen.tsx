@@ -30,10 +30,7 @@ export function FilesScreen() {
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [renameFilePath, setRenameFilePath] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
-  const [deleteFilePath, setDeleteFilePath] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, FilePreview>>({});
-
-  const selectedPreview = selectedFile?.path ? previews[selectedFile.path] : undefined;
 
   useEffect(() => {
     const filesToLoad = files.filter((file) => !previews[file.path]);
@@ -57,7 +54,7 @@ export function FilesScreen() {
 
           const payload = (await response.json()) as { result?: { thumbnails?: Array<{ relative_path?: string; width?: number }> } };
           const thumbs = payload.result?.thumbnails ?? [];
-          const preferred = thumbs.slice().sort((a, b) => Number(a.width ?? 0) - Number(b.width ?? 0))[0];
+          const preferred = thumbs.slice().sort((a, b) => Number(b.width ?? 0) - Number(a.width ?? 0))[0];
 
           if (!preferred?.relative_path) {
             return [file.path, {}] as const;
@@ -82,11 +79,10 @@ export function FilesScreen() {
   }, [connection.moonrakerBaseUrl, files, previews]);
 
   const isPrinting = activeJob.state === 'printing' || activeJob.state === 'paused';
-  const selectedModified = selectedFile?.modified ? new Date(selectedFile.modified * 1000).toLocaleString() : '-';
   const popupFile = useMemo(() => files.find((entry) => entry.path === openFile), [files, openFile]);
   const popupPreview = popupFile?.path ? previews[popupFile.path] : undefined;
+  const popupModified = popupFile?.modified ? new Date(popupFile.modified * 1000).toLocaleString() : '-';
   const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
-  const deleteTarget = deleteFilePath ? files.find((entry) => entry.path === deleteFilePath) : undefined;
 
   return (
     <Layout title="Model Files" subtitle="USB + Local + Network">
@@ -96,7 +92,7 @@ export function FilesScreen() {
         <article className="status-chip"><div className="k">Job</div><div className="v">{activeJob.state}</div></article>
       </section>
 
-      <section className="card">
+      <section className="card file-list-panel">
         <div className="card-label">Available GCODE</div>
         <div className="card-title">Files</div>
         <div className="file-list">
@@ -124,61 +120,6 @@ export function FilesScreen() {
         {files.length === 0 ? <div className="macro-item">No files found in gcodes.</div> : null}
       </section>
 
-      <section className="card">
-        <div className="card-label">Selected File</div>
-        <div className="card-title">Selected File</div>
-        <div className="media-thumb thumb-gap file-selected-thumb">
-          {selectedPreview?.thumbnailUrl ? (
-            <img src={selectedPreview.thumbnailUrl} alt={`${selectedFile?.path || 'Selected file'} preview`} />
-          ) : (
-            <div className="file-thumb-placeholder">No Preview</div>
-          )}
-        </div>
-        <div className="kv"><span>Name</span><strong>{selectedFile?.path || 'None selected'}</strong></div>
-        <div className="kv"><span>Size</span><strong>{bytesToSize(selectedFile?.size)}</strong></div>
-        <div className="kv"><span>Modified</span><strong>{selectedModified}</strong></div>
-      </section>
-
-      <section className="card">
-        <div className="card-label">Actions</div>
-        <div className="btn-row">
-          <button
-            type="button"
-            className="btn accent"
-            disabled={!selectedFile || isPrinting}
-            onClick={() => {
-              if (!selectedFile) return;
-              void runAction('Print Selected', () => commands.startPrint(selectedFile.path));
-            }}
-          >
-            Print Now
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={!selectedFile || isPrinting}
-            onClick={() => {
-              if (!selectedFile) return;
-              setRenameFilePath(selectedFile.path);
-              setRenameDraft(selectedFile.path);
-            }}
-          >
-            Rename
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={!selectedFile || isPrinting}
-            onClick={() => {
-              if (!selectedFile) return;
-              setDeleteFilePath(selectedFile.path);
-            }}
-          >
-            Delete
-          </button>
-        </div>
-      </section>
-
       <BackButton to="/settings" />
 
       {popupFile ? (
@@ -195,6 +136,14 @@ export function FilesScreen() {
                 setOpenFile(null);
               },
             },
+            {
+              label: 'Rename',
+              onClick: () => {
+                setRenameFilePath(popupFile.path);
+                setRenameDraft(popupFile.path);
+                setOpenFile(null);
+              },
+            },
             { label: 'Close', onClick: () => setOpenFile(null) },
           ]}
         >
@@ -205,6 +154,9 @@ export function FilesScreen() {
               <div className="file-thumb-placeholder">No Preview</div>
             )}
           </div>
+          <div className="kv"><span>Name</span><strong>{popupFile.path}</strong></div>
+          <div className="kv"><span>Size</span><strong>{bytesToSize(popupFile.size)}</strong></div>
+          <div className="kv"><span>Modified</span><strong>{popupModified}</strong></div>
         </Dialog>
       ) : null}
 
@@ -239,26 +191,6 @@ export function FilesScreen() {
           <label className="field-label">New file name</label>
           <input className="input" value={renameDraft} onChange={(event) => setRenameDraft(event.target.value)} />
         </Dialog>
-      ) : null}
-
-      {deleteTarget ? (
-        <Dialog
-          subtitle="Delete File"
-          title={`Delete ${deleteTarget.path}?`}
-          actions={[
-            {
-              label: 'Delete',
-              variant: 'accent',
-              onClick: () => {
-                void runAction('Delete File', async () => {
-                  await commands.deleteFile(deleteTarget.path);
-                });
-                setDeleteFilePath(null);
-              },
-            },
-            { label: 'Cancel', onClick: () => setDeleteFilePath(null) },
-          ]}
-        />
       ) : null}
     </Layout>
   );
