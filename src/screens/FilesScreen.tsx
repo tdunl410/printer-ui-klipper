@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog } from '../components/Dialog';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
@@ -21,6 +22,7 @@ function bytesToSize(value?: number) {
 
 export function FilesScreen() {
   const commands = useCommands();
+  const navigate = useNavigate();
   const files = usePrinterStore((state) => state.files);
   const selectedFile = usePrinterStore((state) => state.selectedFile);
   const setSelectedFile = usePrinterStore((state) => state.setSelectedFile);
@@ -103,6 +105,12 @@ export function FilesScreen() {
   const popupModified = popupFile?.modified ? new Date(popupFile.modified * 1000).toLocaleString() : '-';
   const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
 
+  const launchPrint = (path: string) => {
+    void runAction('Print Selected', () => commands.startPrint(path));
+    navigate('/print');
+    setOpenFile(null);
+  };
+
   if (isPrinting) {
     return <Layout title="Model Files" subtitle="Print active — return to active print"><div className="card"><div className="card-label">Print in progress</div><div className="card-title">Use the active print view to control the job.</div><a className="primary" href="/print">Open Print Screen</a></div></Layout>;
   }
@@ -171,8 +179,7 @@ export function FilesScreen() {
               variant: 'accent',
               disabled: isPrinting,
               onClick: () => {
-                void runAction('Print Selected', () => commands.startPrint(popupFile.path));
-                setOpenFile(null);
+                launchPrint(popupFile.path);
               },
             },
             {

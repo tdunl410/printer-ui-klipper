@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
@@ -7,6 +8,8 @@ export function MoveScreen() {
   const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
   const fanChamberPercent = usePrinterStore((state) => state.fanChamberPercent);
   const runAction = usePrinterStore((state) => state.runAction);
+  const [moveDistance, setMoveDistance] = useState(10);
+  const distanceOptions = [5, 10, 25, 50];
 
   return (
     <Layout title="Move" subtitle="Jog + Homing + Fans">
@@ -29,17 +32,31 @@ export function MoveScreen() {
       <section className="card">
         <div className="card-label">Axis Controls</div>
         <div className="card-title">Jog Axes</div>
+        <div className="kv"><span>Move Distance</span><strong>{moveDistance} mm</strong></div>
+        <div className="btn-row">
+          {distanceOptions.map((distance) => (
+            <button
+              key={distance}
+              type="button"
+              className={`btn ${moveDistance === distance ? 'accent' : ''}`}
+              onClick={() => setMoveDistance(distance)}
+            >
+              {distance}mm
+            </button>
+          ))}
+        </div>
+        <div className="spacer" />
         <div className="move-controls">
           <div className="move-pad" aria-label="XY move controls">
-            <button type="button" className="btn move-pad-btn up" onClick={() => runAction('Jog Y+', () => commands.jog('Y', 1))}>Y+</button>
-            <button type="button" className="btn move-pad-btn left" onClick={() => runAction('Jog X-', () => commands.jog('X', -1))}>X-</button>
-            <button type="button" className="btn move-pad-btn right" onClick={() => runAction('Jog X+', () => commands.jog('X', 1))}>X+</button>
-            <button type="button" className="btn move-pad-btn down" onClick={() => runAction('Jog Y-', () => commands.jog('Y', -1))}>Y-</button>
+            <button type="button" className="btn move-pad-btn up" onClick={() => runAction(`Jog Y+ ${moveDistance}mm`, () => commands.jog('Y', moveDistance))}>Y+</button>
+            <button type="button" className="btn move-pad-btn left" onClick={() => runAction(`Jog X- ${moveDistance}mm`, () => commands.jog('X', -moveDistance))}>X-</button>
+            <button type="button" className="btn move-pad-btn right" onClick={() => runAction(`Jog X+ ${moveDistance}mm`, () => commands.jog('X', moveDistance))}>X+</button>
+            <button type="button" className="btn move-pad-btn down" onClick={() => runAction(`Jog Y- ${moveDistance}mm`, () => commands.jog('Y', -moveDistance))}>Y-</button>
             <button type="button" className="btn accent move-pad-home" onClick={() => runAction('Home XY', () => commands.home('xy'))}>Home</button>
           </div>
           <div className="z-controls" aria-label="Z move controls">
-            <button type="button" className="btn" onClick={() => runAction('Jog Z+', () => commands.jog('Z', 0.2))}>Z+</button>
-            <button type="button" className="btn" onClick={() => runAction('Jog Z-', () => commands.jog('Z', -0.2))}>Z-</button>
+            <button type="button" className="btn" onClick={() => runAction(`Jog Z+ ${moveDistance}mm`, () => commands.jog('Z', moveDistance))}>Z+</button>
+            <button type="button" className="btn" onClick={() => runAction(`Jog Z- ${moveDistance}mm`, () => commands.jog('Z', -moveDistance))}>Z-</button>
           </div>
         </div>
         <div className="spacer" />
