@@ -41,12 +41,12 @@ export class MoonrakerSocket {
     });
   }
 
-  // Moonraker merges repeated subscribe calls on one connection, so this only adds objects.
+  // A subscribe call replaces the connection's previous subscription, so always send the full set.
   subscribe(objects: string[]) {
     const added = objects.filter((name) => !this.extraObjects.has(name) && !this.subscribeObjects.includes(name));
     if (added.length === 0) return;
     added.forEach((name) => this.extraObjects.add(name));
-    this.sendSubscribe(added);
+    this.sendSubscribe([...this.subscribeObjects, ...this.extraObjects]);
   }
 
   private sendSubscribe(objects: string[]) {

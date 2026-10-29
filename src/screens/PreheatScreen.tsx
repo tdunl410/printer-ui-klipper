@@ -134,7 +134,6 @@ export function PreheatScreen() {
           <span><i className="dot bed"></i>Bed</span>
           <span><i className="dot chamber"></i>Chamber</span>
           <span><i className="dot ambient"></i>Ambient</span>
-          <span><i className="dot controller"></i>Controller</span>
           <span><i className="dot pi"></i>Raspberry Pi</span>
           {sensorEntries.map(([name]) => (
             <span key={name}><i className="dot" style={{ background: 'var(--text-muted)' }}></i>{name}</span>
@@ -159,7 +158,6 @@ export function PreheatScreen() {
             <polyline className="line bed" points={line(temperatureHistory.bed ?? [temperatures.bed.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
             <polyline className="line chamber" points={line(temperatureHistory.chamber ?? [temperatures.chamber.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
             <polyline className="line ambient" points={line(temperatureHistory.ambient ?? [temperatures.ambient], graphScale.minTemp, graphScale.maxTemp)}></polyline>
-            <polyline className="line controller" points={line(temperatureHistory.controller ?? [temperatures.controller], graphScale.minTemp, graphScale.maxTemp)}></polyline>
             <polyline className="line pi" points={line(temperatureHistory.raspberryPi ?? [temperatures.raspberryPi], graphScale.minTemp, graphScale.maxTemp)}></polyline>
             {sensorEntries.map(([name]) => (
               <polyline
@@ -186,9 +184,6 @@ export function PreheatScreen() {
       <section className="card">
         <div className="card-label">Sensor Health</div>
         <div className="card-title">Sensors</div>
-        <div className="kv"><span>Toolhead Ambient</span><strong>{Math.round(temperatures.ambient)}°C</strong></div>
-        <div className="kv"><span>Electronics Bay</span><strong>{Math.round(temperatures.controller)}°C</strong></div>
-        <div className="kv"><span>Chamber Rear</span><strong>{Math.round(temperatures.raspberryPi)}°C</strong></div>
         {sensorEntries.map(([name, values]) => (
           <div className="kv" key={name}><span>{name}</span><strong>{Math.round(values.current)} / {Math.round(values.target)}°C</strong></div>
         ))}
