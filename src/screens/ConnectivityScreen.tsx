@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Layout } from '../components/Layout';
+import { KeyboardInput } from '../components/OnScreenKeyboard';
+import { WifiNetworks } from '../components/WifiNetworks';
 import { usePrinterStore } from '../stores/usePrinterStore';
 
 export function ConnectivityScreen() {
@@ -25,17 +27,9 @@ export function ConnectivityScreen() {
         <div className="card-label">Connection</div>
         <div className="card-title">Moonraker</div>
         <label className="field-label">Base URL</label>
-        <input
-          className="input"
-          value={baseUrl}
-          onChange={(event) => setBaseUrl(event.target.value)}
-        />
+        <KeyboardInput label="Base URL" value={baseUrl} onChange={setBaseUrl} />
         <label className="field-label">WebSocket URL</label>
-        <input
-          className="input"
-          value={wsUrl}
-          onChange={(event) => setWsUrl(event.target.value)}
-        />
+        <KeyboardInput label="WebSocket URL" value={wsUrl} onChange={setWsUrl} />
         <div className="btn-row top-gap">
           <button
             type="button"
@@ -69,6 +63,8 @@ export function ConnectivityScreen() {
         <div className="kv"><span>IP Address</span><strong>{wifi?.ipAddresses[0] || '-'}</strong></div>
         <div className="kv"><span>Gateway</span><strong>{wifi?.gateway || '-'}</strong></div>
       </section>
+
+      <WifiNetworks onConnected={() => boot()} />
 
       <section className="card">
         <div className="card-label">Wired</div>

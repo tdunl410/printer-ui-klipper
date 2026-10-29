@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog } from '../components/Dialog';
 import { Layout } from '../components/Layout';
+import { KeyboardInput } from '../components/OnScreenKeyboard';
 import { fetchThumbnailUrl } from '../utils/thumbnail';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
@@ -100,12 +101,7 @@ export function FilesScreen() {
           <span>Showing</span>
           <strong>{filteredFiles.length} / {files.length}</strong>
         </div>
-        <input
-          className="input"
-          placeholder="Search files"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+        <KeyboardInput label="Search files" placeholder="Search files" value={search} onChange={setSearch} />
         <div className="btn-row top-gap">
           <button type="button" className={`btn ${sortBy === 'modified' ? 'accent' : ''}`} onClick={() => setSortBy('modified')}>Newest</button>
           <button type="button" className={`btn ${sortBy === 'name' ? 'accent' : ''}`} onClick={() => setSortBy('name')}>Name</button>
@@ -203,7 +199,7 @@ export function FilesScreen() {
           ]}
         >
           <label className="field-label">New file name</label>
-          <input className="input" value={renameDraft} onChange={(event) => setRenameDraft(event.target.value)} />
+          <KeyboardInput label="Rename file" value={renameDraft} onChange={setRenameDraft} />
         </Dialog>
       ) : null}
     </Layout>
