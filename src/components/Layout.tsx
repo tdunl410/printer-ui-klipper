@@ -1,10 +1,11 @@
+import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { usePrinterStore } from '../stores/usePrinterStore';
 
 interface LayoutProps {
   title: string;
   subtitle: string;
-  children: React.ReactNode;
+  children: ReactNode;
   homeAction?: boolean;
 }
 
@@ -14,7 +15,7 @@ const dockItems = [
 ];
 
 export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
-  const jobState = usePrinterStore((state) => state.job.state);
+  const jobState = usePrinterStore((state: { job: { state: string } }) => state.job.state);
   const printRoute = jobState === 'printing' || jobState === 'paused' ? '/print' : '/files';
 
   return (
@@ -38,17 +39,17 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
       {children}
 
       <nav className="dock">
-        <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
+        <NavLink to="/" className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')} end>
           Home
         </NavLink>
-        <NavLink to={printRoute} className={({ isActive }) => (isActive ? 'active' : '')}>
+        <NavLink to={printRoute} className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}>
           Print
         </NavLink>
         {dockItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
-            className={({ isActive }) => (isActive ? 'active' : '')}
+            className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}
             end={item.to === '/'}
           >
             {item.label}
@@ -60,9 +61,6 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
 }
 
 export function BackButton({ to = '/' }: { to?: string }) {
-  return (
-    <Link to={to} className="back-btn">
-      ← Back
-    </Link>
-  );
+  void to;
+  return null;
 }
