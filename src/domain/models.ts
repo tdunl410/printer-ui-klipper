@@ -13,6 +13,7 @@ export interface PrinterTemperatures {
   ambient: number;
   controller: number;
   raspberryPi: number;
+  sensors: Record<string, HeaterState>;
 }
 
 export interface JobState {
@@ -36,6 +37,23 @@ export interface MachineStats {
   filamentKg: number;
 }
 
+export interface NetworkInterfaceInfo {
+  name: string;
+  type: 'wifi' | 'ethernet' | 'other';
+  isUp: boolean;
+  ssid?: string;
+  signalDbm?: number;
+  ipAddresses: string[];
+  gateway?: string;
+}
+
+export interface SystemVersions {
+  moonraker?: string;
+  klipper?: string;
+  mainsail?: string;
+  fluidd?: string;
+}
+
 export interface FileEntry {
   path: string;
   modified?: number;
@@ -55,4 +73,5 @@ export interface ConnectionDetails {
   websocketUrl: string;
   networkState: 'online' | 'offline';
   hostname: string;
+  networkInterfaces: NetworkInterfaceInfo[];
 }

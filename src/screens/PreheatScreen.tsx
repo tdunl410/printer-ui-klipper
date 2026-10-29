@@ -6,11 +6,12 @@ function tempY(value: number) {
   return 145 - (clamped / 300) * 125;
 }
 
-function line(value: number) {
-  const points = Array.from({ length: 17 }, (_, index) => {
-    const x = index * 20;
-    const wave = Math.sin(index / 3) * 6;
-    return `${x},${(tempY(value) + wave).toFixed(1)}`;
+function line(series: number[]) {
+  if (series.length === 0) return '';
+  const span = Math.max(1, series.length - 1);
+  const points = series.map((value, index) => {
+    const x = (index / span) * 320;
+    return `${x.toFixed(1)},${tempY(value).toFixed(1)}`;
   });
   return points.join(' ');
 }
@@ -18,11 +19,14 @@ function line(value: number) {
 export function PreheatScreen() {
   const commands = useCommands();
   const temperatures = usePrinterStore((state) => state.temperatures);
+  const temperatureHistory = usePrinterStore((state) => state.temperatureHistory);
   const runAction = usePrinterStore((state) => state.runAction);
 
   const adjust = (heater: 'extruder' | 'heater_bed' | 'chamber', delta: number, currentTarget: number) => {
     void runAction(`Set ${heater}`, () => commands.setHeater(heater, Math.max(0, currentTarget + delta)));
   };
+
+  const sensorEntries = Object.entries(temperatures.sensors);
 
   return (
     <Layout title="Preheat" subtitle="Nozzle + Bed + Chamber">
@@ -71,6 +75,9 @@ export function PreheatScreen() {
           <span><i className="dot ambient"></i>Ambient</span>
           <span><i className="dot controller"></i>Controller</span>
           <span><i className="dot pi"></i>Raspberry Pi</span>
+          {sensorEntries.map(([name]) => (
+            <span key={name}><i className="dot" style={{ background: 'var(--text-muted)' }}></i>{name}</span>
+          ))}
         </div>
 
         <div className="temp-graph-wrap">
@@ -82,12 +89,20 @@ export function PreheatScreen() {
               <line x1="0" y1="110" x2="320" y2="110"></line>
               <line x1="0" y1="140" x2="320" y2="140"></line>
             </g>
-            <polyline className="line nozzle" points={line(temperatures.nozzle.current)}></polyline>
-            <polyline className="line bed" points={line(temperatures.bed.current)}></polyline>
-            <polyline className="line chamber" points={line(temperatures.chamber.current)}></polyline>
-            <polyline className="line ambient" points={line(temperatures.ambient)}></polyline>
-            <polyline className="line controller" points={line(temperatures.controller)}></polyline>
-            <polyline className="line pi" points={line(temperatures.raspberryPi)}></polyline>
+            <polyline className="line nozzle" points={line(temperatureHistory.nozzle ?? [temperatures.nozzle.current])}></polyline>
+            <polyline className="line bed" points={line(temperatureHistory.bed ?? [temperatures.bed.current])}></polyline>
+            <polyline className="line chamber" points={line(temperatureHistory.chamber ?? [temperatures.chamber.current])}></polyline>
+            <polyline className="line ambient" points={line(temperatureHistory.ambient ?? [temperatures.ambient])}></polyline>
+            <polyline className="line controller" points={line(temperatureHistory.controller ?? [temperatures.controller])}></polyline>
+            <polyline className="line pi" points={line(temperatureHistory.raspberryPi ?? [temperatures.raspberryPi])}></polyline>
+            {sensorEntries.map(([name]) => (
+              <polyline
+                key={name}
+                className="line"
+                points={line(temperatureHistory[name] ?? [temperatures.sensors[name].current])}
+                style={{ stroke: 'var(--text-muted)' }}
+              ></polyline>
+            ))}
           </svg>
         </div>
       </section>
@@ -98,7 +113,7 @@ export function PreheatScreen() {
         <div className="btn-row">
           <button type="button" className="btn" onClick={() => runAction('Apply PLA preset', () => commands.runMacro('SET_HEATER_TEMPERATURE HEATER=extruder TARGET=210\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=60'))}>PLA</button>
           <button type="button" className="btn" onClick={() => runAction('Apply ABS preset', () => commands.runMacro('SET_HEATER_TEMPERATURE HEATER=extruder TARGET=245\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=100'))}>ABS</button>
-          <button type="button" className="btn" onClick={() => runAction('Apply ASA preset', () => commands.runMacro('SET_HEATER_TEMPERATURE HEATER=extruder TARGET=255\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=105\nSET_HEATER_TEMPERATURE HEATER=chamber TARGET=45'))}>ASA</button>
+          <button type="button" className="btn" onClick={() => runAction('Apply ASA preset', () => commands.runMacro('SET_HEATER_TEMPERATURE HEATER=extruder TARGET=255\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=105\nSET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=chamber TARGET=45'))}>ASA</button>
         </div>
       </section>
 
@@ -108,6 +123,9 @@ export function PreheatScreen() {
         <div className="kv"><span>Toolhead Ambient</span><strong>{Math.round(temperatures.ambient)}°C</strong></div>
         <div className="kv"><span>Electronics Bay</span><strong>{Math.round(temperatures.controller)}°C</strong></div>
         <div className="kv"><span>Chamber Rear</span><strong>{Math.round(temperatures.raspberryPi)}°C</strong></div>
+        {sensorEntries.map(([name, values]) => (
+          <div className="kv" key={name}><span>{name}</span><strong>{Math.round(values.current)} / {Math.round(values.target)}°C</strong></div>
+        ))}
       </section>
 
       <BackButton to="/" />

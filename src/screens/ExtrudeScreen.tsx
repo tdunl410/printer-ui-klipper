@@ -4,13 +4,15 @@ import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 export function ExtrudeScreen() {
   const commands = useCommands();
   const temperatures = usePrinterStore((state) => state.temperatures);
+  const macros = usePrinterStore((state) => state.macros);
   const runAction = usePrinterStore((state) => state.runAction);
+  const extrusionMacros = macros.filter((name) => /filament|purge|extrude|load|unload/i.test(name)).slice(0, 5);
 
   return (
     <Layout title="Extrude" subtitle="Load, Unload, Purge">
       <section className="status-row">
         <article className="status-chip"><div className="k">Nozzle</div><div className="v">{Math.round(temperatures.nozzle.current)}/{Math.round(temperatures.nozzle.target)}</div></article>
-        <article className="status-chip"><div className="k">Extruder</div><div className="v">Ready</div></article>
+        <article className="status-chip"><div className="k">Extruder</div><div className="v">{temperatures.nozzle.current >= 170 ? 'Hot' : 'Cold'}</div></article>
         <article className="status-chip"><div className="k">Step</div><div className="v">5mm</div></article>
       </section>
 
@@ -18,7 +20,6 @@ export function ExtrudeScreen() {
         <div className="card-label">Readiness</div>
         <div className="card-title">Extruder State</div>
         <div className="kv"><span>Nozzle Temp</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></div>
-        <div className="kv"><span>Current Material</span><strong>ASA (Slot 3)</strong></div>
         <div className="kv"><span>Extrusion Distance</span><strong>5mm step</strong></div>
       </section>
 
@@ -41,9 +42,19 @@ export function ExtrudeScreen() {
       <section className="card">
         <div className="card-label">Automation</div>
         <div className="card-title">Macros</div>
-        <div className="macro-item">LOAD_FILAMENT</div>
-        <div className="macro-item">UNLOAD_FILAMENT</div>
-        <div className="macro-item">PURGE_NOZZLE</div>
+        {extrusionMacros.map((macro) => (
+          <button
+            key={macro}
+            type="button"
+            className="macro-item button-reset"
+            onClick={() => runAction(`Run ${macro}`, () => commands.runMacro(macro))}
+          >
+            {macro}
+          </button>
+        ))}
+        {extrusionMacros.length === 0 ? (
+          <div className="macro-item">No extrusion macros discovered.</div>
+        ) : null}
       </section>
 
       <BackButton to="/settings" />

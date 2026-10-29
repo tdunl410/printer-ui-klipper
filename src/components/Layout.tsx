@@ -1,4 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
+import { usePrinterStore } from '../stores/usePrinterStore';
 
 interface LayoutProps {
   title: string;
@@ -8,13 +9,14 @@ interface LayoutProps {
 }
 
 const dockItems = [
-  { to: '/', label: 'Home' },
-  { to: '/print', label: 'Print' },
   { to: '/control', label: 'Control' },
   { to: '/settings', label: 'Settings' },
 ];
 
 export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
+  const jobState = usePrinterStore((state) => state.job.state);
+  const printRoute = jobState === 'printing' || jobState === 'paused' ? '/print' : '/files';
+
   return (
     <section className="screen">
       <header className="header">
@@ -36,6 +38,12 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
       {children}
 
       <nav className="dock">
+        <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
+          Home
+        </NavLink>
+        <NavLink to={printRoute} className={({ isActive }) => (isActive ? 'active' : '')}>
+          Print
+        </NavLink>
         {dockItems.map((item) => (
           <NavLink
             key={item.to}

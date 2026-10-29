@@ -9,6 +9,8 @@ export function HomeScreen() {
   const temperatures = usePrinterStore((state) => state.temperatures);
   const stats = usePrinterStore((state) => state.stats);
 
+  const printRoute = job.state === 'printing' || job.state === 'paused' ? '/print' : '/files';
+
   return (
     <Layout
       title={profileName}
@@ -56,7 +58,7 @@ export function HomeScreen() {
         </article>
       </section>
 
-      <Link className="primary" to="/print">
+      <Link className="primary" to={printRoute}>
         Print
       </Link>
 

@@ -22,9 +22,31 @@ export class CommandService {
     return this.gcode(name);
   }
 
+  async startPrint(filename: string) {
+    return this.http.post('/printer/print/start', { filename });
+  }
+
+  async deleteFile(path: string) {
+    const encodedPath = path
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+    return this.http.delete(`/server/files/gcodes/${encodedPath}`);
+  }
+
+  async renameFile(source: string, dest: string) {
+    return this.http.post('/server/files/move', {
+      source: `gcodes/${source}`,
+      dest: `gcodes/${dest}`,
+    });
+  }
+
   async setHeater(heater: 'extruder' | 'heater_bed' | 'chamber', target: number) {
-    const gcodeHeater = heater === 'chamber' ? 'chamber' : heater;
-    return this.gcode(`SET_HEATER_TEMPERATURE HEATER=${gcodeHeater} TARGET=${Math.max(0, target)}`);
+    const boundedTarget = Math.max(0, target);
+    if (heater === 'chamber') {
+      return this.gcode(`SET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=chamber TARGET=${boundedTarget}`);
+    }
+    return this.gcode(`SET_HEATER_TEMPERATURE HEATER=${heater} TARGET=${boundedTarget}`);
   }
 
   async home(axis: 'xyz' | 'xy' | 'z') {
@@ -48,6 +70,16 @@ export class CommandService {
 
   async extrude(mm: number, speed = 180) {
     return this.gcode(`M83\nG1 E${mm.toFixed(2)} F${speed * 60}`);
+  }
+
+  async setPrintSpeed(percent: number) {
+    const bounded = Math.max(10, Math.min(percent, 300));
+    return this.gcode(`M220 S${Math.round(bounded)}`);
+  }
+
+  async setFlow(percent: number) {
+    const bounded = Math.max(10, Math.min(percent, 200));
+    return this.gcode(`M221 S${Math.round(bounded)}`);
   }
 
   async systemAction(action: 'restart-klipper' | 'restart-host' | 'shutdown') {

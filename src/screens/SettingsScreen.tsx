@@ -11,15 +11,20 @@ const themeOptions = [
 
 export function SettingsScreen() {
   const commands = useCommands();
+  const profileName = usePrinterStore((state) => state.profileName);
+  const connectionState = usePrinterStore((state) => state.connectionState);
+  const jobState = usePrinterStore((state) => state.job.state);
   const runAction = usePrinterStore((state) => state.runAction);
   const theme = usePrinterStore((state) => state.theme);
   const setTheme = usePrinterStore((state) => state.setTheme);
 
+  const printRoute = jobState === 'printing' || jobState === 'paused' ? '/print' : '/files';
+
   return (
     <Layout title="Settings" subtitle="Navigation + Network + System" homeAction>
       <section className="status-row">
-        <article className="status-chip"><div className="k">Profile</div><div className="v">Voron 2.4</div></article>
-        <article className="status-chip"><div className="k">Firmware</div><div className="v">Online</div></article>
+        <article className="status-chip"><div className="k">Profile</div><div className="v">{profileName}</div></article>
+        <article className="status-chip"><div className="k">Firmware</div><div className="v">{connectionState === 'online' ? 'Online' : 'Offline'}</div></article>
         <article className="status-chip"><div className="k">Theme</div><div className="v">{theme}</div></article>
       </section>
 
@@ -28,7 +33,7 @@ export function SettingsScreen() {
         <div className="card-title">Pages</div>
         <div className="settings-nav">
           <Link className="action-link" to="/">Dashboard →</Link>
-          <Link className="action-link" to="/print">Print →</Link>
+          <Link className="action-link" to={printRoute}>Print →</Link>
           <Link className="action-link" to="/files">Files →</Link>
           <Link className="action-link" to="/move">Move →</Link>
           <Link className="action-link" to="/preheat">Preheat →</Link>
@@ -54,20 +59,6 @@ export function SettingsScreen() {
               {option.label}
             </button>
           ))}
-        </div>
-      </section>
-
-      <section className="card">
-        <div className="card-label">Interface</div>
-        <div className="card-title">Screen & Input</div>
-        <div className="kv"><span>Language</span><strong>English</strong></div>
-        <div className="kv"><span>Touch Sounds</span><strong>On</strong></div>
-        <div className="kv"><span>Lock During Print</span><strong>Enabled</strong></div>
-        <div className="kv"><span>Auto Dim</span><strong>2 min</strong></div>
-        <div className="btn-row">
-          <button type="button" className="btn" disabled>Brightness</button>
-          <button type="button" className="btn" disabled>Screensaver</button>
-          <button type="button" className="btn" disabled>Calibrate Touch</button>
         </div>
       </section>
 

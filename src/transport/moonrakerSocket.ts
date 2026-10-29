@@ -7,6 +7,7 @@ export class MoonrakerSocket {
 
   constructor(
     private readonly wsUrl: string,
+    private readonly subscribeObjects: string[],
     private readonly onOpen: () => void,
     private readonly onClose: () => void,
     private readonly onMessage: SocketHandler,
@@ -22,15 +23,10 @@ export class MoonrakerSocket {
         jsonrpc: '2.0',
         method: 'printer.objects.subscribe',
         params: {
-          objects: {
-            toolhead: null,
-            extruder: null,
-            heater_bed: null,
-            print_stats: null,
-            display_status: null,
-            fan: null,
-            idle_timeout: null,
-          },
+          objects: this.subscribeObjects.reduce<Record<string, null>>((acc, name) => {
+            acc[name] = null;
+            return acc;
+          }, {}),
         },
         id: this.rpcId++,
       });

@@ -1,33 +1,34 @@
 import type { ConnectionDetails, JobState, MachineStats, PositionState, PrinterTemperatures } from './models';
 
 export const defaultTemperatures: PrinterTemperatures = {
-  nozzle: { current: 24, target: 240 },
-  bed: { current: 60, target: 100 },
-  chamber: { current: 38, target: 45 },
-  ambient: 30,
-  controller: 34,
-  raspberryPi: 37,
+  nozzle: { current: 0, target: 0 },
+  bed: { current: 0, target: 0 },
+  chamber: { current: 0, target: 0 },
+  ambient: 0,
+  controller: 0,
+  raspberryPi: 0,
+  sensors: {},
 };
 
 export const defaultJob: JobState = {
-  filename: 'enclosure_bracket_v12.gcode',
-  progress: 0.47,
-  state: 'printing',
-  layer: '168/356',
-  eta: '02:31',
-  elapsed: '02:19',
+  filename: '',
+  progress: 0,
+  state: 'idle',
+  layer: '-',
+  eta: '00:00',
+  elapsed: '00:00',
 };
 
 export const defaultPosition: PositionState = {
-  x: 124.3,
-  y: 112.8,
-  z: 5.2,
+  x: 0,
+  y: 0,
+  z: 0,
 };
 
 export const defaultStats: MachineStats = {
-  totalTimeHours: 396,
-  printCount: 128,
-  filamentKg: 8.7,
+  totalTimeHours: 0,
+  printCount: 0,
+  filamentKg: 0,
 };
 
 export const defaultConnection = (): ConnectionDetails => {
@@ -40,7 +41,8 @@ export const defaultConnection = (): ConnectionDetails => {
   return {
     moonrakerBaseUrl,
     websocketUrl,
-    networkState: 'online',
+    networkState: 'offline',
     hostname: host,
+    networkInterfaces: [],
   };
 };

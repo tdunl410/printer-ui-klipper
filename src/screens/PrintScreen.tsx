@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 import { pct } from '../utils/format';
@@ -10,6 +11,10 @@ export function PrintScreen() {
   const flowPercent = usePrinterStore((state) => state.flowPercent);
   const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
   const runAction = usePrinterStore((state) => state.runAction);
+
+  if (job.state !== 'printing' && job.state !== 'paused') {
+    return <Navigate to="/files" replace />;
+  }
 
   return (
     <Layout title="Active Print" subtitle={`Part: ${job.filename}`}>
@@ -92,8 +97,8 @@ export function PrintScreen() {
         <div className="card-label">Fast Adjust</div>
         <div className="card-title">Quick Tune</div>
         <div className="btn-row">
-          <button type="button" className="btn" onClick={() => runAction('Speed -10', () => commands.runMacro('M220 S90'))}>Speed -10</button>
-          <button type="button" className="btn" onClick={() => runAction('Flow +5', () => commands.runMacro('M221 S105'))}>Flow +5</button>
+          <button type="button" className="btn" onClick={() => runAction('Speed -10', () => commands.setPrintSpeed(speedPercent - 10))}>Speed -10</button>
+          <button type="button" className="btn" onClick={() => runAction('Flow +5', () => commands.setFlow(flowPercent + 5))}>Flow +5</button>
           <button type="button" className="btn" onClick={() => runAction('Fan +10', () => commands.setFan(Math.min(100, fanPartPercent + 10), 'fan'))}>Fan +10</button>
         </div>
       </section>

@@ -10,10 +10,17 @@ export class MoonrakerHttpClient {
   }
 
   async queryObjects(objects: Record<string, unknown>) {
-    const query = encodeURIComponent(JSON.stringify(objects));
-    const response = await fetch(`${this.baseUrl}/printer/objects/query?${new URLSearchParams({ objects: query })}`);
+    const response = await fetch(`${this.baseUrl}/printer/objects/query?${new URLSearchParams({ objects: JSON.stringify(objects) })}`);
     if (!response.ok) {
       throw new Error(`Moonraker query failed: ${response.status}`);
+    }
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  async listObjects() {
+    const response = await fetch(`${this.baseUrl}/printer/objects/list`);
+    if (!response.ok) {
+      throw new Error(`List objects failed: ${response.status}`);
     }
     return (await response.json()) as Record<string, unknown>;
   }
@@ -30,6 +37,22 @@ export class MoonrakerHttpClient {
     const response = await fetch(`${this.baseUrl}/machine/system_info`);
     if (!response.ok) {
       throw new Error(`System info failed: ${response.status}`);
+    }
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  async networkInfo() {
+    const response = await fetch(`${this.baseUrl}/machine/network`);
+    if (!response.ok) {
+      throw new Error(`Network info failed: ${response.status}`);
+    }
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  async updateStatus() {
+    const response = await fetch(`${this.baseUrl}/machine/update/status`);
+    if (!response.ok) {
+      throw new Error(`Update status failed: ${response.status}`);
     }
     return (await response.json()) as Record<string, unknown>;
   }
@@ -53,6 +76,28 @@ export class MoonrakerHttpClient {
       method: 'POST',
       headers: jsonHeaders,
       body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `Request failed (${response.status})`);
+    }
+
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  async get(path: string) {
+    const response = await fetch(`${this.baseUrl}${path}`);
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `Request failed (${response.status})`);
+    }
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  async delete(path: string) {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'DELETE',
     });
 
     if (!response.ok) {
