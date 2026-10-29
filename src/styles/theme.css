@@ -11,6 +11,9 @@
   --danger: #e04f5f;
   --accent: #7b4dff;
   --accent-2: #9a79ff;
+  --accent-rgb: 123, 77, 255;
+  --accent-2-rgb: 154, 121, 255;
+  --accent-text: #d9ccff;
   --radius-sm: 12px;
   --radius-md: 20px;
   --radius-lg: 28px;
@@ -20,16 +23,25 @@
 body[data-theme='blue'] {
   --accent: #1d8bff;
   --accent-2: #58b7ff;
+  --accent-rgb: 29, 139, 255;
+  --accent-2-rgb: 88, 183, 255;
+  --accent-text: #cce6ff;
 }
 
 body[data-theme='green'] {
   --accent: #1fbf5b;
   --accent-2: #6ad59d;
+  --accent-rgb: 31, 191, 91;
+  --accent-2-rgb: 106, 213, 157;
+  --accent-text: #cdf5de;
 }
 
 body[data-theme='rose'] {
   --accent: #d15ca2;
   --accent-2: #f26e82;
+  --accent-rgb: 209, 92, 162;
+  --accent-2-rgb: 242, 110, 130;
+  --accent-text: #ffd3e8;
 }
 
 * {
@@ -120,6 +132,24 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+}
+
+.button-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.status-icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .hero {
@@ -293,14 +323,21 @@ body {
   font-weight: 600;
 }
 
+.btn.with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
 .btn:disabled {
   opacity: 0.5;
 }
 
 .btn.accent {
-  background: rgba(123, 77, 255, 0.12);
-  color: #d9ccff;
-  border-color: rgba(123, 77, 255, 0.35);
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent-text);
+  border-color: rgba(var(--accent-rgb), 0.35);
 }
 
 .back-btn {
@@ -329,12 +366,12 @@ body {
 
 .file-item.selected,
 .theme-chip.selected {
-  border-color: rgba(123, 77, 255, 0.65);
+  border-color: rgba(var(--accent-rgb), 0.65);
 }
 
 .console {
   background: #131520;
-  color: #d7dcff;
+  color: var(--accent-text);
   border-radius: 14px;
   padding: 10px;
   max-height: 240px;
@@ -404,15 +441,35 @@ body {
 
 .floating-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
 .floating-actions .action-link {
   min-height: 52px;
-  padding: 12px 8px;
-  font-size: 16px;
+  padding: 12px 14px;
+  font-size: 18px;
   border-radius: 12px;
+}
+
+.action-link.with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  text-align: left;
+}
+
+.action-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+
+.emergency-btn {
+  border-color: rgba(224, 79, 95, 0.5);
+  background: rgba(224, 79, 95, 0.12);
+  cursor: pointer;
 }
 
 .dock {
@@ -451,8 +508,8 @@ body {
 }
 
 .dock-icon {
-  font-size: 24px;
-  line-height: 1;
+  width: 24px;
+  height: 24px;
 }
 
 .dock-label {
@@ -461,8 +518,8 @@ body {
 
 .dock a.active {
   color: #fff;
-  background: rgba(123, 77, 255, 0.24);
-  border: 1px solid rgba(123, 77, 255, 0.35);
+  background: rgba(var(--accent-rgb), 0.24);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
 }
 
 .temp-legend {
@@ -514,14 +571,14 @@ body {
 
 .dot.nozzle,
 .temp-graph .line.nozzle {
-  stroke: #b492ff;
-  background: #b492ff;
+  stroke: var(--accent-2);
+  background: var(--accent-2);
 }
 
 .dot.bed,
 .temp-graph .line.bed {
-  stroke: #8f6cff;
-  background: #8f6cff;
+  stroke: var(--accent);
+  background: var(--accent);
 }
 
 .dot.chamber,

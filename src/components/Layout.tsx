@@ -1,6 +1,12 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { usePrinterStore } from '../stores/usePrinterStore';
+import emergencyIcon from '../../assets/emergency.svg';
+import homeIcon from '../../assets/home.svg';
+import moveIcon from '../../assets/move.svg';
+import printerIcon from '../../assets/printer.svg';
+import settingsIcon from '../../assets/settings.svg';
+import { Dialog } from './Dialog';
+import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 interface LayoutProps {
   title: string;
@@ -10,11 +16,14 @@ interface LayoutProps {
 }
 
 const dockItems = [
-  { to: '/control', label: 'Control', icon: '🎛' },
-  { to: '/settings', label: 'Settings', icon: '⚙' },
+  { to: '/control', label: 'Control', icon: moveIcon },
+  { to: '/settings', label: 'Settings', icon: settingsIcon },
 ];
 
 export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
+  const commands = useCommands();
+  const runAction = usePrinterStore((state) => state.runAction);
+  const [confirmEmergency, setConfirmEmergency] = useState(false);
   const jobState = usePrinterStore((state: { job: { state: string } }) => state.job.state);
   const printRoute = jobState === 'printing' || jobState === 'paused' ? '/print' : '/files';
 
@@ -27,12 +36,14 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
         </div>
         {homeAction ? (
           <Link to="/" className="icon-btn">
-            ⌂ Home
+            <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
+            Home
           </Link>
         ) : (
-          <Link to="/settings" className="icon-btn">
-            ⚙ Settings
-          </Link>
+          <button type="button" className="icon-btn emergency-btn" onClick={() => setConfirmEmergency(true)}>
+            <img className="button-icon" src={emergencyIcon} alt="" aria-hidden="true" />
+            Emergency
+          </button>
         )}
       </header>
 
@@ -40,11 +51,11 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
 
       <nav className="dock">
         <NavLink to="/" className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')} end>
-          <span className="dock-icon" aria-hidden="true">⌂</span>
+          <img className="dock-icon" src={homeIcon} alt="" aria-hidden="true" />
           <span className="dock-label">Home</span>
         </NavLink>
         <NavLink to={printRoute} className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}>
-          <span className="dock-icon" aria-hidden="true">🖨</span>
+          <img className="dock-icon" src={printerIcon} alt="" aria-hidden="true" />
           <span className="dock-label">Print</span>
         </NavLink>
         {dockItems.map((item) => (
@@ -54,11 +65,29 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
             className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}
             end={item.to === '/'}
           >
-            <span className="dock-icon" aria-hidden="true">{item.icon}</span>
+            <img className="dock-icon" src={item.icon} alt="" aria-hidden="true" />
             <span className="dock-label">{item.label}</span>
           </NavLink>
         ))}
       </nav>
+
+      {confirmEmergency ? (
+        <Dialog
+          subtitle="Confirm Action"
+          title="Send emergency stop (M112)?"
+          actions={[
+            {
+              label: 'Emergency Stop',
+              variant: 'accent',
+              onClick: () => {
+                void runAction('Emergency Stop', () => commands.runMacro('M112'));
+                setConfirmEmergency(false);
+              },
+            },
+            { label: 'Cancel', onClick: () => setConfirmEmergency(false) },
+          ]}
+        />
+      ) : null}
     </section>
   );
 }

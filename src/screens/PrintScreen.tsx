@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import emergencyIcon from '../../assets/emergency.svg';
+import pauseIcon from '../../assets/pause.svg';
+import resumeIcon from '../../assets/resume.svg';
 import { Dialog } from '../components/Dialog';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
@@ -74,9 +77,10 @@ export function PrintScreen() {
         <div className="btn-row">
           <button
             type="button"
-            className="btn accent"
+            className="btn accent with-icon"
             onClick={() => runAction(isPaused ? 'Resume Print' : 'Pause Print', () => (isPaused ? commands.resumePrint() : commands.pausePrint()))}
           >
+            <img className="button-icon" src={isPaused ? resumeIcon : pauseIcon} alt="" aria-hidden="true" />
             {isPaused ? 'Resume' : 'Pause'}
           </button>
           <button
@@ -88,9 +92,10 @@ export function PrintScreen() {
           </button>
           <button
             type="button"
-            className="btn"
+            className="btn with-icon"
             onClick={() => setConfirmAction('emergency')}
           >
+            <img className="button-icon" src={emergencyIcon} alt="" aria-hidden="true" />
             Emergency
           </button>
         </div>

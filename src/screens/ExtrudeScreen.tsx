@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import arrowDown from '../../assets/arrow-down.svg';
+import arrowUp from '../../assets/arrow-up.svg';
+import extrudeIcon from '../../assets/extrude.svg';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
@@ -60,9 +63,9 @@ export function ExtrudeScreen() {
         </div>
         <div className="spacer" />
         <div className="btn-row">
-          <button type="button" className="btn" onClick={() => runAction(`Retract ${extrudeDistance}mm`, () => commands.extrude(-extrudeDistance, extrudeSpeed))}>Retract {extrudeDistance}</button>
-          <button type="button" className="btn accent" onClick={() => runAction(`Extrude ${extrudeDistance}mm`, () => commands.extrude(extrudeDistance, extrudeSpeed))}>Extrude {extrudeDistance}</button>
-          <button type="button" className="btn" onClick={() => runAction('Extrude 20mm', () => commands.extrude(20, extrudeSpeed))}>+20mm</button>
+          <button type="button" className="btn with-icon" onClick={() => runAction(`Retract ${extrudeDistance}mm`, () => commands.extrude(-extrudeDistance, extrudeSpeed))}><img className="button-icon" src={arrowUp} alt="" />Retract {extrudeDistance}</button>
+          <button type="button" className="btn accent with-icon" onClick={() => runAction(`Extrude ${extrudeDistance}mm`, () => commands.extrude(extrudeDistance, extrudeSpeed))}><img className="button-icon" src={arrowDown} alt="" />Extrude {extrudeDistance}</button>
+          <button type="button" className="btn with-icon" onClick={() => runAction('Extrude 20mm', () => commands.extrude(20, extrudeSpeed))}><img className="button-icon" src={extrudeIcon} alt="" />+20mm</button>
         </div>
         <div className="spacer" />
         <div className="btn-row">

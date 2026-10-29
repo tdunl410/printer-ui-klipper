@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import arrowDown from '../../assets/arrow-down.svg';
+import arrowLeft from '../../assets/arrow-left.svg';
+import arrowRight from '../../assets/arrow-right.svg';
+import arrowUp from '../../assets/arrow-up.svg';
+import homeIcon from '../../assets/home.svg';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
@@ -23,9 +28,18 @@ export function MoveScreen() {
         <div className="card-label">Machine Prep</div>
         <div className="card-title">Homing</div>
         <div className="btn-row">
-          <button type="button" className="btn accent" onClick={() => runAction('Home All', () => commands.home('xyz'))}>Home All</button>
-          <button type="button" className="btn" onClick={() => runAction('Home XY', () => commands.home('xy'))}>Home XY</button>
-          <button type="button" className="btn" onClick={() => runAction('Home Z', () => commands.home('z'))}>Home Z</button>
+          <button type="button" className="btn accent with-icon" onClick={() => runAction('Home All', () => commands.home('xyz'))}>
+            <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
+            Home All
+          </button>
+          <button type="button" className="btn with-icon" onClick={() => runAction('Home XY', () => commands.home('xy'))}>
+            <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
+            Home XY
+          </button>
+          <button type="button" className="btn with-icon" onClick={() => runAction('Home Z', () => commands.home('z'))}>
+            <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
+            Home Z
+          </button>
         </div>
       </section>
 
@@ -48,15 +62,18 @@ export function MoveScreen() {
         <div className="spacer" />
         <div className="move-controls">
           <div className="move-pad" aria-label="XY move controls">
-            <button type="button" className="btn move-pad-btn up" onClick={() => runAction(`Jog Y+ ${moveDistance}mm`, () => commands.jog('Y', moveDistance))}>Y+</button>
-            <button type="button" className="btn move-pad-btn left" onClick={() => runAction(`Jog X- ${moveDistance}mm`, () => commands.jog('X', -moveDistance))}>X-</button>
-            <button type="button" className="btn move-pad-btn right" onClick={() => runAction(`Jog X+ ${moveDistance}mm`, () => commands.jog('X', moveDistance))}>X+</button>
-            <button type="button" className="btn move-pad-btn down" onClick={() => runAction(`Jog Y- ${moveDistance}mm`, () => commands.jog('Y', -moveDistance))}>Y-</button>
-            <button type="button" className="btn accent move-pad-home" onClick={() => runAction('Home XY', () => commands.home('xy'))}>Home</button>
+            <button type="button" className="btn move-pad-btn up with-icon" onClick={() => runAction(`Jog Y+ ${moveDistance}mm`, () => commands.jog('Y', moveDistance))}><img className="button-icon" src={arrowUp} alt="" />Y+</button>
+            <button type="button" className="btn move-pad-btn left with-icon" onClick={() => runAction(`Jog X- ${moveDistance}mm`, () => commands.jog('X', -moveDistance))}><img className="button-icon" src={arrowLeft} alt="" />X-</button>
+            <button type="button" className="btn move-pad-btn right with-icon" onClick={() => runAction(`Jog X+ ${moveDistance}mm`, () => commands.jog('X', moveDistance))}><img className="button-icon" src={arrowRight} alt="" />X+</button>
+            <button type="button" className="btn move-pad-btn down with-icon" onClick={() => runAction(`Jog Y- ${moveDistance}mm`, () => commands.jog('Y', -moveDistance))}><img className="button-icon" src={arrowDown} alt="" />Y-</button>
+            <button type="button" className="btn accent move-pad-home with-icon" onClick={() => runAction('Home XY', () => commands.home('xy'))}>
+              <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
+              Home
+            </button>
           </div>
           <div className="z-controls" aria-label="Z move controls">
-            <button type="button" className="btn" onClick={() => runAction(`Jog Z+ ${moveDistance}mm`, () => commands.jog('Z', moveDistance))}>Z+</button>
-            <button type="button" className="btn" onClick={() => runAction(`Jog Z- ${moveDistance}mm`, () => commands.jog('Z', -moveDistance))}>Z-</button>
+            <button type="button" className="btn with-icon" onClick={() => runAction(`Jog Z+ ${moveDistance}mm`, () => commands.jog('Z', moveDistance))}><img className="button-icon" src={arrowUp} alt="" />Z+</button>
+            <button type="button" className="btn with-icon" onClick={() => runAction(`Jog Z- ${moveDistance}mm`, () => commands.jog('Z', -moveDistance))}><img className="button-icon" src={arrowDown} alt="" />Z-</button>
           </div>
         </div>
         <div className="spacer" />

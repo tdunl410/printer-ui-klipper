@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import extrudeIcon from '../../assets/extrude.svg';
+import heaterIcon from '../../assets/heater.svg';
+import moveIcon from '../../assets/move.svg';
+import networkIcon from '../../assets/network.svg';
 import printerRender from '../../assets/printer-render.png';
 import { Layout } from '../components/Layout';
 import { useCommands } from '../stores/usePrinterStore';
@@ -59,7 +63,10 @@ export function HomeScreen() {
           <div className="v">{stateLabel}</div>
         </article>
         <article className="status-chip">
-          <div className="k">Network</div>
+          <div className="k status-icon-label">
+            <img className="status-icon" src={networkIcon} alt="" aria-hidden="true" />
+            Network
+          </div>
           <div className={`v ${connectionState === 'online' ? 'status-ok' : ''}`}>
             {connectionState === 'online' ? 'Online' : connectionState}
           </div>
@@ -69,13 +76,13 @@ export function HomeScreen() {
       <div className="hero">
         <img src={printerRender} alt="Printer render" />
         <button type="button" className="pill temp-pill" style={{ left: 16, top: 26 }} onClick={() => openKeypad('extruder')}>
-          🧰 {Math.round(temperatures.nozzle.current)}°C <span className="target">/{Math.round(temperatures.nozzle.target)}°C</span>
+          {Math.round(temperatures.nozzle.current)}°C <span className="target">/{Math.round(temperatures.nozzle.target)}°C</span>
         </button>
         <button type="button" className="pill temp-pill" style={{ right: 16, bottom: 20 }} onClick={() => openKeypad('heater_bed')}>
-          ♨️ {Math.round(temperatures.bed.current)}°C <span className="target">/{Math.round(temperatures.bed.target)}°C</span>
+          {Math.round(temperatures.bed.current)}°C <span className="target">/{Math.round(temperatures.bed.target)}°C</span>
         </button>
         <button type="button" className="pill temp-pill" style={{ right: 16, top: 26 }} onClick={() => openKeypad('chamber')}>
-          🌡 {Math.round(temperatures.chamber.current)}°C <span className="target">/{Math.round(temperatures.chamber.target)}°C</span>
+          {Math.round(temperatures.chamber.current)}°C <span className="target">/{Math.round(temperatures.chamber.target)}°C</span>
         </button>
       </div>
 
@@ -106,13 +113,16 @@ export function HomeScreen() {
       )}
 
       <section className="floating-actions">
-        <Link className="action-link" to="/move">
+        <Link className="action-link with-icon" to="/move">
+          <img className="action-icon" src={moveIcon} alt="" aria-hidden="true" />
           Move
         </Link>
-        <Link className="action-link" to="/preheat">
+        <Link className="action-link with-icon" to="/preheat">
+          <img className="action-icon" src={heaterIcon} alt="" aria-hidden="true" />
           Preheat
         </Link>
-        <Link className="action-link" to="/extrude">
+        <Link className="action-link with-icon" to="/extrude">
+          <img className="action-icon" src={extrudeIcon} alt="" aria-hidden="true" />
           Extrude
         </Link>
       </section>
