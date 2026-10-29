@@ -6,7 +6,6 @@ import { ControlScreen } from './screens/ControlScreen';
 import { ExtrudeScreen } from './screens/ExtrudeScreen';
 import { FilesScreen } from './screens/FilesScreen';
 import { HomeScreen } from './screens/HomeScreen';
-import { MoveScreen } from './screens/MoveScreen';
 import { PreheatScreen } from './screens/PreheatScreen';
 import { PrintScreen } from './screens/PrintScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -34,7 +33,7 @@ export default function App() {
         <Route path="/" element={<HomeScreen />} />
         <Route path="/print" element={<PrintScreen />} />
         <Route path="/files" element={<FilesScreen />} />
-        <Route path="/move" element={<MoveScreen />} />
+        <Route path="/move" element={<Navigate to="/control" replace />} />
         <Route path="/preheat" element={<PreheatScreen />} />
         <Route path="/extrude" element={<ExtrudeScreen />} />
         <Route path="/control" element={<ControlScreen />} />

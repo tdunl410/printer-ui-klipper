@@ -38,10 +38,9 @@ export function SettingsScreen() {
           <Link className="action-link" to="/">Dashboard →</Link>
           <Link className="action-link" to={printRoute}>Print →</Link>
           <Link className="action-link" to="/files">Files →</Link>
-          <Link className="action-link" to="/move">Move →</Link>
           <Link className="action-link" to="/preheat">Preheat →</Link>
           <Link className="action-link" to="/extrude">Extrude →</Link>
-          <Link className="action-link" to="/control">Console →</Link>
+          <Link className="action-link" to="/control">Control →</Link>
           <Link className="action-link" to="/connectivity">Connectivity →</Link>
           <Link className="action-link" to="/updates">Updates →</Link>
         </div>

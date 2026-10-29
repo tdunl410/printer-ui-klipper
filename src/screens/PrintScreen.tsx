@@ -35,6 +35,21 @@ export function PrintScreen() {
       </section>
 
       <section className="card">
+        <div className="card-label">Time Remaining</div>
+        <div className="card-title">{remainingLabel}</div>
+        <div
+          className="progress-bar"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(job.progress * 100)}
+        >
+          <div className="progress-fill" style={{ width: pct(Math.min(1, Math.max(0, job.progress))) }} />
+        </div>
+        <div className="kv"><span>{pct(job.progress)} complete</span><strong>ETA {job.eta}</strong></div>
+      </section>
+
+      <section className="card">
         <div className="card-label">Current Job</div>
         <div className="media-thumb">
           <img src={printerRender} alt="Current print visualization" />

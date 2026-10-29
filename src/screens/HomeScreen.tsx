@@ -81,7 +81,7 @@ export function HomeScreen() {
       )}
 
       <section className="floating-actions">
-        <Link className="action-link with-icon" to="/move">
+        <Link className="action-link with-icon" to="/control">
           <img className="action-icon" src={moveIcon} alt="" aria-hidden="true" />
           Move
         </Link>

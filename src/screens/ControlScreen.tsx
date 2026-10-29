@@ -1,4 +1,5 @@
 import { Layout } from '../components/Layout';
+import { MoveControls } from '../components/MoveControls';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 export function ControlScreen() {
@@ -13,24 +14,13 @@ export function ControlScreen() {
   const hasErrors = commandQueue.some((entry) => entry.status === 'error');
 
   return (
-    <Layout title="Console" subtitle="Macros + Terminal">
-      <section className="status-row">
-        <article className="status-chip"><div className="k">Klipper</div><div className="v">{connectionState === 'online' ? 'Ready' : 'Offline'}</div></article>
-        <article className="status-chip"><div className="k">Queue</div><div className="v">{pending} Pending</div></article>
-        <article className="status-chip"><div className="k">Errors</div><div className="v">{hasErrors ? 'Present' : 'None'}</div></article>
-      </section>
+    <Layout title="Control" subtitle="Move + Macros + Terminal">
+
+      <MoveControls />
 
       <section className="card">
         <div className="card-label">One-Tap Macros</div>
         <div className="card-title">Macros</div>
-        <button
-          type="button"
-          className="macro-item button-reset"
-          onClick={() => runAction('Disable Motors', () => commands.disableMotors())}
-        >
-          Disable Motors
-        </button>
-        <div className="spacer" />
         {macros.slice(0, 5).map((macro) => (
           <button
             type="button"
