@@ -64,6 +64,8 @@ let pollTimer: number | undefined;
 let dynamicObjects: string[] = [];
 let dynamicCache: Record<string, any> = {};
 let lastSocketUpdate = 0;
+let pendingLaunchAt = 0;
+const LAUNCH_GRACE_MS = 20000;
 let snapshotInFlight = false;
 const socketIsLive = () => Date.now() - lastSocketUpdate < 5000;
 
@@ -668,7 +670,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
             const nextPrinterState = resolvePrinterState(status, next.job.state);
             const isActivePrintState = nextPrinterState === 'printing' || nextPrinterState === 'paused';
-            next.pendingPrintLaunch = isActivePrintState ? next.pendingPrintLaunch : false;
+            // Keep the launch flag through the idle->printing transition; only drop it after the grace period
+            if (!isActivePrintState && Date.now() - pendingLaunchAt > LAUNCH_GRACE_MS) next.pendingPrintLaunch = false;
 
             if (nextPrinterState !== 'printing' && nextPrinterState !== 'paused' && nextPrinterState !== 'shutdown' && nextPrinterState !== 'startup') {
               next.job = {
@@ -751,6 +754,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     },
     pendingPrintLaunch: false,
     setPendingPrintLaunch: (value: boolean) => {
+      pendingLaunchAt = value ? Date.now() : 0;
       set({ pendingPrintLaunch: value });
     },
   };

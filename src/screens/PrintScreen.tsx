@@ -20,6 +20,7 @@ export function PrintScreen() {
   const [confirmAction, setConfirmAction] = useState<'stop' | 'emergency' | null>(null);
   const connection = usePrinterStore((state) => state.connection);
   const [thumbnailUrl, setThumbnailUrl] = useState<string>();
+  const pendingPrintLaunch = usePrinterStore((state) => state.pendingPrintLaunch);
   const isPaused = job.state === 'paused';
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export function PrintScreen() {
     };
   }, [connection.moonrakerBaseUrl, job.filename]);
 
-  if (job.state !== 'printing' && job.state !== 'paused' && job.state !== 'shutdown' && job.state !== 'startup') {
+  if (!pendingPrintLaunch && job.state !== 'printing' && job.state !== 'paused' && job.state !== 'shutdown' && job.state !== 'startup') {
     return <Navigate to="/files" replace />;
   }
 

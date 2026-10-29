@@ -81,7 +81,15 @@ export function FilesScreen() {
 
   const launchPrint = (path: string) => {
     setPendingPrintLaunch(true);
-    void runAction('Print Selected', () => commands.startPrint(path));
+    void runAction('Print Selected', async () => {
+      try {
+        return await commands.startPrint(path);
+      } catch (error) {
+        setPendingPrintLaunch(false);
+        navigate('/files');
+        throw error;
+      }
+    });
     navigate('/print');
     setOpenFile(null);
   };
