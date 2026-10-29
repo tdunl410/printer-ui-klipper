@@ -63,6 +63,9 @@ let socketClient: MoonrakerSocket | undefined;
 let pollTimer: number | undefined;
 let dynamicObjects: string[] = [];
 let dynamicCache: Record<string, any> = {};
+let lastSocketUpdate = 0;
+let snapshotInFlight = false;
+const socketIsLive = () => Date.now() - lastSocketUpdate < 5000;
 
 function parseStatusPayload(payload: unknown) {
   if (typeof payload !== 'object' || payload === null) return undefined;
@@ -232,7 +235,7 @@ const getDynamicTemperatureObjects = (status: Record<string, any>, objects: stri
     );
   });
 
-  return Array.from(new Set([...fromHeaters, ...fromObjectList])).filter(Boolean);
+  return Array.from(new Set([...fromHeaters, ...fromObjectList])).filter((name) => name !== 'extruder' && name !== 'heater_bed');
 };
 
 const deriveTemperatures = (dynamicStatus: Record<string, any>, previous: PrinterStore['temperatures']) => {
@@ -335,6 +338,16 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
   const httpClient = new MoonrakerHttpClient(defaultConnection().moonrakerBaseUrl);
   const fetchSnapshot = async () => {
+    if (snapshotInFlight) return;
+    snapshotInFlight = true;
+    try {
+      await runSnapshot();
+    } finally {
+      snapshotInFlight = false;
+    }
+  };
+
+  const runSnapshot = async () => {
     const { connection } = get();
     const scopedHttp = httpClient.withBaseUrl(connection.moonrakerBaseUrl);
 
@@ -371,24 +384,20 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       dynamicObjects = getDynamicTemperatureObjects(status, objectNames);
       socketClient?.subscribe(dynamicObjects);
 
-      let dynamicStatus: Record<string, any> = {};
       if (dynamicObjects.length > 0) {
-        const dynamicResults = await Promise.allSettled(
-          dynamicObjects.map(async (name) => {
-            const result = await scopedHttp.queryObjects({ [name]: dynamicFieldsForObject(name) });
-            return (((result.result as any) || {}).status || {}) as Record<string, any>;
-          }),
-        );
-
-        dynamicStatus = dynamicResults.reduce<Record<string, any>>((acc, entry) => {
-          if (entry.status === 'fulfilled') {
-            Object.assign(acc, entry.value);
-          }
-          return acc;
-        }, {});
+        try {
+          const result = await scopedHttp.queryObjects(
+            Object.fromEntries(dynamicObjects.map((name) => [name, dynamicFieldsForObject(name)])),
+          );
+          const fresh = (((result.result as any) || {}).status || {}) as Record<string, any>;
+          Object.entries(fresh).forEach(([name, values]) => {
+            dynamicCache[name] = { ...dynamicCache[name], ...values };
+          });
+        } catch {
+          // keep the last known values rather than dropping sensors
+        }
       }
-
-      dynamicCache = dynamicStatus;
+      const dynamicStatus = dynamicCache;
       const currentState = get();
       const nozzle = readHeater(status, 'extruder', currentState.temperatures.nozzle);
       const bed = readHeater(status, 'heater_bed', currentState.temperatures.bed);
@@ -409,42 +418,39 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       const currentLayer = status.print_stats?.info?.current_layer;
       const totalLayer = status.print_stats?.info?.total_layer;
 
-      set((state) => ({
-        temperatures: {
-          ...state.temperatures,
-          nozzle,
-          bed,
-          chamber,
-          ambient,
-          controller,
-          raspberryPi,
-          sensors,
-        },
-        temperatureHistory: (() => {
-          const history = { ...state.temperatureHistory };
-          pushHistory(history, 'nozzle', nozzle.current);
-          pushHistory(history, 'bed', bed.current);
-          pushHistory(history, 'chamber', chamber.current);
-          pushHistory(history, 'ambient', ambient);
-          pushHistory(history, 'controller', controller);
-          pushHistory(history, 'raspberryPi', raspberryPi);
+      // Fresh websocket values win over a REST response that may be slightly stale
+      const live = socketIsLive();
 
-          Object.entries(sensors).forEach(([name, values]) => {
-            pushHistory(history, name, values.current);
-          });
+      set((state) => {
+        const temperatures = live
+          ? state.temperatures
+          : { ...state.temperatures, nozzle, bed, chamber, ambient, controller, raspberryPi, sensors };
+        const history = { ...state.temperatureHistory };
+        pushHistory(history, 'nozzle', temperatures.nozzle.current);
+        pushHistory(history, 'bed', temperatures.bed.current);
+        pushHistory(history, 'chamber', temperatures.chamber.current);
+        pushHistory(history, 'ambient', temperatures.ambient);
+        pushHistory(history, 'controller', temperatures.controller);
+        pushHistory(history, 'raspberryPi', temperatures.raspberryPi);
+        Object.entries(temperatures.sensors).forEach(([name, values]) => pushHistory(history, name, values.current));
 
-          return history;
-        })(),
-        position: {
-          x: Number(status.toolhead?.position?.[0] ?? 0),
-          y: Number(status.toolhead?.position?.[1] ?? 0),
-          z: Number(status.toolhead?.position?.[2] ?? 0),
-        },
-        fanPartPercent: toPercent(status.fan?.speed, state.fanPartPercent),
-        fanChamberPercent: toPercent(
-          (auxFanEntry as any)?.value ?? (auxFanEntry as any)?.speed ?? (chamberFanEntry?.[1] as any)?.speed,
-          state.fanChamberPercent,
-        ),
+        return {
+        temperatures,
+        temperatureHistory: history,
+        position: live
+          ? state.position
+          : {
+              x: Number(status.toolhead?.position?.[0] ?? 0),
+              y: Number(status.toolhead?.position?.[1] ?? 0),
+              z: Number(status.toolhead?.position?.[2] ?? 0),
+            },
+        fanPartPercent: live ? state.fanPartPercent : toPercent(status.fan?.speed, state.fanPartPercent),
+        fanChamberPercent: live
+          ? state.fanChamberPercent
+          : toPercent(
+              (auxFanEntry as any)?.value ?? (auxFanEntry as any)?.speed ?? (chamberFanEntry?.[1] as any)?.speed,
+              state.fanChamberPercent,
+            ),
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
         job: {
@@ -464,7 +470,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           status.webhooks?.state_message ? String(status.webhooks.state_message) : `State: ${String(status.webhooks?.state ?? status.print_stats?.state ?? 'unknown')}`,
           ...state.logs,
         ].slice(0, 40),
-      }));
+        };
+      });
     }
 
     if (filesRes.status === 'fulfilled') {
@@ -615,6 +622,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         (payload) => {
           const status = parseStatusPayload(payload);
           if (!status) return;
+          lastSocketUpdate = Date.now();
 
           set((state) => {
             const next = { ...state };

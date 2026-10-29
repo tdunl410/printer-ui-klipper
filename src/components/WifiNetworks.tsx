@@ -30,6 +30,7 @@ export function WifiNetworks({ onConnected }: { onConnected?: () => void }) {
     setError('');
     try {
       const result = await wifiRequest<{ networks: WifiNetwork[] }>(`/api/wifi/networks${rescan ? '?rescan=1' : ''}`);
+      if (!Array.isArray(result.networks)) throw new Error('Wi-Fi service unavailable. Update and restart the printer UI server.');
       setNetworks(result.networks);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to scan for networks');

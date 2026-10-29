@@ -9,8 +9,11 @@ export class MoonrakerHttpClient {
     return new MoonrakerHttpClient(baseUrl);
   }
 
-  async queryObjects(objects: Record<string, unknown>) {
-    const response = await fetch(`${this.baseUrl}/printer/objects/query?${new URLSearchParams({ objects: JSON.stringify(objects) })}`);
+  // Moonraker's HTTP query format is ?object=field1,field2 (a bare name returns all fields)
+  async queryObjects(objects: Record<string, string[] | null>) {
+    const params = new URLSearchParams();
+    Object.entries(objects).forEach(([name, fields]) => params.append(name, fields?.join(',') ?? ''));
+    const response = await fetch(`${this.baseUrl}/printer/objects/query?${params}`);
     if (!response.ok) {
       throw new Error(`Moonraker query failed: ${response.status}`);
     }
