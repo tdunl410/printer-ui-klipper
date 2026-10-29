@@ -1,14 +1,20 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { extname, join, normalize } from 'node:path';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const host = process.env.PRINTER_UI_HOST ?? '0.0.0.0';
 const port = Number(process.env.PRINTER_UI_PORT ?? 4409);
 const root = process.env.PRINTER_UI_DIST ?? join(process.cwd(), 'dist');
 
 const loopbackAddresses = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+const serverDir = dirname(fileURLToPath(import.meta.url));
+const projectRoot = join(serverDir, '..');
+const updateScript = process.env.PRINTER_UI_UPDATE_SCRIPT ?? join(projectRoot, 'scripts', 'update-printer-ui.sh');
 
 function nmcli(args, timeout = 30000) {
   return new Promise((resolve, reject) => {
@@ -98,6 +104,30 @@ async function handleWifi(req, res, path) {
   }
 }
 
+async function handleUi(req, res, path) {
+  if (!loopbackAddresses.has(req.socket.remoteAddress ?? '')) {
+    sendJson(res, 403, { error: 'UI update is only available from the printer screen' });
+    return;
+  }
+
+  try {
+    if (req.method === 'POST' && path === '/api/ui/update-screen') {
+      const child = spawn(updateScript, [], {
+        cwd: projectRoot,
+        detached: true,
+        stdio: 'ignore',
+      });
+      child.unref();
+      sendJson(res, 202, { ok: true });
+      return;
+    }
+
+    sendJson(res, 404, { error: 'Not found' });
+  } catch (error) {
+    sendJson(res, 500, { error: error instanceof Error ? error.message : 'UI request failed' });
+  }
+}
+
 const contentTypeMap = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -141,6 +171,11 @@ const server = createServer(async (req, res) => {
   const requestPath = req.url.split('?')[0];
   if (requestPath.startsWith('/api/wifi/')) {
     await handleWifi(req, res, requestPath);
+    return;
+  }
+
+  if (requestPath.startsWith('/api/ui/')) {
+    await handleUi(req, res, requestPath);
     return;
   }
 

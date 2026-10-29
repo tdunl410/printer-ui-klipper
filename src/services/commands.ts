@@ -130,6 +130,23 @@ export class CommandService {
     return this.http.post('/machine/shutdown');
   }
 
+  async updateScreen() {
+    const response = await fetch('/api/ui/update-screen', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `Update request failed (${response.status})`);
+    }
+
+    return (await response.json()) as Record<string, unknown>;
+  }
+
   private async socketFirst(method: string, params: Record<string, unknown> = {}) {
     this.sendSocketRpc(method, params);
     return Promise.resolve({ method, params });

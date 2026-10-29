@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog } from '../components/Dialog';
 import { Layout } from '../components/Layout';
 import { KeyboardInput } from '../components/OnScreenKeyboard';
@@ -8,6 +8,8 @@ import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 interface FilePreview {
   thumbnailUrl?: string;
 }
+
+const PAGE_SIZE = 10;
 
 function bytesToSize(value?: number) {
   if (!value || value <= 0) return '-';
@@ -35,25 +37,12 @@ export function FilesScreen() {
   const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('modified');
   const [search, setSearch] = useState('');
   const [previews, setPreviews] = useState<Record<string, FilePreview>>({});
-
-  useEffect(() => {
-    const filesToLoad = files.filter((file) => !previews[file.path]);
-    if (filesToLoad.length === 0) return;
-
-    void Promise.all(
-      filesToLoad.map(async (file) => [file.path, { thumbnailUrl: await fetchThumbnailUrl(connection.moonrakerBaseUrl, file.path) }] as const),
-    ).then((entries) => {
-      setPreviews((prev) => {
-        const next = { ...prev };
-        entries.forEach(([path, preview]) => {
-          next[path] = preview;
-        });
-        return next;
-      });
-    });
-  }, [connection.moonrakerBaseUrl, files, previews]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const fileListRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const isPrinting = activeJob.state === 'printing' || activeJob.state === 'paused';
+
   const filteredFiles = useMemo(() => {
     const query = search.trim().toLowerCase();
     const base = query
@@ -71,10 +60,69 @@ export function FilesScreen() {
     });
   }, [files, search, sortBy]);
 
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, sortBy, files]);
+
+  const visibleFiles = useMemo(() => filteredFiles.slice(0, visibleCount), [filteredFiles, visibleCount]);
+  const hasMoreFiles = visibleCount < filteredFiles.length;
+
+  const loadMoreFiles = useCallback(() => {
+    setVisibleCount((count) => Math.min(count + PAGE_SIZE, filteredFiles.length));
+  }, [filteredFiles.length]);
+
   const popupFile = useMemo(() => files.find((entry) => entry.path === openFile), [files, openFile]);
   const popupPreview = popupFile?.path ? previews[popupFile.path] : undefined;
   const popupModified = popupFile?.modified ? new Date(popupFile.modified * 1000).toLocaleString() : '-';
   const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
+
+  useEffect(() => {
+    const root = fileListRef.current;
+    const target = loadMoreRef.current;
+    if (!root || !target || !hasMoreFiles) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          loadMoreFiles();
+        }
+      },
+      {
+        root,
+        rootMargin: '120px',
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMoreFiles, loadMoreFiles]);
+
+  useEffect(() => {
+    const previewTargets = popupFile ? [...visibleFiles, popupFile] : visibleFiles;
+    const missingFiles = previewTargets.filter((file) => !previews[file.path]);
+    if (missingFiles.length === 0) return;
+
+    let cancelled = false;
+    void Promise.all(
+      missingFiles.map(async (file) => [file.path, { thumbnailUrl: await fetchThumbnailUrl(connection.moonrakerBaseUrl, file.path) }] as const),
+    ).then((entries) => {
+      if (cancelled) return;
+      setPreviews((prev) => {
+        const next = { ...prev };
+        entries.forEach(([path, preview]) => {
+          if (!next[path]) {
+            next[path] = preview;
+          }
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connection.moonrakerBaseUrl, popupFile, previews, visibleFiles]);
 
   // App navigates to the print screen once Klipper reports the print as started
   const launchPrint = (path: string) => {
@@ -95,7 +143,7 @@ export function FilesScreen() {
         <div className="card-title">Files</div>
         <div className="kv">
           <span>Showing</span>
-          <strong>{filteredFiles.length} / {files.length}</strong>
+          <strong>{visibleFiles.length} / {filteredFiles.length}</strong>
         </div>
         <KeyboardInput label="Search files" placeholder="Search files" value={search} onChange={setSearch} />
         <div className="btn-row top-gap">
@@ -103,8 +151,8 @@ export function FilesScreen() {
           <button type="button" className={`btn ${sortBy === 'name' ? 'accent' : ''}`} onClick={() => setSortBy('name')}>Name</button>
           <button type="button" className={`btn ${sortBy === 'size' ? 'accent' : ''}`} onClick={() => setSortBy('size')}>Size</button>
         </div>
-        <div className="file-list">
-          {filteredFiles.map((file) => (
+        <div className="file-list" ref={fileListRef}>
+          {visibleFiles.map((file) => (
             <button
               type="button"
               className={`file-item button-reset file-preview-item ${selectedFile?.path === file.path ? 'selected' : ''}`}
@@ -124,6 +172,7 @@ export function FilesScreen() {
               <span className="file-path">{file.path}</span>
             </button>
           ))}
+          {hasMoreFiles ? <div className="macro-item" ref={loadMoreRef}>Loading more…</div> : null}
         </div>
         {filteredFiles.length === 0 ? <div className="macro-item">No files match the current filter.</div> : null}
       </section>

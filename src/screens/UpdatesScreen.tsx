@@ -33,6 +33,20 @@ export function UpdatesScreen() {
         <div className="file-item">{updateCount > 0 ? `${updateCount} updates reported by Moonraker` : 'No pending updates reported'}</div>
         <div className="btn-row">
           <button type="button" className="btn accent" onClick={() => boot()}>Refresh</button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              void runAction('Update Screen', async () => {
+                await commands.updateScreen();
+                window.setTimeout(() => {
+                  window.location.reload();
+                }, 4000);
+              });
+            }}
+          >
+            Update Screen
+          </button>
           <button type="button" className="btn" onClick={() => runAction('Restart Klipper', () => commands.systemAction('restart-klipper'))}>Restart Klipper</button>
           <button type="button" className="btn" onClick={() => runAction('Restart Host', () => commands.systemAction('restart-host'))}>Restart Host</button>
         </div>

@@ -808,6 +808,14 @@ body {
   flex: 1;
   overflow-y: auto;
   padding-right: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.file-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .file-list-panel {
