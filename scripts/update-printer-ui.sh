@@ -13,6 +13,21 @@ npm_is_healthy() {
   command -v npm >/dev/null 2>&1 && npm --version >/dev/null 2>&1
 }
 
+install_dependencies() {
+  if [[ -f package-lock.json ]]; then
+    if npm ci; then
+      return 0
+    fi
+
+    echo "npm ci failed (likely lockfile drift). Falling back to npm install to recover."
+    npm install
+    return 0
+  fi
+
+  echo "package-lock.json not found; running npm install to regenerate lockfile."
+  npm install
+}
+
 pushd "${REPO_DIR}" >/dev/null
 git pull --ff-only
 
@@ -23,7 +38,7 @@ if ! npm_is_healthy; then
   exit 0
 fi
 
-npm ci
+install_dependencies
 npm run build
 sudo mkdir -p "${INSTALL_DIR}/dist"
 sudo cp -r dist/* "${INSTALL_DIR}/dist/"

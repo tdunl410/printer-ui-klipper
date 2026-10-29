@@ -105,6 +105,19 @@ sudo systemctl restart printer-ui.service
 sudo systemctl restart printer-ui-kiosk.service
 ```
 
+### Lockfile note (`npm ci`)
+- Do not delete `package-lock.json`.
+- If `npm ci` reports lockfile drift, run:
+
+```bash
+npm install
+git add package-lock.json
+git commit -m "chore: refresh lockfile"
+git push
+```
+
+The update script now auto-falls back to `npm install` when `npm ci` fails or `package-lock.json` is missing.
+
 
 ## Disabling klipperscreen
 ```
