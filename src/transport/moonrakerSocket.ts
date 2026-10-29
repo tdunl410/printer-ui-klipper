@@ -4,6 +4,7 @@ export class MoonrakerSocket {
   private socket?: WebSocket;
   private reconnectTimer?: number;
   private rpcId = 1;
+  private extraObjects = new Set<string>();
 
   constructor(
     private readonly wsUrl: string,
@@ -19,17 +20,7 @@ export class MoonrakerSocket {
 
     this.socket.addEventListener('open', () => {
       this.onOpen();
-      this.send({
-        jsonrpc: '2.0',
-        method: 'printer.objects.subscribe',
-        params: {
-          objects: this.subscribeObjects.reduce<Record<string, null>>((acc, name) => {
-            acc[name] = null;
-            return acc;
-          }, {}),
-        },
-        id: this.rpcId++,
-      });
+      this.sendSubscribe([...this.subscribeObjects, ...this.extraObjects]);
     });
 
     this.socket.addEventListener('message', (event) => {
@@ -47,6 +38,28 @@ export class MoonrakerSocket {
 
     this.socket.addEventListener('error', () => {
       this.socket?.close();
+    });
+  }
+
+  // Moonraker merges repeated subscribe calls on one connection, so this only adds objects.
+  subscribe(objects: string[]) {
+    const added = objects.filter((name) => !this.extraObjects.has(name) && !this.subscribeObjects.includes(name));
+    if (added.length === 0) return;
+    added.forEach((name) => this.extraObjects.add(name));
+    this.sendSubscribe(added);
+  }
+
+  private sendSubscribe(objects: string[]) {
+    this.send({
+      jsonrpc: '2.0',
+      method: 'printer.objects.subscribe',
+      params: {
+        objects: objects.reduce<Record<string, null>>((acc, name) => {
+          acc[name] = null;
+          return acc;
+        }, {}),
+      },
+      id: this.rpcId++,
     });
   }
 

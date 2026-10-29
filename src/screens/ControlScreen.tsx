@@ -15,6 +15,11 @@ export function ControlScreen() {
 
   return (
     <Layout title="Control" subtitle="Move + Macros + Terminal">
+      <section className="status-row">
+        <article className="status-chip"><div className="k">Klipper</div><div className="v">{connectionState === 'online' ? 'Ready' : 'Offline'}</div></article>
+        <article className="status-chip"><div className="k">Queue</div><div className="v">{pending} Pending</div></article>
+        <article className="status-chip"><div className="k">Errors</div><div className="v">{hasErrors ? 'Present' : 'None'}</div></article>
+      </section>
 
       <MoveControls />
 
