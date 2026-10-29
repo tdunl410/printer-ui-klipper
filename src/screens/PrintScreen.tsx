@@ -159,13 +159,13 @@ export function PrintScreen() {
       {confirmAction === 'emergency' ? (
         <Dialog
           subtitle="Confirm Action"
-          title="Send emergency M112 command?"
+          title="Emergency stop? This shuts down Klipper immediately."
           actions={[
             {
-              label: 'Send M112',
+              label: 'Emergency Stop',
               variant: 'accent',
               onClick: () => {
-                void runAction('Emergency Command', () => commands.runMacro('M112'));
+                void runAction('Emergency Command', () => commands.emergencyStop());
                 setConfirmAction(null);
               },
             },

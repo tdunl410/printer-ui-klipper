@@ -74,13 +74,13 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
       {confirmEmergency ? (
         <Dialog
           subtitle="Confirm Action"
-          title="Send emergency stop (M112)?"
+          title="Emergency stop? This shuts down Klipper immediately."
           actions={[
             {
               label: 'Emergency Stop',
               variant: 'accent',
               onClick: () => {
-                void runAction('Emergency Stop', () => commands.runMacro('M112'));
+                void runAction('Emergency Stop', () => commands.emergencyStop());
                 setConfirmEmergency(false);
               },
             },

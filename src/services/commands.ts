@@ -18,6 +18,16 @@ export class CommandService {
     return this.socketFirst('printer.print.cancel');
   }
 
+  // Same endpoint Mainsail uses: bypasses the gcode queue so it works mid-macro or mid-print
+  async emergencyStop() {
+    try {
+      return await this.http.post('/printer/emergency_stop');
+    } catch (error) {
+      this.sendSocketRpc('printer.emergency_stop', {});
+      throw error;
+    }
+  }
+
   async runMacro(name: string) {
     return this.gcode(name);
   }
