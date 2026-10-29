@@ -83,6 +83,13 @@ Enable kiosk mode:
 sudo systemctl enable --now printer-ui-kiosk.service
 ```
 
+If kiosk restarts or the panel blinks/clears, check:
+```bash
+systemctl status printer-ui-kiosk.service --no-pager
+journalctl -u printer-ui-kiosk.service -n 120 --no-pager
+tail -n 120 /tmp/printer-ui-kiosk.log
+```
+
 ## Update After Changes
 ```bash
 ./scripts/update-printer-ui.sh

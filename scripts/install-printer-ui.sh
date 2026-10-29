@@ -10,6 +10,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INSTALL_DIR="/opt/printer-ui"
 SERVICE_FILE="/etc/systemd/system/printer-ui.service"
 KIOSK_SERVICE_FILE="/etc/systemd/system/printer-ui-kiosk.service"
+KIOSK_LAUNCHER_FILE="${INSTALL_DIR}/server/kiosk-launch.sh"
 ENV_FILE="/etc/default/printer-ui"
 PORT="${PRINTER_UI_PORT:-4409}"
 HOST="${PRINTER_UI_HOST:-127.0.0.1}"
@@ -194,6 +195,35 @@ sudo mkdir -p "${INSTALL_DIR}/dist" "${INSTALL_DIR}/server"
 sudo cp -r dist/* "${INSTALL_DIR}/dist/"
 sudo cp server/static-server.mjs "${INSTALL_DIR}/server/static-server.mjs"
 
+cat <<'EOF' | sudo tee "${KIOSK_LAUNCHER_FILE}" >/dev/null
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOG_FILE=/tmp/printer-ui-kiosk.log
+exec >>"${LOG_FILE}" 2>&1
+
+echo "[$(date -Iseconds)] Starting printer-ui kiosk launcher"
+
+if ! command -v xinit >/dev/null 2>&1; then
+  echo "xinit not found. Install it with: sudo apt-get install -y xinit xserver-xorg"
+  exit 1
+fi
+
+CHROME_BIN=$(command -v chromium-browser || command -v chromium || command -v google-chrome || true)
+if [[ -z "${CHROME_BIN}" ]]; then
+  echo "Chromium not found. Install it with: sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium"
+  exit 1
+fi
+
+HOST=${PRINTER_UI_HOST:-127.0.0.1}
+PORT=${PRINTER_UI_PORT:-4409}
+
+echo "Launching ${CHROME_BIN} at http://${HOST}:${PORT}"
+exec xinit "${CHROME_BIN}" --kiosk --app="http://${HOST}:${PORT}" --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars -- :0 vt1 -nocursor
+EOF
+
+sudo chmod +x "${KIOSK_LAUNCHER_FILE}"
+
 cat <<EOF | sudo tee "${ENV_FILE}" >/dev/null
 PRINTER_UI_HOST=${HOST}
 PRINTER_UI_PORT=${PORT}
@@ -222,20 +252,27 @@ EOF
 cat <<EOF | sudo tee "${KIOSK_SERVICE_FILE}" >/dev/null
 [Unit]
 Description=Printer UI Chromium Kiosk
-After=graphical.target printer-ui.service
+After=network-online.target printer-ui.service
 Wants=printer-ui.service
 
 [Service]
 Type=simple
-Environment=DISPLAY=:0
-ExecStart=/bin/bash -lc 'CHROME_BIN=\$(command -v chromium-browser || command -v chromium || command -v google-chrome || true); if [[ -z "\$CHROME_BIN" ]]; then echo "Chromium not found"; exit 1; fi; "\$CHROME_BIN" --kiosk --app=http://${HOST}:${PORT} --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars'
+EnvironmentFile=${ENV_FILE}
+Environment=HOME=/home/${USER}
+StandardInput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+ExecStart=${KIOSK_LAUNCHER_FILE}
 Restart=always
 RestartSec=3
 User=${USER}
 Group=${USER}
+WorkingDirectory=/home/${USER}
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
