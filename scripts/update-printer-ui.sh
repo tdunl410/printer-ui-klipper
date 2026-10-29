@@ -15,11 +15,16 @@ npm_is_healthy() {
 
 install_dependencies() {
   if [[ -f package-lock.json ]]; then
-    if npm ci; then
+    set +e
+    npm ci
+    local ci_status=$?
+    set -e
+
+    if [[ ${ci_status} -eq 0 ]]; then
       return 0
     fi
 
-    echo "npm ci failed (likely lockfile drift). Falling back to npm install to recover."
+    echo "npm ci failed (likely lockfile drift/corruption). Falling back to npm install to recover."
     npm install
     return 0
   fi
