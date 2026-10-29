@@ -107,6 +107,14 @@ export class CommandService {
     return this.gcode(`M221 S${Math.round(bounded)}`);
   }
 
+  async adjustZOffset(delta: number) {
+    return this.gcode(`SET_GCODE_OFFSET Z_ADJUST=${delta.toFixed(3)} MOVE=1`);
+  }
+
+  async resetZOffset() {
+    return this.gcode('SET_GCODE_OFFSET Z=0 MOVE=1');
+  }
+
   async disableMotors() {
     return this.gcode('M84');
   }

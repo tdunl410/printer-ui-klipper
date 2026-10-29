@@ -40,6 +40,7 @@ interface PrinterStore {
   fanChamberPercent: number;
   speedPercent: number;
   flowPercent: number;
+  zOffset: number;
   boot: () => void;
   disconnect: () => void;
   setTheme: (theme: ThemeKey) => void;
@@ -316,7 +317,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     const [objectsRes, filesRes, systemRes, networkRes, objectListRes, updateRes, historyRes, mainsailGeneralRes, serverInfoRes] = await Promise.allSettled([
       scopedHttp.queryObjects({
         toolhead: ['position'],
-        gcode_move: ['speed_factor', 'extrude_factor'],
+        gcode_move: ['speed_factor', 'extrude_factor', 'homing_origin'],
         extruder: ['temperature', 'target'],
         heater_bed: ['temperature', 'target'],
         heaters: ['available_heaters', 'available_sensors', 'available_monitors'],
@@ -425,6 +426,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
             ),
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
+        zOffset: Number(status.gcode_move?.homing_origin?.[2] ?? state.zOffset),
         job: {
           ...state.job,
           filename: String(status.print_stats?.filename || ''),
@@ -575,6 +577,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     fanChamberPercent: 0,
     speedPercent: 100,
     flowPercent: 100,
+    zOffset: 0,
     boot: () => {
       const existing = socketClient;
       if (existing) {
@@ -647,6 +650,17 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               next.temperatures = { ...next.temperatures, ...derived };
               const auxLive = dynamicCache['output_pin aux_fan'];
               if (auxLive) next.fanChamberPercent = toPercent(auxLive.value, next.fanChamberPercent);
+            }
+
+            if (status.gcode_move) {
+              const move = status.gcode_move;
+              if (move.speed_factor !== undefined) next.speedPercent = Math.round(Number(move.speed_factor) * 100);
+              if (move.extrude_factor !== undefined) next.flowPercent = Math.round(Number(move.extrude_factor) * 100);
+              if (move.homing_origin?.[2] !== undefined) next.zOffset = Number(move.homing_origin[2]);
+            }
+
+            if (status.fan?.speed !== undefined) {
+              next.fanPartPercent = toPercent(status.fan.speed, next.fanPartPercent);
             }
 
             if (status.toolhead?.position) {

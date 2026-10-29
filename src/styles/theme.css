@@ -1050,3 +1050,77 @@ body {
   flex-direction: column;
   gap: 8px;
 }
+
+.tune-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.tune-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 76px;
+  padding: 8px 4px;
+  border: 1px solid var(--border);
+  border-bottom: 3px solid var(--accent-2, var(--accent));
+  border-radius: 14px;
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tune-btn:active {
+  background: rgba(var(--accent-rgb), 0.28);
+}
+
+.tune-reset {
+  min-height: 64px;
+}
+
+.tune-value {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.tune-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.tune-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.tune-steps {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tune-step-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.tune-step {
+  flex: 1;
+  min-height: 48px;
+  border: 0;
+  background: var(--surface-strong);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tune-step.active {
+  background: rgba(var(--accent-rgb), 0.45);
+}
