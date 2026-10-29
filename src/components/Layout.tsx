@@ -10,8 +10,8 @@ interface LayoutProps {
 }
 
 const dockItems = [
-  { to: '/control', label: 'Control' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/control', label: 'Control', icon: '🎛' },
+  { to: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
 export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
@@ -40,10 +40,12 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
 
       <nav className="dock">
         <NavLink to="/" className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')} end>
-          Home
+          <span className="dock-icon" aria-hidden="true">⌂</span>
+          <span className="dock-label">Home</span>
         </NavLink>
         <NavLink to={printRoute} className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}>
-          Print
+          <span className="dock-icon" aria-hidden="true">🖨</span>
+          <span className="dock-label">Print</span>
         </NavLink>
         {dockItems.map((item) => (
           <NavLink
@@ -52,7 +54,8 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
             className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}
             end={item.to === '/'}
           >
-            {item.label}
+            <span className="dock-icon" aria-hidden="true">{item.icon}</span>
+            <span className="dock-label">{item.label}</span>
           </NavLink>
         ))}
       </nav>

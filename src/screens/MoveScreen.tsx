@@ -56,11 +56,11 @@ export function MoveScreen() {
           <button type="button" className="btn" onClick={() => runAction('Part fan +10%', () => commands.setFan(fanPartPercent + 10, 'fan'))}>+10%</button>
         </div>
         <div className="spacer" />
-        <div className="kv"><span>Chamber Fan</span><strong>{fanChamberPercent}%</strong></div>
+        <div className="kv"><span>Aux Fan</span><strong>{fanChamberPercent}%</strong></div>
         <div className="btn-row">
-          <button type="button" className="btn" onClick={() => runAction('Chamber fan -10%', () => commands.setFan(fanChamberPercent - 10, 'chamber_fan'))}>-10%</button>
-          <button type="button" className="btn" onClick={() => runAction('Chamber fan off', () => commands.setFan(0, 'chamber_fan'))}>Off</button>
-          <button type="button" className="btn" onClick={() => runAction('Chamber fan +10%', () => commands.setFan(fanChamberPercent + 10, 'chamber_fan'))}>+10%</button>
+          <button type="button" className="btn" onClick={() => runAction('Aux fan -10%', () => commands.setFan(fanChamberPercent - 10, 'aux_fan'))}>-10%</button>
+          <button type="button" className="btn" onClick={() => runAction('Aux fan off', () => commands.setFan(0, 'aux_fan'))}>Off</button>
+          <button type="button" className="btn" onClick={() => runAction('Aux fan +10%', () => commands.setFan(fanChamberPercent + 10, 'aux_fan'))}>+10%</button>
         </div>
       </section>
 

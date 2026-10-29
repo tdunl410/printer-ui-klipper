@@ -95,6 +95,13 @@ const pushHistory = (history: Record<string, number[]>, key: string, value: numb
   history[key] = next;
 };
 
+const toPercent = (raw: unknown, fallback: number) => {
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric)) return fallback;
+  if (numeric <= 1) return Math.round(numeric * 100);
+  return Math.round(Math.max(0, Math.min(100, numeric)));
+};
+
 const toState = (value: string): JobState['state'] => {
   if (value === 'printing' || value === 'paused' || value === 'complete' || value === 'error') {
     return value;
@@ -234,11 +241,15 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       }, {});
 
       const chamberSensorEntry = Object.entries(dynamicStatus).find(([name]) => {
-        return /temperature_sensor\s+chamber/i.test(name) || (/\bchamber\b/i.test(name) && /sensor/i.test(name));
+        return (
+          name.trim().toLowerCase() === 'chamber' ||
+          /temperature_sensor\s+chamber/i.test(name) ||
+          (/\bchamber\b/i.test(name) && /sensor/i.test(name))
+        );
       });
 
       const chamberControlEntry = Object.entries(dynamicStatus).find(([name]) => {
-        return /temperature_fan\s+chamber/i.test(name) || /heater_generic\s+chamber/i.test(name);
+        return /temperature_fan\s+chamber/i.test(name) || /heater_generic\s+chamber/i.test(name) || /\bchamber\b/i.test(name);
       });
 
       const chamberCandidate = Object.entries(sensors).find(([name]) => /chamber/i.test(name));
@@ -255,7 +266,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         target: chamberTarget,
       };
 
-      const chamberFanEntry = Object.entries(dynamicStatus).find(([name]) => /chamber.*fan|fan.*chamber/i.test(name));
+      const chamberFanEntry = Object.entries(dynamicStatus).find(([name]) => /chamber.*fan|fan.*chamber|aux_fan/i.test(name));
 
       const sensorEntries = Object.entries(sensors);
       const ambientCandidates = sensorEntries.filter(([name]) => /ambient|air|enclosure/i.test(name));
@@ -303,8 +314,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           y: Number(status.toolhead?.position?.[1] ?? 0),
           z: Number(status.toolhead?.position?.[2] ?? 0),
         },
-        fanPartPercent: Math.round(Number(status.fan?.speed ?? state.fanPartPercent / 100) * 100),
-        fanChamberPercent: Math.round(Number((chamberFanEntry?.[1] as any)?.speed ?? state.fanChamberPercent / 100) * 100),
+        fanPartPercent: toPercent(status.fan?.speed, state.fanPartPercent),
+        fanChamberPercent: toPercent((chamberFanEntry?.[1] as any)?.speed ?? (chamberFanEntry?.[1] as any)?.value, state.fanChamberPercent),
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
         job: {
@@ -532,7 +543,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
             }
 
             if (status.fan?.speed !== undefined) {
-              next.fanPartPercent = Math.round(Number(status.fan.speed) * 100);
+              next.fanPartPercent = toPercent(status.fan.speed, next.fanPartPercent);
             }
 
             if (status.gcode_move?.speed_factor !== undefined) {
