@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
@@ -21,9 +22,41 @@ export function PreheatScreen() {
   const temperatures = usePrinterStore((state) => state.temperatures);
   const temperatureHistory = usePrinterStore((state) => state.temperatureHistory);
   const runAction = usePrinterStore((state) => state.runAction);
+  const [activeKeypad, setActiveKeypad] = useState<'extruder' | 'heater_bed' | 'chamber' | null>(null);
+  const [inputTarget, setInputTarget] = useState('');
 
-  const adjust = (heater: 'extruder' | 'heater_bed' | 'chamber', delta: number, currentTarget: number) => {
-    void runAction(`Set ${heater}`, () => commands.setHeater(heater, Math.max(0, currentTarget + delta)));
+  const targetMap = useMemo(
+    () => ({
+      extruder: temperatures.nozzle.target,
+      heater_bed: temperatures.bed.target,
+      chamber: temperatures.chamber.target,
+    }),
+    [temperatures.bed.target, temperatures.chamber.target, temperatures.nozzle.target],
+  );
+
+  const openKeypad = (heater: 'extruder' | 'heater_bed' | 'chamber') => {
+    setActiveKeypad(heater);
+    setInputTarget(String(Math.max(0, Math.round(targetMap[heater]))));
+  };
+
+  const closeKeypad = () => {
+    setActiveKeypad(null);
+    setInputTarget('');
+  };
+
+  const applyTarget = () => {
+    if (!activeKeypad) return;
+    const parsed = Number(inputTarget);
+    if (!Number.isFinite(parsed)) return;
+    const safeTarget = Math.max(0, Math.round(parsed));
+    void runAction(`Set ${activeKeypad}`, () => commands.setHeater(activeKeypad, safeTarget));
+    closeKeypad();
+  };
+
+  const adjust = (heater: 'extruder' | 'heater_bed' | 'chamber', delta: number) => {
+    const currentTarget = targetMap[heater];
+    const nextTarget = Math.max(0, Math.round(currentTarget + delta));
+    void runAction(`Set ${heater}`, () => commands.setHeater(heater, nextTarget));
   };
 
   const sensorEntries = Object.entries(temperatures.sensors);
@@ -40,27 +73,27 @@ export function PreheatScreen() {
         <div className="card-label">Set Targets</div>
         <div className="card-title">Temperature Setpoints</div>
 
-        <div className="kv"><span>Nozzle</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></div>
+        <button type="button" className="kv temp-target-row button-reset" onClick={() => openKeypad('extruder')}><span>Nozzle</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></button>
         <div className="btn-row">
-          <button type="button" className="btn" onClick={() => adjust('extruder', -5, temperatures.nozzle.target)}>-5°C</button>
-          <button type="button" className="btn" onClick={() => adjust('extruder', -temperatures.nozzle.target, temperatures.nozzle.target)}>Off</button>
-          <button type="button" className="btn" onClick={() => adjust('extruder', 5, temperatures.nozzle.target)}>+5°C</button>
+          <button type="button" className="btn" onClick={() => adjust('extruder', -5)}>-5°C</button>
+          <button type="button" className="btn" onClick={() => adjust('extruder', -targetMap.extruder)}>Off</button>
+          <button type="button" className="btn" onClick={() => adjust('extruder', 5)}>+5°C</button>
         </div>
 
         <div className="spacer" />
-        <div className="kv"><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></div>
+        <button type="button" className="kv temp-target-row button-reset" onClick={() => openKeypad('heater_bed')}><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></button>
         <div className="btn-row">
-          <button type="button" className="btn" onClick={() => adjust('heater_bed', -5, temperatures.bed.target)}>-5°C</button>
-          <button type="button" className="btn" onClick={() => adjust('heater_bed', -temperatures.bed.target, temperatures.bed.target)}>Off</button>
-          <button type="button" className="btn" onClick={() => adjust('heater_bed', 5, temperatures.bed.target)}>+5°C</button>
+          <button type="button" className="btn" onClick={() => adjust('heater_bed', -5)}>-5°C</button>
+          <button type="button" className="btn" onClick={() => adjust('heater_bed', -targetMap.heater_bed)}>Off</button>
+          <button type="button" className="btn" onClick={() => adjust('heater_bed', 5)}>+5°C</button>
         </div>
 
         <div className="spacer" />
-        <div className="kv"><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></div>
+        <button type="button" className="kv temp-target-row button-reset" onClick={() => openKeypad('chamber')}><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></button>
         <div className="btn-row">
-          <button type="button" className="btn" onClick={() => adjust('chamber', -5, temperatures.chamber.target)}>-5°C</button>
-          <button type="button" className="btn" onClick={() => adjust('chamber', -temperatures.chamber.target, temperatures.chamber.target)}>Off</button>
-          <button type="button" className="btn" onClick={() => adjust('chamber', 5, temperatures.chamber.target)}>+5°C</button>
+          <button type="button" className="btn" onClick={() => adjust('chamber', -5)}>-5°C</button>
+          <button type="button" className="btn" onClick={() => adjust('chamber', -targetMap.chamber)}>Off</button>
+          <button type="button" className="btn" onClick={() => adjust('chamber', 5)}>+5°C</button>
         </div>
       </section>
 
@@ -129,6 +162,35 @@ export function PreheatScreen() {
       </section>
 
       <BackButton to="/" />
+
+      {activeKeypad ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <section className="modal-card">
+            <div className="card-label">Set Target</div>
+            <div className="card-title">{activeKeypad === 'extruder' ? 'Nozzle' : activeKeypad === 'heater_bed' ? 'Bed' : 'Chamber'} Temperature</div>
+            <div className="temp-input-display">{inputTarget || '0'}°C</div>
+            <div className="numpad-grid">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="btn"
+                  onClick={() => setInputTarget((prev) => `${prev}${value}`.replace(/^0+(\d)/, '$1'))}
+                >
+                  {value}
+                </button>
+              ))}
+              <button type="button" className="btn" onClick={() => setInputTarget('')}>Clear</button>
+              <button type="button" className="btn" onClick={() => setInputTarget((prev) => `${prev}0`.replace(/^0+(\d)/, '$1'))}>0</button>
+              <button type="button" className="btn" onClick={() => setInputTarget((prev) => prev.slice(0, -1))}>⌫</button>
+            </div>
+            <div className="btn-row top-gap">
+              <button type="button" className="btn accent" onClick={applyTarget}>Set</button>
+              <button type="button" className="btn" onClick={closeKeypad}>Close</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </Layout>
   );
 }
