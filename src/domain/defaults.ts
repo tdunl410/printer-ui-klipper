@@ -18,6 +18,8 @@ export const defaultJob: JobState = {
   eta: '00:00',
   remaining: '00:00',
   elapsed: '00:00',
+  printDurationSec: 0,
+  filamentUsedMm: 0,
 };
 
 export const defaultPosition: PositionState = {

@@ -253,7 +253,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         extruder: ['temperature', 'target'],
         heater_bed: ['temperature', 'target'],
         heaters: ['available_heaters', 'available_sensors', 'available_monitors'],
-        print_stats: ['state', 'filename', 'print_duration', 'total_duration', 'info', 'message'],
+        print_stats: ['state', 'filename', 'print_duration', 'total_duration', 'filament_used', 'info', 'message'],
         display_status: ['progress'],
         fan: ['speed'],
         webhooks: ['state', 'state_message'],
@@ -364,6 +364,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           filename: String(status.print_stats?.filename || ''),
           progress,
           state: computeJobState(klipperState, status.print_stats?.state),
+          printDurationSec: printDuration,
+          filamentUsedMm: Number(status.print_stats?.filament_used ?? 0),
           elapsed: hhmmFromSeconds(printDuration),
           eta: hhmmFromSeconds(remainingSeconds),
           remaining: hhmmFromSeconds(remainingSeconds),
@@ -425,7 +427,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         stats: {
           totalTimeHours: totalSeconds / 3600,
           printCount: Number.isFinite(totalJobs) ? totalJobs : 0,
-          filamentKg: Number.isFinite(totalFilamentMm) ? totalFilamentMm / 1000 / 1000 : 0,
+          filamentKg: Number.isFinite(totalFilamentMm) ? totalFilamentMm / 1000 / 350 : 0,
         },
       });
     }
@@ -617,6 +619,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
                 ...next.job,
                 state: jobState,
                 filename: String(statusCache.print_stats.filename ?? next.job.filename),
+                printDurationSec: Number(statusCache.print_stats.print_duration ?? next.job.printDurationSec),
+                filamentUsedMm: Number(statusCache.print_stats.filament_used ?? next.job.filamentUsedMm),
                 ...(jobState === 'printing' || jobState === 'paused' || jobState === 'shutdown' || jobState === 'startup'
                   ? {}
                   : { progress: 0, elapsed: '00:00', eta: '00:00', remaining: '00:00' }),

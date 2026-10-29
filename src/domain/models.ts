@@ -26,6 +26,8 @@ export interface JobState {
   eta: string;
   remaining: string;
   elapsed: string;
+  printDurationSec: number;
+  filamentUsedMm: number;
 }
 
 export interface PositionState {
