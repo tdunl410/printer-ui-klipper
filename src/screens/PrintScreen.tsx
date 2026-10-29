@@ -75,28 +75,22 @@ export function PrintScreen() {
       </section>
 
       <section className="card">
-        <div className="card-label">Execution</div>
-        <div className="card-title">Progress</div>
-        <div className="kv"><span>Status</span><strong>{job.state}</strong></div>
-        <div className="kv"><span>Completion</span><strong>{pct(job.progress)}</strong></div>
+        <div className="card-label">Progress</div>
         <div className="kv"><span>Time Elapsed</span><strong>{job.elapsed}</strong></div>
-        <div className="kv"><span>ETA</span><strong>{job.eta}</strong></div>
         <div className="kv"><span>Time Remaining</span><strong>{remainingLabel}</strong></div>
         <div className="kv"><span>Speed</span><strong>{speedPercent}%</strong></div>
         <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
       </section>
 
       <article className="card">
-        <div className="card-label">Thermals</div>
-        <div className="card-title">Temperatures</div>
+        <div className="card-label">Temperatures</div>
         <div className="kv"><span>Hotend</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></div>
         <div className="kv"><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></div>
         <div className="kv"><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></div>
       </article>
 
       <section className="card">
-        <div className="card-label">Operator Controls</div>
-        <div className="card-title">Actions</div>
+        <div className="card-label">Actions</div>
         <div className="btn-row">
           <button
             type="button"
