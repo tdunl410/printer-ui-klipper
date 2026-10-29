@@ -47,6 +47,16 @@ interface PrinterStore {
   setSelectedFile: (path: string) => void;
 }
 
+type PrinterSetState = (
+  partial:
+    | PrinterStore
+    | Partial<PrinterStore>
+    | ((state: PrinterStore) => PrinterStore | Partial<PrinterStore>),
+  replace?: boolean,
+) => void;
+
+type PrinterGetState = () => PrinterStore;
+
 let socketClient: MoonrakerSocket | undefined;
 let pollTimer: number | undefined;
 let dynamicObjects: string[] = [];
@@ -59,6 +69,14 @@ function parseStatusPayload(payload: unknown) {
   if (typeof first !== 'object' || first === null) return undefined;
   return first as Record<string, any>;
 }
+
+const normalizeProfileName = (value: string) => {
+  return value
+    .trim()
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+};
 
 const pushHistory = (history: Record<string, number[]>, key: string, value: number, max = 64) => {
   const current = history[key] ?? [];
@@ -138,7 +156,7 @@ const parseNetworkInterfaces = (networkResult: Record<string, unknown>) => {
   });
 };
 
-export const usePrinterStore = create<PrinterStore>((set, get) => {
+export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: PrinterGetState) => {
   const initialTheme = (localStorage.getItem('printer-ui-theme') as ThemeKey | null) ?? 'purple';
 
   const addCommand = (status: CommandStatus) => {
@@ -323,22 +341,28 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
       });
     }
 
-    if (mainsailGeneralRes.status === 'fulfilled') {
-      const value = ((mainsailGeneralRes.value.result as any) || {}).value;
-      const general = typeof value === 'object' && value !== null ? value : {};
-      const printerName =
-        String(
-          (general as any).printer_name ??
-            (general as any).printerName ??
-            (general as any).machine_name ??
-            (general as any).instance_name ??
-            '',
-        ) || '';
+    const mainsailValue = mainsailGeneralRes.status === 'fulfilled' ? ((mainsailGeneralRes.value.result as any) || {}).value : undefined;
+    const mainsailGeneral = typeof mainsailValue === 'object' && mainsailValue !== null ? mainsailValue : {};
+    const systemRoot = systemRes.status === 'fulfilled' ? ((systemRes.value.result as any) || {}) : {};
+    const systemInfo = (systemRoot.system_info ?? systemRoot.system ?? {}) as Record<string, any>;
+    const hostNameRaw =
+      systemInfo.hostname ??
+      systemInfo.host_name ??
+      systemRoot.hostname ??
+      get().connection.hostname ??
+      '';
 
-      if (printerName) {
-        set({ profileName: printerName });
-      }
-    }
+    const configuredPrinterName =
+      String(
+        (mainsailGeneral as any).printer_name ??
+          (mainsailGeneral as any).printerName ??
+          (mainsailGeneral as any).machine_name ??
+          (mainsailGeneral as any).instance_name ??
+          '',
+      ) || '';
+
+    const finalProfileName = configuredPrinterName || String(hostNameRaw || 'Printer');
+    set({ profileName: normalizeProfileName(finalProfileName) });
 
     if (networkRes.status === 'fulfilled') {
       const interfaces = parseNetworkInterfaces(networkRes.value);
@@ -367,7 +391,7 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
   };
 
   return {
-    profileName: 'Voron 2.4',
+    profileName: 'Printer',
     connectionState: 'connecting',
     connection: defaultConnection(),
     temperatures: defaultTemperatures,
@@ -511,12 +535,12 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
         pollTimer = undefined;
       }
     },
-    setTheme: (theme) => {
+    setTheme: (theme: ThemeKey) => {
       localStorage.setItem('printer-ui-theme', theme);
       document.body.dataset.theme = theme;
       set({ theme });
     },
-    setConnectionUrls: (baseUrl, wsUrl) => {
+    setConnectionUrls: (baseUrl: string, wsUrl: string) => {
       localStorage.setItem('moonraker-base-url', baseUrl);
       localStorage.setItem('moonraker-websocket-url', wsUrl);
       set((state) => ({
@@ -527,7 +551,7 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
         },
       }));
     },
-    runAction: async (label, action) => {
+    runAction: async (label: string, action: () => Promise<unknown>) => {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       addCommand({ id, label, status: 'pending', timestamp: Date.now() });
 
@@ -545,7 +569,7 @@ export const usePrinterStore = create<PrinterStore>((set, get) => {
         });
       }
     },
-    setSelectedFile: (path) => {
+    setSelectedFile: (path: string) => {
       set((state) => ({
         selectedFile: state.files.find((entry) => entry.path === path) ?? state.selectedFile,
       }));

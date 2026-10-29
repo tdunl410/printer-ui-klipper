@@ -278,6 +278,10 @@ body {
   gap: 10px;
 }
 
+.btn-row.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .btn {
   border: 1px solid var(--border);
   border-radius: 14px;

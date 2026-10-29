@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Dialog } from '../components/Dialog';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
@@ -27,6 +28,9 @@ export function FilesScreen() {
   const runAction = usePrinterStore((state) => state.runAction);
   const activeJob = usePrinterStore((state) => state.job);
   const [openFile, setOpenFile] = useState<string | null>(null);
+  const [renameFilePath, setRenameFilePath] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState('');
+  const [deleteFilePath, setDeleteFilePath] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, FilePreview>>({});
 
   const selectedPreview = selectedFile?.path ? previews[selectedFile.path] : undefined;
@@ -81,6 +85,8 @@ export function FilesScreen() {
   const selectedModified = selectedFile?.modified ? new Date(selectedFile.modified * 1000).toLocaleString() : '-';
   const popupFile = useMemo(() => files.find((entry) => entry.path === openFile), [files, openFile]);
   const popupPreview = popupFile?.path ? previews[popupFile.path] : undefined;
+  const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
+  const deleteTarget = deleteFilePath ? files.find((entry) => entry.path === deleteFilePath) : undefined;
 
   return (
     <Layout title="Model Files" subtitle="USB + Local + Network">
@@ -153,12 +159,8 @@ export function FilesScreen() {
             disabled={!selectedFile || isPrinting}
             onClick={() => {
               if (!selectedFile) return;
-              const nextName = window.prompt('Rename file to:', selectedFile.path);
-              if (!nextName || nextName === selectedFile.path) return;
-              void runAction('Rename File', async () => {
-                await commands.renameFile(selectedFile.path, nextName);
-                setSelectedFile(nextName);
-              });
+              setRenameFilePath(selectedFile.path);
+              setRenameDraft(selectedFile.path);
             }}
           >
             Rename
@@ -169,10 +171,7 @@ export function FilesScreen() {
             disabled={!selectedFile || isPrinting}
             onClick={() => {
               if (!selectedFile) return;
-              if (!window.confirm(`Delete ${selectedFile.path}?`)) return;
-              void runAction('Delete File', async () => {
-                await commands.deleteFile(selectedFile.path);
-              });
+              setDeleteFilePath(selectedFile.path);
             }}
           >
             Delete
@@ -183,33 +182,83 @@ export function FilesScreen() {
       <BackButton to="/settings" />
 
       {popupFile ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <section className="modal-card">
-            <div className="card-label">Selected File</div>
-            <div className="card-title">{popupFile.path}</div>
-            <div className="media-thumb thumb-gap file-selected-thumb">
-              {popupPreview?.thumbnailUrl ? (
-                <img src={popupPreview.thumbnailUrl} alt={`${popupFile.path} preview`} />
-              ) : (
-                <div className="file-thumb-placeholder">No Preview</div>
-              )}
-            </div>
-            <div className="btn-row">
-              <button
-                type="button"
-                className="btn accent"
-                disabled={isPrinting}
-                onClick={() => {
-                  void runAction('Print Selected', () => commands.startPrint(popupFile.path));
-                  setOpenFile(null);
-                }}
-              >
-                Print
-              </button>
-              <button type="button" className="btn" onClick={() => setOpenFile(null)}>Close</button>
-            </div>
-          </section>
-        </div>
+        <Dialog
+          subtitle="Selected File"
+          title={popupFile.path}
+          actions={[
+            {
+              label: 'Print',
+              variant: 'accent',
+              disabled: isPrinting,
+              onClick: () => {
+                void runAction('Print Selected', () => commands.startPrint(popupFile.path));
+                setOpenFile(null);
+              },
+            },
+            { label: 'Close', onClick: () => setOpenFile(null) },
+          ]}
+        >
+          <div className="media-thumb thumb-gap file-selected-thumb">
+            {popupPreview?.thumbnailUrl ? (
+              <img src={popupPreview.thumbnailUrl} alt={`${popupFile.path} preview`} />
+            ) : (
+              <div className="file-thumb-placeholder">No Preview</div>
+            )}
+          </div>
+        </Dialog>
+      ) : null}
+
+      {renameTarget ? (
+        <Dialog
+          subtitle="Rename File"
+          title={renameTarget.path}
+          actions={[
+            {
+              label: 'Save',
+              variant: 'accent',
+              disabled: !renameDraft || renameDraft === renameTarget.path,
+              onClick: () => {
+                const nextName = renameDraft.trim();
+                if (!nextName || nextName === renameTarget.path) return;
+                void runAction('Rename File', async () => {
+                  await commands.renameFile(renameTarget.path, nextName);
+                  setSelectedFile(nextName);
+                });
+                setRenameFilePath(null);
+              },
+            },
+            {
+              label: 'Cancel',
+              onClick: () => {
+                setRenameFilePath(null);
+                setRenameDraft('');
+              },
+            },
+          ]}
+        >
+          <label className="field-label">New file name</label>
+          <input className="input" value={renameDraft} onChange={(event) => setRenameDraft(event.target.value)} />
+        </Dialog>
+      ) : null}
+
+      {deleteTarget ? (
+        <Dialog
+          subtitle="Delete File"
+          title={`Delete ${deleteTarget.path}?`}
+          actions={[
+            {
+              label: 'Delete',
+              variant: 'accent',
+              onClick: () => {
+                void runAction('Delete File', async () => {
+                  await commands.deleteFile(deleteTarget.path);
+                });
+                setDeleteFilePath(null);
+              },
+            },
+            { label: 'Cancel', onClick: () => setDeleteFilePath(null) },
+          ]}
+        />
       ) : null}
     </Layout>
   );

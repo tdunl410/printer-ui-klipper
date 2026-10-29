@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Dialog } from '../components/Dialog';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
@@ -17,6 +19,7 @@ export function SettingsScreen() {
   const runAction = usePrinterStore((state) => state.runAction);
   const theme = usePrinterStore((state) => state.theme);
   const setTheme = usePrinterStore((state) => state.setTheme);
+  const [confirmAction, setConfirmAction] = useState<'restart-klipper' | 'restart-host' | 'shutdown' | null>(null);
 
   const printRoute = jobState === 'printing' || jobState === 'paused' ? '/print' : '/files';
 
@@ -69,33 +72,21 @@ export function SettingsScreen() {
           <button
             type="button"
             className="btn"
-            onClick={() => {
-              if (window.confirm('Restart Klipper service?')) {
-                void runAction('Restart Klipper', () => commands.systemAction('restart-klipper'));
-              }
-            }}
+            onClick={() => setConfirmAction('restart-klipper')}
           >
             Restart Klipper
           </button>
           <button
             type="button"
             className="btn"
-            onClick={() => {
-              if (window.confirm('Reboot host machine?')) {
-                void runAction('Restart Host', () => commands.systemAction('restart-host'));
-              }
-            }}
+            onClick={() => setConfirmAction('restart-host')}
           >
             Restart Host
           </button>
           <button
             type="button"
             className="btn"
-            onClick={() => {
-              if (window.confirm('Shutdown host machine?')) {
-                void runAction('Shutdown Host', () => commands.systemAction('shutdown'));
-              }
-            }}
+            onClick={() => setConfirmAction('shutdown')}
           >
             Shutdown
           </button>
@@ -103,6 +94,38 @@ export function SettingsScreen() {
       </section>
 
       <BackButton to="/" />
+
+      {confirmAction ? (
+        <Dialog
+          subtitle="Confirm Action"
+          title={
+            confirmAction === 'restart-klipper'
+              ? 'Restart Klipper service?'
+              : confirmAction === 'restart-host'
+                ? 'Reboot host machine?'
+                : 'Shutdown host machine?'
+          }
+          actions={[
+            {
+              label: 'Confirm',
+              variant: 'accent',
+              onClick: () => {
+                if (confirmAction === 'restart-klipper') {
+                  void runAction('Restart Klipper', () => commands.systemAction('restart-klipper'));
+                }
+                if (confirmAction === 'restart-host') {
+                  void runAction('Restart Host', () => commands.systemAction('restart-host'));
+                }
+                if (confirmAction === 'shutdown') {
+                  void runAction('Shutdown Host', () => commands.systemAction('shutdown'));
+                }
+                setConfirmAction(null);
+              },
+            },
+            { label: 'Cancel', onClick: () => setConfirmAction(null) },
+          ]}
+        />
+      ) : null}
     </Layout>
   );
 }

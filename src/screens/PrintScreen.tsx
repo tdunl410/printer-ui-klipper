@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { Dialog } from '../components/Dialog';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 import { pct } from '../utils/format';
@@ -11,6 +13,7 @@ export function PrintScreen() {
   const flowPercent = usePrinterStore((state) => state.flowPercent);
   const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
   const runAction = usePrinterStore((state) => state.runAction);
+  const [confirmAction, setConfirmAction] = useState<'stop' | 'emergency' | null>(null);
 
   if (job.state !== 'printing' && job.state !== 'paused') {
     return <Navigate to="/files" replace />;
@@ -71,22 +74,14 @@ export function PrintScreen() {
           <button
             type="button"
             className="btn"
-            onClick={() => {
-              if (window.confirm('Stop the active print?')) {
-                void runAction('Stop Print', () => commands.cancelPrint());
-              }
-            }}
+            onClick={() => setConfirmAction('stop')}
           >
             Stop
           </button>
           <button
             type="button"
             className="btn"
-            onClick={() => {
-              if (window.confirm('Emergency stop semantics must remain in hardware path. Send M112 command anyway?')) {
-                void runAction('Emergency Command', () => commands.runMacro('M112'));
-              }
-            }}
+            onClick={() => setConfirmAction('emergency')}
           >
             Emergency
           </button>
@@ -104,6 +99,42 @@ export function PrintScreen() {
       </section>
 
       <BackButton to="/" />
+
+      {confirmAction === 'stop' ? (
+        <Dialog
+          subtitle="Confirm Action"
+          title="Stop the active print?"
+          actions={[
+            {
+              label: 'Stop',
+              variant: 'accent',
+              onClick: () => {
+                void runAction('Stop Print', () => commands.cancelPrint());
+                setConfirmAction(null);
+              },
+            },
+            { label: 'Cancel', onClick: () => setConfirmAction(null) },
+          ]}
+        />
+      ) : null}
+
+      {confirmAction === 'emergency' ? (
+        <Dialog
+          subtitle="Confirm Action"
+          title="Send emergency M112 command?"
+          actions={[
+            {
+              label: 'Send M112',
+              variant: 'accent',
+              onClick: () => {
+                void runAction('Emergency Command', () => commands.runMacro('M112'));
+                setConfirmAction(null);
+              },
+            },
+            { label: 'Cancel', onClick: () => setConfirmAction(null) },
+          ]}
+        />
+      ) : null}
     </Layout>
   );
 }
