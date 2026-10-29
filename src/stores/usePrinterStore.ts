@@ -225,15 +225,35 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
       const sensors = Object.entries(dynamicStatus).reduce<Record<string, { current: number; target: number }>>((acc, [key, value]) => {
         const sensorName = key.includes(' ') ? key.split(' ').slice(1).join(' ') : key;
+        const previousSensor = currentState.temperatures.sensors[sensorName];
         acc[sensorName] = {
-          current: Number((value as any)?.temperature ?? 0),
-          target: Number((value as any)?.target ?? 0),
+          current: Number((value as any)?.temperature ?? previousSensor?.current ?? 0),
+          target: Number((value as any)?.target ?? previousSensor?.target ?? 0),
         };
         return acc;
       }, {});
 
+      const chamberSensorEntry = Object.entries(dynamicStatus).find(([name]) => {
+        return /temperature_sensor\s+chamber/i.test(name) || (/\bchamber\b/i.test(name) && /sensor/i.test(name));
+      });
+
+      const chamberControlEntry = Object.entries(dynamicStatus).find(([name]) => {
+        return /temperature_fan\s+chamber/i.test(name) || /heater_generic\s+chamber/i.test(name);
+      });
+
       const chamberCandidate = Object.entries(sensors).find(([name]) => /chamber/i.test(name));
-      const chamber = chamberCandidate?.[1] ?? sensors.chamber ?? currentState.temperatures.chamber;
+
+      const chamberCurrent = Number(
+        (chamberSensorEntry?.[1] as any)?.temperature ?? chamberCandidate?.[1]?.current ?? currentState.temperatures.chamber.current,
+      );
+      const chamberTarget = Number(
+        (chamberControlEntry?.[1] as any)?.target ?? chamberCandidate?.[1]?.target ?? currentState.temperatures.chamber.target,
+      );
+
+      const chamber = {
+        current: chamberCurrent,
+        target: chamberTarget,
+      };
 
       const chamberFanEntry = Object.entries(dynamicStatus).find(([name]) => /chamber.*fan|fan.*chamber/i.test(name));
 

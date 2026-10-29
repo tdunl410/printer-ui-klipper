@@ -125,4 +125,25 @@ export class MoonrakerHttpClient {
 
     return (await response.json()) as Record<string, unknown>;
   }
+
+  async uploadGcode(file: File, path = '') {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('root', 'gcodes');
+    if (path) {
+      form.append('path', path);
+    }
+
+    const response = await fetch(`${this.baseUrl}/server/files/upload`, {
+      method: 'POST',
+      body: form,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `Upload failed (${response.status})`);
+    }
+
+    return (await response.json()) as Record<string, unknown>;
+  }
 }

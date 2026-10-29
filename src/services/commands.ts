@@ -41,6 +41,10 @@ export class CommandService {
     });
   }
 
+  async uploadGcode(file: File, path = '') {
+    return this.http.uploadGcode(file, path);
+  }
+
   async setHeater(heater: 'extruder' | 'heater_bed' | 'chamber', target: number) {
     const boundedTarget = Math.max(0, target);
     if (heater === 'chamber') {
@@ -80,6 +84,10 @@ export class CommandService {
   async setFlow(percent: number) {
     const bounded = Math.max(10, Math.min(percent, 200));
     return this.gcode(`M221 S${Math.round(bounded)}`);
+  }
+
+  async disableMotors() {
+    return this.gcode('M84');
   }
 
   async systemAction(action: 'restart-klipper' | 'restart-host' | 'shutdown') {

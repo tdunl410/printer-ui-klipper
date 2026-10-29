@@ -29,17 +29,21 @@ export function MoveScreen() {
       <section className="card">
         <div className="card-label">Axis Controls</div>
         <div className="card-title">Jog Axes</div>
-        <div className="btn-row">
-          <button type="button" className="btn" onClick={() => runAction('Jog X-', () => commands.jog('X', -1))}>X-</button>
-          <button type="button" className="btn" onClick={() => runAction('Jog Y+', () => commands.jog('Y', 1))}>Y+</button>
-          <button type="button" className="btn" onClick={() => runAction('Jog X+', () => commands.jog('X', 1))}>X+</button>
+        <div className="move-controls">
+          <div className="move-pad" aria-label="XY move controls">
+            <button type="button" className="btn move-pad-btn up" onClick={() => runAction('Jog Y+', () => commands.jog('Y', 1))}>Y+</button>
+            <button type="button" className="btn move-pad-btn left" onClick={() => runAction('Jog X-', () => commands.jog('X', -1))}>X-</button>
+            <button type="button" className="btn move-pad-btn right" onClick={() => runAction('Jog X+', () => commands.jog('X', 1))}>X+</button>
+            <button type="button" className="btn move-pad-btn down" onClick={() => runAction('Jog Y-', () => commands.jog('Y', -1))}>Y-</button>
+            <button type="button" className="btn accent move-pad-home" onClick={() => runAction('Home XY', () => commands.home('xy'))}>Home</button>
+          </div>
+          <div className="z-controls" aria-label="Z move controls">
+            <button type="button" className="btn" onClick={() => runAction('Jog Z+', () => commands.jog('Z', 0.2))}>Z+</button>
+            <button type="button" className="btn" onClick={() => runAction('Jog Z-', () => commands.jog('Z', -0.2))}>Z-</button>
+          </div>
         </div>
         <div className="spacer" />
-        <div className="btn-row">
-          <button type="button" className="btn" onClick={() => runAction('Jog Z+', () => commands.jog('Z', 0.2))}>Z+</button>
-          <button type="button" className="btn" onClick={() => runAction('Jog Y-', () => commands.jog('Y', -1))}>Y-</button>
-          <button type="button" className="btn" onClick={() => runAction('Jog Z-', () => commands.jog('Z', -0.2))}>Z-</button>
-        </div>
+        <button type="button" className="btn" onClick={() => runAction('Disable Motors', () => commands.disableMotors())}>Disable Motors</button>
       </section>
 
       <section className="card">

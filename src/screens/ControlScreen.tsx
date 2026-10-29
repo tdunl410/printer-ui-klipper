@@ -23,6 +23,14 @@ export function ControlScreen() {
       <section className="card">
         <div className="card-label">One-Tap Macros</div>
         <div className="card-title">Macros</div>
+        <button
+          type="button"
+          className="macro-item button-reset"
+          onClick={() => runAction('Disable Motors', () => commands.disableMotors())}
+        >
+          Disable Motors
+        </button>
+        <div className="spacer" />
         {macros.slice(0, 5).map((macro) => (
           <button
             type="button"

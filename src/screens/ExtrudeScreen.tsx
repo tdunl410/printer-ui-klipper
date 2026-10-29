@@ -37,6 +37,8 @@ export function ExtrudeScreen() {
           <button type="button" className="btn" onClick={() => runAction('Unload Filament', () => commands.runMacro('UNLOAD_FILAMENT'))}>Unload</button>
           <button type="button" className="btn" onClick={() => runAction('Purge Nozzle', () => commands.runMacro('PURGE_NOZZLE'))}>Purge</button>
         </div>
+        <div className="spacer" />
+        <button type="button" className="btn" onClick={() => runAction('Disable Motors', () => commands.disableMotors())}>Disable Motors</button>
       </section>
 
       <section className="card">

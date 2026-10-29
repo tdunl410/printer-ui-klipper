@@ -14,6 +14,7 @@ export function PrintScreen() {
   const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
   const runAction = usePrinterStore((state) => state.runAction);
   const [confirmAction, setConfirmAction] = useState<'stop' | 'emergency' | null>(null);
+  const isPaused = job.state === 'paused';
 
   if (job.state !== 'printing' && job.state !== 'paused') {
     return <Navigate to="/files" replace />;
@@ -67,9 +68,9 @@ export function PrintScreen() {
           <button
             type="button"
             className="btn accent"
-            onClick={() => runAction('Pause Print', () => commands.pausePrint())}
+            onClick={() => runAction(isPaused ? 'Resume Print' : 'Pause Print', () => (isPaused ? commands.resumePrint() : commands.pausePrint()))}
           >
-            Pause
+            {isPaused ? 'Resume' : 'Pause'}
           </button>
           <button
             type="button"

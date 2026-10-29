@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEventHandler } from 'react';
 import { Dialog } from '../components/Dialog';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
@@ -27,9 +27,12 @@ export function FilesScreen() {
   const connection = usePrinterStore((state) => state.connection);
   const runAction = usePrinterStore((state) => state.runAction);
   const activeJob = usePrinterStore((state) => state.job);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [renameFilePath, setRenameFilePath] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('modified');
+  const [search, setSearch] = useState('');
   const [previews, setPreviews] = useState<Record<string, FilePreview>>({});
 
   useEffect(() => {
@@ -79,10 +82,40 @@ export function FilesScreen() {
   }, [connection.moonrakerBaseUrl, files, previews]);
 
   const isPrinting = activeJob.state === 'printing' || activeJob.state === 'paused';
+  const filteredFiles = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const base = query
+      ? files.filter((entry) => entry.path.toLowerCase().includes(query))
+      : files;
+
+    return base.slice().sort((left, right) => {
+      if (sortBy === 'name') {
+        return left.path.localeCompare(right.path);
+      }
+      if (sortBy === 'size') {
+        return Number(right.size ?? 0) - Number(left.size ?? 0);
+      }
+      return Number(right.modified ?? 0) - Number(left.modified ?? 0);
+    });
+  }, [files, search, sortBy]);
+
   const popupFile = useMemo(() => files.find((entry) => entry.path === openFile), [files, openFile]);
   const popupPreview = popupFile?.path ? previews[popupFile.path] : undefined;
   const popupModified = popupFile?.modified ? new Date(popupFile.modified * 1000).toLocaleString() : '-';
   const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
+
+  const triggerUpload = () => {
+    uploadInputRef.current?.click();
+  };
+
+  const onUploadChange: ChangeEventHandler<HTMLInputElement> = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    void runAction(`Upload ${file.name}`, async () => {
+      await commands.uploadGcode(file);
+    });
+    event.target.value = '';
+  };
 
   return (
     <Layout title="Model Files" subtitle="USB + Local + Network">
@@ -95,8 +128,35 @@ export function FilesScreen() {
       <section className="card file-list-panel">
         <div className="card-label">Available GCODE</div>
         <div className="card-title">Files</div>
+        <div className="kv">
+          <span>Showing</span>
+          <strong>{filteredFiles.length} / {files.length}</strong>
+        </div>
+        <input
+          className="input"
+          placeholder="Search files"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <div className="btn-row top-gap">
+          <button type="button" className={`btn ${sortBy === 'modified' ? 'accent' : ''}`} onClick={() => setSortBy('modified')}>Newest</button>
+          <button type="button" className={`btn ${sortBy === 'name' ? 'accent' : ''}`} onClick={() => setSortBy('name')}>Name</button>
+          <button type="button" className={`btn ${sortBy === 'size' ? 'accent' : ''}`} onClick={() => setSortBy('size')}>Size</button>
+        </div>
+        <div className="btn-row top-gap">
+          <button type="button" className="btn accent" onClick={triggerUpload}>Upload</button>
+          <button type="button" className="btn" onClick={() => setSearch('')}>Clear Search</button>
+          <button type="button" className="btn" onClick={() => setSortBy('modified')}>Reset Sort</button>
+        </div>
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept=".gcode,.gco,.gc"
+          className="visually-hidden"
+          onChange={onUploadChange}
+        />
         <div className="file-list">
-          {files.map((file) => (
+          {filteredFiles.map((file) => (
             <button
               type="button"
               className={`file-item button-reset file-preview-item ${selectedFile?.path === file.path ? 'selected' : ''}`}
@@ -117,7 +177,7 @@ export function FilesScreen() {
             </button>
           ))}
         </div>
-        {files.length === 0 ? <div className="macro-item">No files found in gcodes.</div> : null}
+        {filteredFiles.length === 0 ? <div className="macro-item">No files match the current filter.</div> : null}
       </section>
 
       <BackButton to="/settings" />
