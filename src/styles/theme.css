@@ -989,3 +989,45 @@ body {
   font-weight: 650;
   background: rgba(var(--accent-rgb), 0.28);
 }
+
+.preset-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 8px;
+}
+
+.preset-row .btn {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.preset-stepper {
+  display: grid;
+  grid-template-columns: 62px repeat(2, 1fr) 62px repeat(2, 1fr);
+  gap: 4px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.preset-stepper .btn {
+  padding: 8px 0;
+  min-width: 0;
+}
+
+.preset-stepper strong {
+  text-align: center;
+}
+
+.preset-row .macro-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.preset-row .macro-item strong {
+  font-size: 12px;
+}

@@ -64,7 +64,7 @@ export function MoveControls() {
             <button type="button" className="btn move-pad-btn down with-icon" onClick={() => runAction(`Jog Y- ${moveDistance}mm`, () => commands.jog('Y', -moveDistance))}><img className="button-icon" src={arrowDown} alt="" />Y-</button>
             <button type="button" className="btn accent move-pad-home with-icon" onClick={() => runAction('Home XY', () => commands.home('xy'))}>
               <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
-              Home
+              
             </button>
           </div>
           <div className="z-controls" aria-label="Z move controls">

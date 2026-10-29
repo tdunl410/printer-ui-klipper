@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { HeaterKeypad, useHeaterKeypad, type HeaterKey } from '../components/HeaterKeypad';
 import { Layout } from '../components/Layout';
+import { PresetsCard } from '../components/PresetsCard';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 const GRAPH_TOP = 20;
@@ -171,15 +172,7 @@ export function PreheatScreen() {
         </div>
       </section>
 
-      <section className="card">
-        <div className="card-label">Material Presets</div>
-        <div className="card-title">Presets</div>
-        <div className="btn-row">
-          <button type="button" className="btn" onClick={() => runAction('Apply PLA preset', () => commands.runMacro('SET_HEATER_TEMPERATURE HEATER=extruder TARGET=210\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=60'))}>PLA</button>
-          <button type="button" className="btn" onClick={() => runAction('Apply ABS preset', () => commands.runMacro('SET_HEATER_TEMPERATURE HEATER=extruder TARGET=245\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=100'))}>ABS</button>
-          <button type="button" className="btn" onClick={() => runAction('Apply ASA preset', () => commands.runMacro('SET_HEATER_TEMPERATURE HEATER=extruder TARGET=255\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=105\nSET_TEMPERATURE_FAN_TARGET TEMPERATURE_FAN=chamber TARGET=45'))}>ASA</button>
-        </div>
-      </section>
+      <PresetsCard />
 
       <section className="card">
         <div className="card-label">Sensor Health</div>
