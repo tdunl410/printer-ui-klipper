@@ -13,7 +13,7 @@ export function ExtrudeScreen() {
   const [extrudeDistance, setExtrudeDistance] = useState(5);
   const [extrudeSpeed, setExtrudeSpeed] = useState(180);
   const distanceOptions = [1, 5, 10, 25];
-  const speedOptions = [60, 120, 180, 240, 300];
+  const speedOptions = [1, 5, 10, 25];
   const extrusionMacros = macros.filter((name) => /filament|purge|extrude|load|unload/i.test(name)).slice(0, 5);
 
   return (
