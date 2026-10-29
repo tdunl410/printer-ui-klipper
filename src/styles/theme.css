@@ -53,6 +53,7 @@ html,
 body,
 #root {
   height: 100%;
+  overflow: hidden;
 }
 
 button,
@@ -95,8 +96,16 @@ body {
   position: relative;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+.screen::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .header {

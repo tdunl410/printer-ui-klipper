@@ -86,23 +86,13 @@ export function PrintScreen() {
         <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
       </section>
 
-      <section className="grid-2">
-        <article className="card">
-          <div className="card-label">Thermals</div>
-          <div className="card-title">Temperatures</div>
-          <div className="kv"><span>Hotend</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></div>
-          <div className="kv"><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></div>
-          <div className="kv"><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></div>
-        </article>
-        <article className="card">
-          <div className="card-label">Live Tuning</div>
-          <div className="card-title">Tune</div>
-          <div className="kv"><span>Speed</span><strong>{speedPercent}%</strong></div>
-          <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
-          <div className="kv"><span>Part Fan</span><strong>{fanPartPercent}%</strong></div>
-          <div className="kv"><span>Layer</span><strong>{job.layer}</strong></div>
-        </article>
-      </section>
+      <article className="card">
+        <div className="card-label">Thermals</div>
+        <div className="card-title">Temperatures</div>
+        <div className="kv"><span>Hotend</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></div>
+        <div className="kv"><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></div>
+        <div className="kv"><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></div>
+      </article>
 
       <section className="card">
         <div className="card-label">Operator Controls</div>
