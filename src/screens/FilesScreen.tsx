@@ -29,6 +29,7 @@ export function FilesScreen() {
   const connection = usePrinterStore((state) => state.connection);
   const runAction = usePrinterStore((state) => state.runAction);
   const activeJob = usePrinterStore((state) => state.job);
+  const setPendingPrintLaunch = usePrinterStore((state) => state.setPendingPrintLaunch);
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [renameFilePath, setRenameFilePath] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
@@ -106,6 +107,7 @@ export function FilesScreen() {
   const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
 
   const launchPrint = (path: string) => {
+    setPendingPrintLaunch(true);
     void runAction('Print Selected', () => commands.startPrint(path));
     navigate('/print');
     setOpenFile(null);

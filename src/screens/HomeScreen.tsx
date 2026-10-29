@@ -45,16 +45,18 @@ export function HomeScreen() {
   };
 
   const printRoute = job.state === 'printing' || job.state === 'paused' ? '/print' : '/files';
+  const connectionBadge = connectionState === 'online' ? 'Ready to Print' : 'Disconnected';
+  const stateLabel = job.state === 'idle' ? 'Idle' : job.state === 'shutdown' ? 'Shutdown' : job.state === 'startup' ? 'Starting' : job.state;
 
   return (
     <Layout
       title={profileName}
-      subtitle={`${job.state === 'idle' ? 'Idle' : job.state} | ${connectionState === 'online' ? 'Ready to Print' : 'Disconnected'}`}
+      subtitle={`${stateLabel} | ${connectionState === 'online' ? connectionBadge : 'Disconnected'}`}
     >
       <section className="status-row two">
         <article className="status-chip">
           <div className="k">State</div>
-          <div className="v">{job.state}</div>
+          <div className="v">{stateLabel}</div>
         </article>
         <article className="status-chip">
           <div className="k">Network</div>

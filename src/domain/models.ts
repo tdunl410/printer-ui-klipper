@@ -1,5 +1,5 @@
 export type ConnectionState = 'connecting' | 'online' | 'offline';
-export type PrintState = 'idle' | 'printing' | 'paused' | 'complete' | 'error';
+export type PrintState = 'idle' | 'printing' | 'paused' | 'complete' | 'error' | 'shutdown' | 'startup';
 
 export interface HeaterState {
   current: number;

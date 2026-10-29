@@ -45,6 +45,8 @@ interface PrinterStore {
   setConnectionUrls: (baseUrl: string, wsUrl: string) => void;
   runAction: (label: string, action: () => Promise<unknown>) => Promise<void>;
   setSelectedFile: (path: string) => void;
+  pendingPrintLaunch: boolean;
+  setPendingPrintLaunch: (value: boolean) => void;
 }
 
 type PrinterSetState = (
@@ -102,10 +104,57 @@ const toPercent = (raw: unknown, fallback: number) => {
   return Math.round(Math.max(0, Math.min(100, numeric)));
 };
 
-const toState = (value: string): JobState['state'] => {
-  if (value === 'printing' || value === 'paused' || value === 'complete' || value === 'error') {
-    return value;
+const collectStateCandidates = (value: unknown, out: string[]) => {
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (normalized) {
+      out.push(normalized);
+    }
+    return;
   }
+
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectStateCandidates(entry, out));
+    return;
+  }
+
+  if (value && typeof value === 'object') {
+    Object.entries(value as Record<string, unknown>).forEach(([key, nested]) => {
+      if (/state|status/i.test(key) || key === 'printer' || key === 'webhooks' || key === 'idle_timeout') {
+        collectStateCandidates(nested, out);
+      }
+    });
+  }
+};
+
+const resolvePrinterState = (status: Record<string, any>, fallback: JobState['state']) => {
+  const candidates: string[] = [];
+  collectStateCandidates(status, candidates);
+
+  const resolved = candidates.find((candidate) => {
+    const normalized = candidate.trim().toLowerCase();
+    return (
+      normalized === 'printing' ||
+      normalized === 'paused' ||
+      normalized === 'complete' ||
+      normalized === 'error' ||
+      normalized === 'shutdown' ||
+      normalized === 'startup' ||
+      normalized === 'starting' ||
+      normalized === 'booting' ||
+      normalized === 'idle' ||
+      normalized === 'ready' ||
+      normalized === 'standby' ||
+      normalized === 'offline' ||
+      normalized === 'halted'
+    );
+  });
+
+  if (!resolved) return fallback;
+  const normalized = resolved.trim().toLowerCase();
+  if (normalized === 'printing' || normalized === 'paused' || normalized === 'complete' || normalized === 'error') return normalized;
+  if (normalized === 'shutdown' || normalized === 'offline' || normalized === 'halted') return 'shutdown';
+  if (normalized === 'startup' || normalized === 'starting' || normalized === 'booting') return 'startup';
   return 'idle';
 };
 
@@ -239,6 +288,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         display_status: ['progress'],
         fan: ['speed'],
         webhooks: ['state', 'state_message'],
+        idle_timeout: ['state'],
+        printer_state: ['state'],
       }),
       scopedHttp.listFiles('gcodes'),
       scopedHttp.systemInfo(),
@@ -387,7 +438,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           ...state.job,
           filename: String(status.print_stats?.filename || ''),
           progress,
-          state: toState(String(status.print_stats?.state || 'idle').toLowerCase()),
+          state: resolvePrinterState(status, state.job.state),
           elapsed: hhmmFromSeconds(printDuration),
           eta: hhmmFromSeconds(remainingSeconds),
           remaining: hhmmFromSeconds(remainingSeconds),
@@ -397,7 +448,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               : '-',
         },
         logs: [
-          status.webhooks?.state_message ? String(status.webhooks.state_message) : `State: ${String(status.webhooks?.state ?? 'unknown')}`,
+          status.webhooks?.state_message ? String(status.webhooks.state_message) : `State: ${String(status.webhooks?.state ?? status.print_stats?.state ?? 'unknown')}`,
           ...state.logs,
         ].slice(0, 40),
       }));
@@ -599,7 +650,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               next.job = {
                 ...next.job,
                 filename: String(current.filename ?? next.job.filename),
-                state: toState(String(current.state ?? next.job.state).toLowerCase()),
+                state: resolvePrinterState(status, next.job.state),
                 elapsed: hhmmFromSeconds(printDuration),
                 eta: hhmmFromSeconds(remainingSeconds),
                 remaining: hhmmFromSeconds(remainingSeconds),
@@ -610,18 +661,12 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               };
             }
 
-            if (status.fan?.speed !== undefined) {
-              next.fanPartPercent = toPercent(status.fan.speed, next.fanPartPercent);
+            if (status.webhooks?.state || status.idle_timeout?.state || status.printer_state?.state) {
+              next.job = {
+                ...next.job,
+                state: resolvePrinterState(status, next.job.state),
+              };
             }
-
-            if (status.gcode_move?.speed_factor !== undefined) {
-              next.speedPercent = Math.round(Number(status.gcode_move.speed_factor) * 100);
-            }
-
-            if (status.gcode_move?.extrude_factor !== undefined) {
-              next.flowPercent = Math.round(Number(status.gcode_move.extrude_factor) * 100);
-            }
-
             return next;
           });
         },
@@ -689,6 +734,10 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       set((state) => ({
         selectedFile: state.files.find((entry) => entry.path === path) ?? state.selectedFile,
       }));
+    },
+    pendingPrintLaunch: false,
+    setPendingPrintLaunch: (value: boolean) => {
+      set({ pendingPrintLaunch: value });
     },
   };
 });

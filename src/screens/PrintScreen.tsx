@@ -16,7 +16,7 @@ export function PrintScreen() {
   const [confirmAction, setConfirmAction] = useState<'stop' | 'emergency' | null>(null);
   const isPaused = job.state === 'paused';
 
-  if (job.state !== 'printing' && job.state !== 'paused') {
+  if (job.state !== 'printing' && job.state !== 'paused' && job.state !== 'shutdown' && job.state !== 'startup') {
     return <Navigate to="/files" replace />;
   }
 
