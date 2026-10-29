@@ -1,15 +1,7 @@
 # Klipper Portrait Touch UI
+Klipper ui designed for my annex k3 with a vertical waveshare 7.9" touchscreen
 
-Production-oriented touchscreen UI for Klipper printers, designed for portrait Waveshare panels and Moonraker integration.
 
-## Implemented
-- React + TypeScript + Vite app with route-per-screen architecture.
-- Mockup-matching portrait UI frame (`400x1280` locked ratio) and touch-first components.
-- Moonraker REST snapshot fetch + WebSocket live updates with reconnect behavior.
-- Core operator routes: Home, Print, Files, Move, Preheat, Extrude, Console, Settings, Connectivity, Updates.
-- Command action layer for print lifecycle, heater/fan controls, movement, extrusion, and macros.
-- Command queue feedback toast (`pending/success/error`) and confirm gates for destructive actions.
-- Theme tokens with runtime switching (purple default + blue/green/rose).
 
 ## Screenshots
 Captured at the native `400x1280` portrait size (no printer connected, so values are empty).
@@ -22,7 +14,9 @@ Captured at the native `400x1280` portrait size (no printer connected, so values
 |---|---|---|---|
 | ![Control](docs/screenshots/control.png) | ![Settings](docs/screenshots/settings.png) | ![Connectivity](docs/screenshots/connectivity.png) | ![Updates](docs/screenshots/updates.png) |
 
-The Print screen only appears while Klipper is printing or paused, so with no printer attached it redirects to Files, so it isn't shown here.
+Print screen (shown while Klipper is printing or paused; this capture uses sample data):
+
+<img src="docs/screenshots/print.png" alt="Print" width="200" />
 
 ## Repository Layout
 - `src/transport` Moonraker HTTP and WebSocket clients
@@ -108,10 +102,4 @@ tail -n 120 /tmp/printer-ui-kiosk.log
 ./scripts/update-printer-ui.sh
 ```
 
-## Moonraker Connectivity
-- Edit Base URL and WebSocket URL from the `Connectivity` screen.
-- Values persist in local storage and are used on reconnect/boot.
 
-## Notes
-- Hardware emergency stop remains out-of-band and should remain physical/hardware-first.
-- Existing docs and mockups are kept in `docs/` and `mockups/` for parity tracking and further iteration.
