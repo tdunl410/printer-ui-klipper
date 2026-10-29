@@ -24,7 +24,7 @@ export function SettingsScreen() {
   const printRoute = jobState === 'printing' || jobState === 'paused' ? '/print' : '/files';
 
   return (
-    <Layout title="Settings" subtitle="Navigation + Network + System" homeAction>
+    <Layout title="Settings" subtitle=" " homeAction>
       <section className="status-row">
         <article className="status-chip"><div className="k">Profile</div><div className="v">{profileName}</div></article>
         <article className="status-chip"><div className="k">Firmware</div><div className="v">{connectionState === 'online' ? 'Online' : 'Offline'}</div></article>

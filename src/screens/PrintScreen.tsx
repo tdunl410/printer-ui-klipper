@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import emergencyIcon from '../../assets/emergency.svg';
 import pauseIcon from '../../assets/pause.svg';
@@ -7,7 +7,7 @@ import { Dialog } from '../components/Dialog';
 import { Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 import { pct } from '../utils/format';
-import printerRender from '../../assets/printer-render.png';
+import { fetchThumbnailUrl } from '../utils/thumbnail';
 
 export function PrintScreen() {
   const commands = useCommands();
@@ -18,7 +18,20 @@ export function PrintScreen() {
   const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
   const runAction = usePrinterStore((state) => state.runAction);
   const [confirmAction, setConfirmAction] = useState<'stop' | 'emergency' | null>(null);
+  const connection = usePrinterStore((state) => state.connection);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string>();
   const isPaused = job.state === 'paused';
+
+  useEffect(() => {
+    if (!job.filename) return;
+    let cancelled = false;
+    void fetchThumbnailUrl(connection.moonrakerBaseUrl, job.filename).then((url) => {
+      if (!cancelled) setThumbnailUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [connection.moonrakerBaseUrl, job.filename]);
 
   if (job.state !== 'printing' && job.state !== 'paused' && job.state !== 'shutdown' && job.state !== 'startup') {
     return <Navigate to="/files" replace />;
@@ -28,12 +41,6 @@ export function PrintScreen() {
 
   return (
     <Layout title="Active Print" subtitle={`Part: ${job.filename}`}>
-      <section className="status-row">
-        <article className="status-chip"><div className="k">Progress</div><div className="v">{pct(job.progress)}</div></article>
-        <article className="status-chip"><div className="k">Layer</div><div className="v">{job.layer}</div></article>
-        <article className="status-chip"><div className="k">Remaining</div><div className="v">{remainingLabel}</div></article>
-      </section>
-
       <section className="card">
         <div className="card-label">Time Remaining</div>
         <div className="card-title">{remainingLabel}</div>
@@ -52,7 +59,11 @@ export function PrintScreen() {
       <section className="card">
         <div className="card-label">Current Job</div>
         <div className="media-thumb">
-          <img src={printerRender} alt="Current print visualization" />
+          {thumbnailUrl ? (
+            <img src={thumbnailUrl} alt={`${job.filename} preview`} />
+          ) : (
+            <div className="file-thumb-placeholder">No Preview</div>
+          )}
         </div>
       </section>
 

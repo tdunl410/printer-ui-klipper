@@ -24,28 +24,25 @@ export function MoveControls() {
       </section>
 
       <section className="card">
-        <div className="card-label">Machine Prep</div>
-        <div className="card-title">Homing</div>
+        <div className="card-label">Homing</div>
         <div className="btn-row">
           <button type="button" className="btn accent with-icon" onClick={() => runAction('Home All', () => commands.home('xyz'))}>
             <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
-            Home All
+            All
           </button>
           <button type="button" className="btn with-icon" onClick={() => runAction('Home XY', () => commands.home('xy'))}>
             <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
-            Home XY
+            XY
           </button>
           <button type="button" className="btn with-icon" onClick={() => runAction('Home Z', () => commands.home('z'))}>
             <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
-            Home Z
+            Z
           </button>
         </div>
       </section>
 
       <section className="card">
         <div className="card-label">Axis Controls</div>
-        <div className="card-title">Jog Axes</div>
-        <div className="kv"><span>Move Distance</span><strong>{moveDistance} mm</strong></div>
         <div className="btn-row">
           {distanceOptions.map((distance) => (
             <button

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog } from '../components/Dialog';
 import { Layout } from '../components/Layout';
+import { fetchThumbnailUrl } from '../utils/thumbnail';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 interface FilePreview {
@@ -41,37 +42,8 @@ export function FilesScreen() {
     const filesToLoad = files.filter((file) => !previews[file.path]);
     if (filesToLoad.length === 0) return;
 
-    const encodePath = (path: string) => path.split('/').map((segment) => encodeURIComponent(segment)).join('/');
-    const dirname = (path: string) => {
-      const index = path.lastIndexOf('/');
-      return index >= 0 ? path.slice(0, index + 1) : '';
-    };
-
     void Promise.all(
-      filesToLoad.map(async (file) => {
-        try {
-          const response = await fetch(
-            `${connection.moonrakerBaseUrl}/server/files/metadata?${new URLSearchParams({ filename: file.path })}`,
-          );
-          if (!response.ok) {
-            return [file.path, {}] as const;
-          }
-
-          const payload = (await response.json()) as { result?: { thumbnails?: Array<{ relative_path?: string; width?: number }> } };
-          const thumbs = payload.result?.thumbnails ?? [];
-          const preferred = thumbs.slice().sort((a, b) => Number(b.width ?? 0) - Number(a.width ?? 0))[0];
-
-          if (!preferred?.relative_path) {
-            return [file.path, {}] as const;
-          }
-
-          const thumbnailPath = `${dirname(file.path)}${preferred.relative_path}`;
-          const thumbnailUrl = `${connection.moonrakerBaseUrl}/server/files/gcodes/${encodePath(thumbnailPath)}`;
-          return [file.path, { thumbnailUrl }] as const;
-        } catch {
-          return [file.path, {}] as const;
-        }
-      }),
+      filesToLoad.map(async (file) => [file.path, { thumbnailUrl: await fetchThumbnailUrl(connection.moonrakerBaseUrl, file.path) }] as const),
     ).then((entries) => {
       setPreviews((prev) => {
         const next = { ...prev };
@@ -118,12 +90,8 @@ export function FilesScreen() {
   }
 
   return (
-    <Layout title="Model Files" subtitle="USB + Local + Network">
-      <section className="status-row">
-        <article className="status-chip"><div className="k">Ready</div><div className="v">{files.length} Files</div></article>
-        <article className="status-chip"><div className="k">Selected</div><div className="v">{selectedFile ? '1 File' : 'None'}</div></article>
-        <article className="status-chip"><div className="k">Job</div><div className="v">{activeJob.state}</div></article>
-      </section>
+    <Layout title="Model Files" subtitle="">
+
 
       <section className="card file-list-panel">
         <div className="card-label">Available GCODE</div>
@@ -143,7 +111,6 @@ export function FilesScreen() {
           <button type="button" className={`btn ${sortBy === 'name' ? 'accent' : ''}`} onClick={() => setSortBy('name')}>Name</button>
           <button type="button" className={`btn ${sortBy === 'size' ? 'accent' : ''}`} onClick={() => setSortBy('size')}>Size</button>
         </div>
-        <button type="button" className="btn top-gap" onClick={() => setSortBy('modified')}>Reset Sort</button>
         <div className="file-list">
           {filteredFiles.map((file) => (
             <button
