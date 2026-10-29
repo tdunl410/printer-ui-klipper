@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { DeviceFrame } from './components/DeviceFrame';
 import { ConnectivityScreen } from './screens/ConnectivityScreen';
 import { ControlScreen } from './screens/ControlScreen';
@@ -16,6 +16,9 @@ import { usePrinterStore } from './stores/usePrinterStore';
 export default function App() {
   const boot = usePrinterStore((state) => state.boot);
   const disconnect = usePrinterStore((state) => state.disconnect);
+  const jobState = usePrinterStore((state) => state.job.state);
+  const location = useLocation();
+  const activePrint = jobState === 'printing' || jobState === 'paused';
 
   useEffect(() => {
     boot();
@@ -24,6 +27,7 @@ export default function App() {
 
   return (
     <DeviceFrame>
+      {activePrint && location.pathname !== '/print' ? <Navigate to="/print" replace /> : null}
       <Routes>
         <Route path="/" element={<HomeScreen />} />
         <Route path="/print" element={<PrintScreen />} />

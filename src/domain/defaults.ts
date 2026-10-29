@@ -16,6 +16,7 @@ export const defaultJob: JobState = {
   state: 'idle',
   layer: '-',
   eta: '00:00',
+  remaining: '00:00',
   elapsed: '00:00',
 };
 

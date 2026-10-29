@@ -341,6 +341,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       const printDuration = Number(status.print_stats?.print_duration ?? 0);
       const progress = Number(status.display_status?.progress ?? 0);
       const estimatedTotal = progress > 0 ? printDuration / progress : Number(status.print_stats?.total_duration ?? 0);
+      const remainingSeconds = Math.max(0, estimatedTotal - printDuration);
       const currentLayer = status.print_stats?.info?.current_layer;
       const totalLayer = status.print_stats?.info?.total_layer;
 
@@ -388,7 +389,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           progress,
           state: toState(String(status.print_stats?.state || 'idle').toLowerCase()),
           elapsed: hhmmFromSeconds(printDuration),
-          eta: hhmmFromSeconds(Math.max(0, estimatedTotal - printDuration)),
+          eta: hhmmFromSeconds(remainingSeconds),
+          remaining: hhmmFromSeconds(remainingSeconds),
           layer:
             typeof currentLayer === 'number' && typeof totalLayer === 'number'
               ? `${currentLayer}/${totalLayer}`
@@ -593,12 +595,14 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               const printDuration = Number(current.print_duration ?? 0);
               const progress = Number(status.display_status?.progress ?? next.job.progress);
               const totalDuration = progress > 0 ? printDuration / progress : Number(current.total_duration ?? 0);
+              const remainingSeconds = Math.max(0, totalDuration - printDuration);
               next.job = {
                 ...next.job,
                 filename: String(current.filename ?? next.job.filename),
                 state: toState(String(current.state ?? next.job.state).toLowerCase()),
                 elapsed: hhmmFromSeconds(printDuration),
-                eta: hhmmFromSeconds(Math.max(0, totalDuration - printDuration)),
+                eta: hhmmFromSeconds(remainingSeconds),
+                remaining: hhmmFromSeconds(remainingSeconds),
                 layer:
                   typeof current.info?.current_layer === 'number' && typeof current.info?.total_layer === 'number'
                     ? `${current.info.current_layer}/${current.info.total_layer}`

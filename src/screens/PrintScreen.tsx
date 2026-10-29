@@ -20,12 +20,14 @@ export function PrintScreen() {
     return <Navigate to="/files" replace />;
   }
 
+  const remainingLabel = job.remaining || job.eta || '00:00';
+
   return (
     <Layout title="Active Print" subtitle={`Part: ${job.filename}`}>
       <section className="status-row">
         <article className="status-chip"><div className="k">Progress</div><div className="v">{pct(job.progress)}</div></article>
         <article className="status-chip"><div className="k">Layer</div><div className="v">{job.layer}</div></article>
-        <article className="status-chip"><div className="k">ETA</div><div className="v">{job.eta}</div></article>
+        <article className="status-chip"><div className="k">Remaining</div><div className="v">{remainingLabel}</div></article>
       </section>
 
       <section className="card">
@@ -42,6 +44,9 @@ export function PrintScreen() {
         <div className="kv"><span>Completion</span><strong>{pct(job.progress)}</strong></div>
         <div className="kv"><span>Time Elapsed</span><strong>{job.elapsed}</strong></div>
         <div className="kv"><span>ETA</span><strong>{job.eta}</strong></div>
+        <div className="kv"><span>Time Remaining</span><strong>{remainingLabel}</strong></div>
+        <div className="kv"><span>Speed</span><strong>{speedPercent}%</strong></div>
+        <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
       </section>
 
       <section className="grid-2">
@@ -58,6 +63,7 @@ export function PrintScreen() {
           <div className="kv"><span>Speed</span><strong>{speedPercent}%</strong></div>
           <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
           <div className="kv"><span>Part Fan</span><strong>{fanPartPercent}%</strong></div>
+          <div className="kv"><span>Layer</span><strong>{job.layer}</strong></div>
         </article>
       </section>
 

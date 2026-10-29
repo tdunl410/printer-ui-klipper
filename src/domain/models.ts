@@ -22,6 +22,7 @@ export interface JobState {
   state: PrintState;
   layer: string;
   eta: string;
+  remaining: string;
   elapsed: string;
 }
 

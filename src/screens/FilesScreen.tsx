@@ -103,6 +103,10 @@ export function FilesScreen() {
   const popupModified = popupFile?.modified ? new Date(popupFile.modified * 1000).toLocaleString() : '-';
   const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
 
+  if (isPrinting) {
+    return <Layout title="Model Files" subtitle="Print active — return to active print"><div className="card"><div className="card-label">Print in progress</div><div className="card-title">Use the active print view to control the job.</div><a className="primary" href="/print">Open Print Screen</a></div></Layout>;
+  }
+
   return (
     <Layout title="Model Files" subtitle="USB + Local + Network">
       <section className="status-row">

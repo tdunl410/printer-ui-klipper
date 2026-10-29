@@ -93,9 +93,15 @@ export function HomeScreen() {
         </article>
       </section>
 
-      <Link className="primary" to={printRoute}>
-        Print
-      </Link>
+      {job.state === 'printing' || job.state === 'paused' ? (
+        <Link className="primary" to="/print">
+          View Active Print
+        </Link>
+      ) : (
+        <Link className="primary" to={printRoute}>
+          Print
+        </Link>
+      )}
 
       <section className="floating-actions">
         <Link className="action-link" to="/move">
