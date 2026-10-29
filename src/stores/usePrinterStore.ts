@@ -78,6 +78,14 @@ const normalizeProfileName = (value: string) => {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 };
 
+const isIpOrLocalHost = (value: string) => {
+  const raw = value.trim().toLowerCase();
+  if (!raw) return true;
+  if (raw === 'localhost' || raw === '127.0.0.1' || raw === '::1') return true;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(raw)) return true;
+  return false;
+};
+
 const pushHistory = (history: Record<string, number[]>, key: string, value: number, max = 64) => {
   const current = history[key] ?? [];
   const next = [...current, value];
@@ -358,11 +366,20 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           (mainsailGeneral as any).printerName ??
           (mainsailGeneral as any).machine_name ??
           (mainsailGeneral as any).instance_name ??
+          (mainsailGeneral as any).name ??
+          (mainsailGeneral as any).title ??
           '',
       ) || '';
 
-    const finalProfileName = configuredPrinterName || String(hostNameRaw || 'Printer');
-    set({ profileName: normalizeProfileName(finalProfileName) });
+    const candidateHostNames = [
+      String(hostNameRaw ?? ''),
+      String(get().connection.hostname ?? ''),
+    ].map((entry) => entry.trim()).filter(Boolean);
+
+    const preferredHostName = candidateHostNames.find((entry) => !isIpOrLocalHost(entry)) ?? '';
+    const existingName = get().profileName;
+    const nextRawName = configuredPrinterName || preferredHostName || (isIpOrLocalHost(existingName) ? 'Printer' : existingName);
+    set({ profileName: normalizeProfileName(nextRawName) });
 
     if (networkRes.status === 'fulfilled') {
       const interfaces = parseNetworkInterfaces(networkRes.value);
