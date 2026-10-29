@@ -11,6 +11,19 @@ Production-oriented touchscreen UI for Klipper printers, designed for portrait W
 - Command queue feedback toast (`pending/success/error`) and confirm gates for destructive actions.
 - Theme tokens with runtime switching (purple default + blue/green/rose).
 
+## Screenshots
+Captured at the native `400x1280` portrait size (no printer connected, so values are empty).
+
+| Home | Files | Preheat | Extrude |
+|---|---|---|---|
+| ![Home](docs/screenshots/home.png) | ![Files](docs/screenshots/files.png) | ![Preheat](docs/screenshots/preheat.png) | ![Extrude](docs/screenshots/extrude.png) |
+
+| Control | Settings | Connectivity | Updates |
+|---|---|---|---|
+| ![Control](docs/screenshots/control.png) | ![Settings](docs/screenshots/settings.png) | ![Connectivity](docs/screenshots/connectivity.png) | ![Updates](docs/screenshots/updates.png) |
+
+The Print screen only appears while Klipper is printing or paused, so with no printer attached it redirects to Files, so it isn't shown here.
+
 ## Repository Layout
 - `src/transport` Moonraker HTTP and WebSocket clients
 - `src/services` command methods wrapping mutating actions
