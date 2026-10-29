@@ -99,7 +99,10 @@ tail -n 120 /tmp/printer-ui-kiosk.log
 
 ## Update After Changes
 ```bash
+cd ~/printer_ui/printer-ui-klipper
 ./scripts/update-printer-ui.sh
+sudo systemctl restart printer-ui.service
+sudo systemctl restart printer-ui-kiosk.service
 ```
 
 
