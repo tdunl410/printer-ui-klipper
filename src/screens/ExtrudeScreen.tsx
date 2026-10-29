@@ -29,8 +29,8 @@ export function ExtrudeScreen() {
         <div className="ex-grid">
           <button type="button" className="ex-tile c-blue" onClick={() => runAction(`Extrude ${extrudeDistance}mm`, () => commands.extrude(extrudeDistance, extrudeSpeed))}><img src={extrudeIcon} alt="" />Extrude</button>
           <button type="button" className="ex-tile c-green" onClick={() => runAction('Load Filament', () => commands.runMacro('LOAD_FILAMENT'))}><img src={arrowDown} alt="" />Load</button>
-          <button type="button" className="ex-tile c-pink" onClick={() => runAction('Unload Filament', () => commands.runMacro('UNLOAD_FILAMENT'))}><img src={arrowUp} alt="" />Unload</button>
           <button type="button" className="ex-tile c-orange" onClick={() => runAction(`Retract ${extrudeDistance}mm`, () => commands.extrude(-extrudeDistance, extrudeSpeed))}><img src={arrowUp} alt="" />Retract</button>
+          <button type="button" className="ex-tile c-pink" onClick={() => runAction('Unload Filament', () => commands.runMacro('UNLOAD_FILAMENT'))}><img src={arrowUp} alt="" />Unload</button>
         </div>
         <div className="ex-label">Distance (mm)</div>
         <div className="ex-seg">
