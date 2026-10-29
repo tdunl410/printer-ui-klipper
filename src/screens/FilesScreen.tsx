@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEventHandler } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Dialog } from '../components/Dialog';
 import { BackButton, Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
@@ -27,7 +27,6 @@ export function FilesScreen() {
   const connection = usePrinterStore((state) => state.connection);
   const runAction = usePrinterStore((state) => state.runAction);
   const activeJob = usePrinterStore((state) => state.job);
-  const uploadInputRef = useRef<HTMLInputElement>(null);
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [renameFilePath, setRenameFilePath] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
@@ -104,19 +103,6 @@ export function FilesScreen() {
   const popupModified = popupFile?.modified ? new Date(popupFile.modified * 1000).toLocaleString() : '-';
   const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
 
-  const triggerUpload = () => {
-    uploadInputRef.current?.click();
-  };
-
-  const onUploadChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    void runAction(`Upload ${file.name}`, async () => {
-      await commands.uploadGcode(file);
-    });
-    event.target.value = '';
-  };
-
   return (
     <Layout title="Model Files" subtitle="USB + Local + Network">
       <section className="status-row">
@@ -143,18 +129,7 @@ export function FilesScreen() {
           <button type="button" className={`btn ${sortBy === 'name' ? 'accent' : ''}`} onClick={() => setSortBy('name')}>Name</button>
           <button type="button" className={`btn ${sortBy === 'size' ? 'accent' : ''}`} onClick={() => setSortBy('size')}>Size</button>
         </div>
-        <div className="btn-row top-gap">
-          <button type="button" className="btn accent" onClick={triggerUpload}>Upload</button>
-          <button type="button" className="btn" onClick={() => setSearch('')}>Clear Search</button>
-          <button type="button" className="btn" onClick={() => setSortBy('modified')}>Reset Sort</button>
-        </div>
-        <input
-          ref={uploadInputRef}
-          type="file"
-          accept=".gcode,.gco,.gc"
-          className="visually-hidden"
-          onChange={onUploadChange}
-        />
+        <button type="button" className="btn top-gap" onClick={() => setSortBy('modified')}>Reset Sort</button>
         <div className="file-list">
           {filteredFiles.map((file) => (
             <button

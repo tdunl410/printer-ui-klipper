@@ -260,13 +260,19 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
       let dynamicStatus: Record<string, any> = {};
       if (dynamicObjects.length > 0) {
-        const dynamicQuery = Object.fromEntries(dynamicObjects.map((name) => [name, dynamicFieldsForObject(name)]));
-        try {
-          const dynamicRes = await scopedHttp.queryObjects(dynamicQuery);
-          dynamicStatus = (((dynamicRes.result as any) || {}).status || {}) as Record<string, any>;
-        } catch {
-          dynamicStatus = {};
-        }
+        const dynamicResults = await Promise.allSettled(
+          dynamicObjects.map(async (name) => {
+            const result = await scopedHttp.queryObjects({ [name]: dynamicFieldsForObject(name) });
+            return (((result.result as any) || {}).status || {}) as Record<string, any>;
+          }),
+        );
+
+        dynamicStatus = dynamicResults.reduce<Record<string, any>>((acc, entry) => {
+          if (entry.status === 'fulfilled') {
+            Object.assign(acc, entry.value);
+          }
+          return acc;
+        }, {});
       }
 
       const currentState = get();
@@ -276,8 +282,12 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       const sensors = Object.entries(dynamicStatus).reduce<Record<string, { current: number; target: number }>>((acc, [key, value]) => {
         const sensorName = key.includes(' ') ? key.split(' ').slice(1).join(' ') : key;
         const previousSensor = currentState.temperatures.sensors[sensorName];
+        const hasTemperature = Number.isFinite(Number((value as any)?.temperature));
+        if (!hasTemperature && !previousSensor) {
+          return acc;
+        }
         acc[sensorName] = {
-          current: Number((value as any)?.temperature ?? previousSensor?.current ?? 0),
+          current: Number((value as any)?.temperature ?? previousSensor?.current ?? currentState.temperatures.ambient),
           target: Number((value as any)?.target ?? previousSensor?.target ?? 0),
         };
         return acc;
@@ -292,10 +302,10 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       });
 
       const chamberControlEntry = Object.entries(dynamicStatus).find(([name]) => {
-        return /temperature_fan\s+chamber/i.test(name) || /heater_generic\s+chamber/i.test(name) || /\bchamber\b/i.test(name);
+        return /temperature_fan\s+chamber/i.test(name) || /heater_generic\s+chamber/i.test(name);
       });
 
-      const chamberCandidate = Object.entries(sensors).find(([name]) => /chamber/i.test(name));
+      const chamberCandidate = Object.entries(sensors).find(([name]) => /^chamber$/i.test(name) || /\bchamber\b/i.test(name));
 
       const chamberCurrent = Number(
         (chamberSensorEntry?.[1] as any)?.temperature ?? chamberCandidate?.[1]?.current ?? currentState.temperatures.chamber.current,
@@ -312,7 +322,12 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         target: chamberTarget,
       };
 
-      const chamberFanEntry = Object.entries(dynamicStatus).find(([name]) => /chamber.*fan|fan.*chamber|aux_fan/i.test(name));
+      const auxFanEntry =
+        dynamicStatus['output_pin aux_fan'] ??
+        dynamicStatus.aux_fan ??
+        Object.entries(dynamicStatus).find(([name]) => /output_pin\s+aux_fan|\baux_fan\b/i.test(name))?.[1];
+
+      const chamberFanEntry = Object.entries(dynamicStatus).find(([name]) => /chamber.*fan|fan.*chamber/i.test(name));
 
       const sensorEntries = Object.entries(sensors);
       const ambientCandidates = sensorEntries.filter(([name]) => /ambient|air|enclosure/i.test(name));
@@ -361,7 +376,10 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           z: Number(status.toolhead?.position?.[2] ?? 0),
         },
         fanPartPercent: toPercent(status.fan?.speed, state.fanPartPercent),
-        fanChamberPercent: toPercent((chamberFanEntry?.[1] as any)?.speed ?? (chamberFanEntry?.[1] as any)?.value, state.fanChamberPercent),
+        fanChamberPercent: toPercent(
+          (auxFanEntry as any)?.value ?? (auxFanEntry as any)?.speed ?? (chamberFanEntry?.[1] as any)?.speed,
+          state.fanChamberPercent,
+        ),
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
         job: {

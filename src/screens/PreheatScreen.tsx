@@ -64,7 +64,13 @@ export function PreheatScreen() {
     void runAction(`Set ${heater}`, () => commands.setHeater(heater, nextTarget));
   };
 
-  const sensorEntries = Object.entries(temperatures.sensors);
+  const sensorEntries = useMemo(() => {
+    const reserved = new Set(['nozzle', 'extruder', 'bed', 'heater_bed', 'chamber', 'ambient', 'controller', 'raspberrypi']);
+    return Object.entries(temperatures.sensors).filter(([name]) => {
+      const normalized = name.toLowerCase().replace(/[_\s-]+/g, '');
+      return !reserved.has(normalized);
+    });
+  }, [temperatures.sensors]);
 
   const graphScale = useMemo(() => {
     const allSeries = [
