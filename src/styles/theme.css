@@ -277,7 +277,7 @@ body {
   font-weight: 650;
   background: var(--surface-strong);
   text-align: center;
-  min-height: 58px;
+  min-height: 80px;
 }
 
 .settings-nav {
