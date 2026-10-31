@@ -4,6 +4,7 @@ import arrowDownIcon from '../../assets/arrow-down.svg';
 import arrowUpIcon from '../../assets/arrow-up.svg';
 import pauseIcon from '../../assets/pause.svg';
 import resumeIcon from '../../assets/resume.svg';
+import stopSquareIcon from '../../assets/stop-square.svg';
 import { Dialog } from '../components/Dialog';
 import { Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
@@ -102,9 +103,10 @@ export function PrintScreen() {
           </button>
           <button
             type="button"
-            className="btn"
+            className="btn with-icon"
             onClick={() => setConfirmAction('stop')}
           >
+            <img className="button-icon" src={stopSquareIcon} alt="" aria-hidden="true" />
             Stop
           </button>
         </div>
