@@ -141,10 +141,27 @@ export class CommandService {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || `Update request failed (${response.status})`);
+      let message = text;
+
+      if (!message) {
+        message = `Update request failed (${response.status})`;
+      }
+
+      if (response.status === 403) {
+        message = 'UI updates are only allowed from the local printer screen.';
+      } else if (response.status === 404) {
+        message = 'Update endpoint unavailable. Use the printer-ui static server for this action.';
+      }
+
+      throw new Error(message);
     }
 
-    return (await response.json()) as Record<string, unknown>;
+    const contentType = response.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      return (await response.json()) as Record<string, unknown>;
+    }
+
+    return { ok: true };
   }
 
   private async socketFirst(method: string, params: Record<string, unknown> = {}) {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Dialog } from './components/Dialog';
 import { DeviceFrame } from './components/DeviceFrame';
+import { CommandToast } from './components/CommandToast';
 import { ConnectivityScreen } from './screens/ConnectivityScreen';
 import { ControlScreen } from './screens/ControlScreen';
 import { ExtrudeScreen } from './screens/ExtrudeScreen';
@@ -108,6 +109,7 @@ export default function App() {
           <div className="kv"><span>Filament Used</span><strong>{filamentLabel(summary.filamentMm)}</strong></div>
         </Dialog>
       ) : null}
+      <CommandToast />
     </DeviceFrame>
   );
 }

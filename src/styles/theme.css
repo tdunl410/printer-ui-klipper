@@ -458,6 +458,7 @@ body {
 .home-primary {
   min-height: 86px;
   padding: 20px 16px;
+  font-size: 34px;
 }
 
 .home-action-link {
