@@ -12,7 +12,15 @@ interface WifiNetwork {
 async function wifiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
-  if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Wi-Fi API endpoint unavailable. Start the printer-ui kiosk server.');
+    }
+    if (response.status === 501) {
+      throw new Error(payload.error || 'Wi-Fi control is unavailable on this host environment.');
+    }
+    throw new Error(payload.error || `Request failed (${response.status})`);
+  }
   return payload;
 }
 

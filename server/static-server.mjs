@@ -20,6 +20,10 @@ function nmcli(args, timeout = 30000) {
   return new Promise((resolve, reject) => {
     execFile('nmcli', args, { timeout }, (error, stdout, stderr) => {
       if (error) {
+        if ((error).code === 'ENOENT') {
+          reject(new Error('Wi-Fi control requires NetworkManager (nmcli) on the printer host.'));
+          return;
+        }
         reject(new Error((stderr || stdout || error.message).trim()));
         return;
       }
@@ -100,7 +104,12 @@ async function handleWifi(req, res, path) {
 
     sendJson(res, 404, { error: 'Not found' });
   } catch (error) {
-    sendJson(res, 500, { error: error instanceof Error ? error.message : 'Wi-Fi request failed' });
+    const message = error instanceof Error ? error.message : 'Wi-Fi request failed';
+    if (message.includes('requires NetworkManager')) {
+      sendJson(res, 501, { error: message });
+      return;
+    }
+    sendJson(res, 500, { error: message });
   }
 }
 
