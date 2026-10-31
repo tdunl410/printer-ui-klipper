@@ -455,6 +455,16 @@ body {
   border-radius: 12px;
 }
 
+.home-primary {
+  min-height: 86px;
+  padding: 20px 16px;
+}
+
+.home-action-link {
+  min-height: 72px;
+  padding: 16px 14px;
+}
+
 .action-link.with-icon {
   display: flex;
   align-items: center;
@@ -613,6 +623,10 @@ body {
   height: 144px;
   object-fit: cover;
   display: block;
+}
+
+.print-media-thumb img {
+  height: 220px;
 }
 
 .field-label {

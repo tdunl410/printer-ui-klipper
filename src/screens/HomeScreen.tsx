@@ -71,25 +71,25 @@ export function HomeScreen() {
       </section>
 
       {job.state === 'printing' || job.state === 'paused' ? (
-        <Link className="primary" to="/print">
+        <Link className="primary home-primary" to="/print">
           View Active Print
         </Link>
       ) : (
-        <Link className="primary" to={printRoute}>
+        <Link className="primary home-primary" to={printRoute}>
           Print
         </Link>
       )}
 
       <section className="floating-actions">
-        <Link className="action-link with-icon" to="/control">
+        <Link className="action-link with-icon home-action-link" to="/control">
           <img className="action-icon" src={moveIcon} alt="" aria-hidden="true" />
           Move
         </Link>
-        <Link className="action-link with-icon" to="/preheat">
+        <Link className="action-link with-icon home-action-link" to="/preheat">
           <img className="action-icon" src={heaterIcon} alt="" aria-hidden="true" />
           Preheat
         </Link>
-        <Link className="action-link with-icon" to="/extrude">
+        <Link className="action-link with-icon home-action-link" to="/extrude">
           <img className="action-icon" src={extrudeIcon} alt="" aria-hidden="true" />
           Extrude
         </Link>

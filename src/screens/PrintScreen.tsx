@@ -65,7 +65,7 @@ export function PrintScreen() {
 
       <section className="card">
         <div className="card-label">Current Job</div>
-        <div className="media-thumb">
+        <div className="media-thumb print-media-thumb">
           {thumbnailUrl ? (
             <img src={thumbnailUrl} alt={`${job.filename} preview`} />
           ) : (
