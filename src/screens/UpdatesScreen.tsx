@@ -6,7 +6,6 @@ export function UpdatesScreen() {
   const boot = usePrinterStore((state) => state.boot);
   const runAction = usePrinterStore((state) => state.runAction);
   const connectionState = usePrinterStore((state) => state.connectionState);
-  const logs = usePrinterStore((state) => state.logs);
   const versions = usePrinterStore((state) => state.versions);
   const updateCount = usePrinterStore((state) => state.updateCount);
 
@@ -52,15 +51,6 @@ export function UpdatesScreen() {
         </div>
       </section>
 
-      <section className="card">
-        <div className="card-label">Diagnostics</div>
-        <div className="card-title">Logs & Recovery</div>
-        <div className="console short-console">
-          {logs.slice(0, 8).map((line, index) => (
-            <div key={`${line}-${index}`} className="console-line">{line}</div>
-          ))}
-        </div>
-      </section>
 
     </Layout>
   );
