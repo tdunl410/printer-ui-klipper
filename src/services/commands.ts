@@ -1,5 +1,18 @@
 import { MoonrakerHttpClient } from '../transport/moonrakerHttp';
 
+type UpdateScreenStatus = {
+  status: 'idle' | 'running' | 'success' | 'error';
+  startedAt: number;
+  finishedAt: number;
+  logs: string[];
+  lastLog: string;
+  error: string;
+  currentCommit: string;
+  targetCommit: string;
+  pid?: number;
+  scriptPath: string;
+};
+
 export class CommandService {
   constructor(
     private readonly http: MoonrakerHttpClient,
@@ -130,7 +143,21 @@ export class CommandService {
     return this.http.post('/machine/shutdown');
   }
 
-  async updateScreen() {
+  async getUpdateScreenStatus() {
+    const response = await fetch('/api/ui/update-screen', {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `Unable to query update status (${response.status})`);
+    }
+
+    const payload = (await response.json()) as { update?: UpdateScreenStatus };
+    return payload.update;
+  }
+
+  async updateScreen(onProgress?: (status: UpdateScreenStatus) => void) {
     const response = await fetch('/api/ui/update-screen', {
       method: 'POST',
       headers: {
@@ -139,12 +166,17 @@ export class CommandService {
       body: JSON.stringify({}),
     });
 
+    const contentType = response.headers.get('content-type') ?? '';
+    const payload = contentType.includes('application/json')
+      ? (await response.json()) as { error?: string; update?: UpdateScreenStatus }
+      : {};
+
     if (!response.ok) {
-      const text = await response.text();
-      let message = text;
+      let message = payload.error;
 
       if (!message) {
-        message = `Update request failed (${response.status})`;
+        const text = await response.text();
+        message = text || `Update request failed (${response.status})`;
       }
 
       if (response.status === 403) {
@@ -156,12 +188,27 @@ export class CommandService {
       throw new Error(message);
     }
 
-    const contentType = response.headers.get('content-type') ?? '';
-    if (contentType.includes('application/json')) {
-      return (await response.json()) as Record<string, unknown>;
+    if (payload.update) {
+      onProgress?.(payload.update);
     }
 
-    return { ok: true };
+    const timeoutAt = Date.now() + 180000;
+    while (Date.now() < timeoutAt) {
+      await new Promise((resolve) => window.setTimeout(resolve, 800));
+      const status = await this.getUpdateScreenStatus();
+      if (!status) continue;
+      onProgress?.(status);
+
+      if (status.status === 'error') {
+        throw new Error(status.error || status.lastLog || 'Update failed.');
+      }
+
+      if (status.status === 'success') {
+        return status;
+      }
+    }
+
+    throw new Error('Update timed out while waiting for completion.');
   }
 
   private async socketFirst(method: string, params: Record<string, unknown> = {}) {

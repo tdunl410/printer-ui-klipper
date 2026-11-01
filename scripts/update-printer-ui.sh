@@ -43,7 +43,13 @@ if [[ ! -d .git ]]; then
   exit 1
 fi
 
+CURRENT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+echo "UPDATE_INFO current_commit=${CURRENT_COMMIT}"
+
 git pull --ff-only
+
+TARGET_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+echo "UPDATE_INFO target_commit=${TARGET_COMMIT}"
 
 if ! npm_is_healthy; then
   echo "npm is missing or broken. Running installer to repair Node.js toolchain and deploy update..."
@@ -56,6 +62,6 @@ install_dependencies
 npm run build
 sudo mkdir -p "${INSTALL_DIR}/dist"
 sudo cp -r dist/* "${INSTALL_DIR}/dist/"
-sudo systemctl restart printer-ui.service
+nohup bash -lc 'sleep 2; sudo systemctl restart printer-ui.service' >/dev/null 2>&1 &
 echo "Update complete."
 popd >/dev/null

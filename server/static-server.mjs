@@ -1,5 +1,5 @@
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { constants as fsConstants, createReadStream } from 'node:fs';
+import { access, stat } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -15,6 +15,152 @@ const loopbackAddresses = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const serverDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(serverDir, '..');
 const updateScript = process.env.PRINTER_UI_UPDATE_SCRIPT ?? join(projectRoot, 'scripts', 'update-printer-ui.sh');
+const MAX_UPDATE_LOG_LINES = 80;
+
+const uiUpdateState = {
+  status: 'idle',
+  startedAt: 0,
+  finishedAt: 0,
+  logs: [],
+  error: '',
+  currentCommit: '',
+  targetCommit: '',
+  pid: undefined,
+};
+
+const trimLogLine = (line) => line.replace(/\s+/g, ' ').trim();
+
+function pushUiUpdateLog(rawLine) {
+  const line = trimLogLine(String(rawLine ?? ''));
+  if (!line) return;
+
+  if (line.startsWith('UPDATE_INFO ')) {
+    const payload = line.slice('UPDATE_INFO '.length);
+    const splitAt = payload.indexOf('=');
+    if (splitAt > 0) {
+      const key = payload.slice(0, splitAt).trim();
+      const value = payload.slice(splitAt + 1).trim();
+      if (key === 'current_commit') {
+        uiUpdateState.currentCommit = value;
+      } else if (key === 'target_commit') {
+        uiUpdateState.targetCommit = value;
+      }
+    }
+  }
+
+  uiUpdateState.logs.push(line);
+  if (uiUpdateState.logs.length > MAX_UPDATE_LOG_LINES) {
+    uiUpdateState.logs.shift();
+  }
+}
+
+function resetUiUpdateState() {
+  uiUpdateState.status = 'idle';
+  uiUpdateState.startedAt = 0;
+  uiUpdateState.finishedAt = 0;
+  uiUpdateState.logs = [];
+  uiUpdateState.error = '';
+  uiUpdateState.currentCommit = '';
+  uiUpdateState.targetCommit = '';
+  uiUpdateState.pid = undefined;
+}
+
+function snapshotUiUpdateState() {
+  return {
+    status: uiUpdateState.status,
+    startedAt: uiUpdateState.startedAt,
+    finishedAt: uiUpdateState.finishedAt,
+    logs: [...uiUpdateState.logs],
+    lastLog: uiUpdateState.logs.at(-1) ?? '',
+    error: uiUpdateState.error,
+    currentCommit: uiUpdateState.currentCommit,
+    targetCommit: uiUpdateState.targetCommit,
+    pid: uiUpdateState.pid,
+    scriptPath: updateScript,
+  };
+}
+
+async function startUiUpdateJob() {
+  if (uiUpdateState.status === 'running') {
+    return { accepted: false, code: 409, body: { error: 'UI update already running', update: snapshotUiUpdateState() } };
+  }
+
+  resetUiUpdateState();
+  uiUpdateState.status = 'running';
+  uiUpdateState.startedAt = Date.now();
+
+  try {
+    await access(updateScript, fsConstants.R_OK | fsConstants.X_OK);
+  } catch {
+    uiUpdateState.status = 'error';
+    uiUpdateState.finishedAt = Date.now();
+    uiUpdateState.error = `Update script is missing or not executable: ${updateScript}`;
+    return { accepted: false, code: 500, body: { error: uiUpdateState.error, update: snapshotUiUpdateState() } };
+  }
+
+  const child = spawn(updateScript, [], {
+    cwd: projectRoot,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  uiUpdateState.pid = child.pid;
+
+  let stdoutBuffer = '';
+  let stderrBuffer = '';
+
+  const flushBuffered = (chunk, buffer, isError) => {
+    const combined = buffer + chunk;
+    const lines = combined.split(/\r?\n/);
+    const remainder = lines.pop() ?? '';
+    lines.forEach((line) => {
+      pushUiUpdateLog(isError ? `[stderr] ${line}` : line);
+    });
+    return remainder;
+  };
+
+  child.stdout?.on('data', (chunk) => {
+    stdoutBuffer = flushBuffered(String(chunk), stdoutBuffer, false);
+  });
+
+  child.stderr?.on('data', (chunk) => {
+    stderrBuffer = flushBuffered(String(chunk), stderrBuffer, true);
+  });
+
+  child.on('error', (error) => {
+    uiUpdateState.status = 'error';
+    uiUpdateState.finishedAt = Date.now();
+    uiUpdateState.error = `Failed to launch update script: ${error.message}`;
+    pushUiUpdateLog(uiUpdateState.error);
+  });
+
+  child.on('close', (code, signal) => {
+    if (stdoutBuffer.trim()) {
+      pushUiUpdateLog(stdoutBuffer.trim());
+    }
+    if (stderrBuffer.trim()) {
+      pushUiUpdateLog(`[stderr] ${stderrBuffer.trim()}`);
+    }
+
+    if (uiUpdateState.status === 'error') {
+      return;
+    }
+
+    uiUpdateState.finishedAt = Date.now();
+    if (code === 0) {
+      uiUpdateState.status = 'success';
+      pushUiUpdateLog('Update finished successfully.');
+      return;
+    }
+
+    uiUpdateState.status = 'error';
+    uiUpdateState.error = signal
+      ? `Update script terminated by signal ${signal}`
+      : `Update script exited with code ${code ?? 'unknown'}`;
+    pushUiUpdateLog(uiUpdateState.error);
+  });
+
+  return { accepted: true, code: 202, body: { ok: true, update: snapshotUiUpdateState() } };
+}
 
 function nmcli(args, timeout = 30000) {
   return new Promise((resolve, reject) => {
@@ -120,14 +266,14 @@ async function handleUi(req, res, path) {
   }
 
   try {
+    if (req.method === 'GET' && path === '/api/ui/update-screen') {
+      sendJson(res, 200, { update: snapshotUiUpdateState() });
+      return;
+    }
+
     if (req.method === 'POST' && path === '/api/ui/update-screen') {
-      const child = spawn(updateScript, [], {
-        cwd: projectRoot,
-        detached: true,
-        stdio: 'ignore',
-      });
-      child.unref();
-      sendJson(res, 202, { ok: true });
+      const startResult = await startUiUpdateJob();
+      sendJson(res, startResult.code, startResult.body);
       return;
     }
 
