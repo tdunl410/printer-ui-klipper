@@ -148,12 +148,27 @@ export class CommandService {
       method: 'GET',
     });
 
+    const contentType = response.headers.get('content-type') ?? '';
+    const bodyText = await response.text();
+
     if (!response.ok) {
-      const text = await response.text();
-      throw new Error(text || `Unable to query update status (${response.status})`);
+      throw new Error(bodyText || `Unable to query update status (${response.status})`);
     }
 
-    const payload = (await response.json()) as { update?: UpdateScreenStatus };
+    if (!contentType.includes('application/json')) {
+      if (bodyText.trim().startsWith('<!doctype') || bodyText.trim().startsWith('<html')) {
+        throw new Error('Update status endpoint returned HTML instead of JSON. Open the UI via the printer-ui server (http://127.0.0.1:4409), not the Vite dev server.');
+      }
+      throw new Error('Update status endpoint returned an unexpected response format.');
+    }
+
+    let payload: { update?: UpdateScreenStatus };
+    try {
+      payload = JSON.parse(bodyText) as { update?: UpdateScreenStatus };
+    } catch {
+      throw new Error('Update status endpoint returned invalid JSON.');
+    }
+
     return payload.update;
   }
 
