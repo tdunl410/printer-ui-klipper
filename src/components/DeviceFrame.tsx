@@ -11,20 +11,14 @@ export function DeviceFrame({ children }: DeviceFrameProps) {
     const frame = ref.current;
     if (!frame) return;
 
-    const aspectWidth = 400;
-    const aspectHeight = 1280;
-
-    const lockFrameAspectRatio = () => {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const scale = Math.min(viewportWidth / aspectWidth, viewportHeight / aspectHeight);
-      frame.style.width = `${Math.max(1, aspectWidth * scale).toFixed(2)}px`;
-      frame.style.height = `${Math.max(1, aspectHeight * scale).toFixed(2)}px`;
+    const fitToViewport = () => {
+      frame.style.width = `${window.innerWidth}px`;
+      frame.style.height = `${window.innerHeight}px`;
     };
 
-    lockFrameAspectRatio();
-    window.addEventListener('resize', lockFrameAspectRatio);
-    return () => window.removeEventListener('resize', lockFrameAspectRatio);
+    fitToViewport();
+    window.addEventListener('resize', fitToViewport);
+    return () => window.removeEventListener('resize', fitToViewport);
   }, []);
 
   return (
