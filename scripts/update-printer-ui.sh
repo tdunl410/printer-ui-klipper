@@ -62,6 +62,8 @@ install_dependencies
 npm run build
 sudo mkdir -p "${INSTALL_DIR}/dist"
 sudo cp -r dist/* "${INSTALL_DIR}/dist/"
+sudo mkdir -p "${INSTALL_DIR}/server"
+sudo cp server/static-server.mjs "${INSTALL_DIR}/server/static-server.mjs"
 nohup bash -lc 'sleep 2; sudo systemctl restart printer-ui.service' >/dev/null 2>&1 &
 echo "Update complete."
 popd >/dev/null

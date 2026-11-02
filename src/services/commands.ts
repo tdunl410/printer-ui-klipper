@@ -13,6 +13,14 @@ type UpdateScreenStatus = {
   scriptPath: string;
 };
 
+function isLegacyStatusUnavailable(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const normalized = message.toLowerCase();
+  return normalized.includes('unable to query update status (404)')
+    || normalized.includes('"error":"not found"')
+    || normalized.includes('returned html instead of json');
+}
+
 export class CommandService {
   constructor(
     private readonly http: MoonrakerHttpClient,
@@ -172,7 +180,7 @@ export class CommandService {
     return payload.update;
   }
 
-  async updateScreen(onProgress?: (status: UpdateScreenStatus) => void) {
+  async updateScreen(onProgress?: (status: UpdateScreenStatus) => void): Promise<UpdateScreenStatus> {
     const response = await fetch('/api/ui/update-screen', {
       method: 'POST',
       headers: {
@@ -210,7 +218,38 @@ export class CommandService {
     const timeoutAt = Date.now() + 180000;
     while (Date.now() < timeoutAt) {
       await new Promise((resolve) => window.setTimeout(resolve, 800));
-      const status = await this.getUpdateScreenStatus();
+      let status: UpdateScreenStatus | undefined;
+      try {
+        status = await this.getUpdateScreenStatus();
+      } catch (error) {
+        if (isLegacyStatusUnavailable(error)) {
+          onProgress?.({
+            status: 'running' as const,
+            startedAt: Date.now(),
+            finishedAt: 0,
+            logs: ['Live update status is unavailable on the currently installed backend. Update has been started and backend files will be refreshed.'],
+            lastLog: 'Live status unavailable on current backend; applying update and reloading…',
+            error: '',
+            currentCommit: '',
+            targetCommit: '',
+            scriptPath: '',
+          });
+          await new Promise((resolve) => window.setTimeout(resolve, 2500));
+          return {
+            status: 'success' as const,
+            startedAt: Date.now(),
+            finishedAt: Date.now(),
+            logs: ['Update started. Live status unavailable on prior backend implementation.'],
+            lastLog: 'Update started. Reloading to pick up the new backend…',
+            error: '',
+            currentCommit: '',
+            targetCommit: '',
+            scriptPath: '',
+          };
+        }
+        throw error;
+      }
+
       if (!status) continue;
       onProgress?.(status);
 
