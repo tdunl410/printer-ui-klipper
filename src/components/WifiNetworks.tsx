@@ -11,15 +11,30 @@ interface WifiNetwork {
 
 async function wifiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
-  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  const contentType = response.headers.get('content-type') ?? '';
+  const text = await response.text();
+  const payload = contentType.includes('application/json')
+    ? (JSON.parse(text || '{}') as T & { error?: string })
+    : ({} as T & { error?: string });
+
+  if (!contentType.includes('application/json')) {
+    const trimmed = text.trim().toLowerCase();
+    if (trimmed.startsWith('<!doctype') || trimmed.startsWith('<html')) {
+      throw new Error('Wi-Fi API returned HTML instead of JSON. Open the UI through the printer-ui server (http://127.0.0.1:4409).');
+    }
+  }
+
   if (!response.ok) {
     if (response.status === 404) {
       throw new Error('Wi-Fi API endpoint unavailable. Start the printer-ui kiosk server.');
     }
+    if (response.status === 403) {
+      throw new Error(payload.error || 'Wi-Fi control is only available from the printer screen.');
+    }
     if (response.status === 501) {
       throw new Error(payload.error || 'Wi-Fi control is unavailable on this host environment.');
     }
-    throw new Error(payload.error || `Request failed (${response.status})`);
+    throw new Error(payload.error || text || `Request failed (${response.status})`);
   }
   return payload;
 }
@@ -38,7 +53,9 @@ export function WifiNetworks({ onConnected }: { onConnected?: () => void }) {
     setError('');
     try {
       const result = await wifiRequest<{ networks: WifiNetwork[] }>(`/api/wifi/networks${rescan ? '?rescan=1' : ''}`);
-      if (!Array.isArray(result.networks)) throw new Error('Wi-Fi service unavailable. Update and restart the printer UI server.');
+      if (!Array.isArray(result.networks)) {
+        throw new Error('Wi-Fi scan returned an unexpected response. Ensure the printer-ui backend is updated and restarted.');
+      }
       setNetworks(result.networks);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to scan for networks');
