@@ -265,6 +265,32 @@ export class CommandService {
     throw new Error('Update timed out while waiting for completion.');
   }
 
+  async updateAll() {
+    return this.http.post('/machine/update/full');
+  }
+
+  async updateTarget(name: string) {
+    const normalized = name.trim().toLowerCase();
+    if (!normalized) {
+      throw new Error('No update target selected.');
+    }
+
+    if (normalized === 'moonraker') {
+      return this.http.post('/machine/update/moonraker');
+    }
+    if (normalized === 'klipper') {
+      return this.http.post('/machine/update/klipper');
+    }
+    if (normalized === 'firmware') {
+      return this.http.post('/machine/update/firmware');
+    }
+    if (['mainsail', 'fluidd', 'web', 'client'].includes(normalized)) {
+      return this.http.post(`/machine/update/client?name=${encodeURIComponent(name.trim())}`);
+    }
+
+    return this.http.post(`/machine/update/client?name=${encodeURIComponent(name.trim())}`);
+  }
+
   private async socketFirst(method: string, params: Record<string, unknown> = {}) {
     this.sendSocketRpc(method, params);
     return Promise.resolve({ method, params });
