@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Dialog } from './components/Dialog';
 import { DeviceFrame } from './components/DeviceFrame';
 import { CommandToast } from './components/CommandToast';
+import { AppearanceScreen } from './screens/AppearanceScreen';
 import { ConnectivityScreen } from './screens/ConnectivityScreen';
 import { ControlScreen } from './screens/ControlScreen';
 import { ExtrudeScreen } from './screens/ExtrudeScreen';
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="/extrude" element={<ExtrudeScreen />} />
         <Route path="/control" element={<ControlScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
+        <Route path="/appearance" element={<AppearanceScreen />} />
         <Route path="/connectivity" element={<ConnectivityScreen />} />
         <Route path="/updates" element={<UpdatesScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />

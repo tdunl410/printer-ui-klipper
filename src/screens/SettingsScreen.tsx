@@ -4,24 +4,14 @@ import { Dialog } from '../components/Dialog';
 import { Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
-const themeOptions = [
-  { key: 'purple', label: 'Purple (default)', swatch: '#7b4dff' },
-  { key: 'blue', label: 'Blue', swatch: '#1d8bff' },
-  { key: 'green', label: 'Green', swatch: '#1fbf5b' },
-  { key: 'rose', label: 'Rose', swatch: '#d15ca2' },
-] as const;
-
 export function SettingsScreen() {
   const commands = useCommands();
   const profileName = usePrinterStore((state) => state.profileName);
   const connectionState = usePrinterStore((state) => state.connectionState);
-  const jobState = usePrinterStore((state) => state.job.state);
   const runAction = usePrinterStore((state) => state.runAction);
   const theme = usePrinterStore((state) => state.theme);
-  const setTheme = usePrinterStore((state) => state.setTheme);
   const [confirmAction, setConfirmAction] = useState<'restart-klipper' | 'restart-host' | 'shutdown' | null>(null);
 
-  const printRoute = jobState === 'printing' || jobState === 'paused' ? '/print' : '/files';
 
   return (
     <Layout title="Settings" subtitle=" " homeAction>
@@ -35,32 +25,10 @@ export function SettingsScreen() {
         <div className="card-label">Navigation</div>
         <div className="card-title">Pages</div>
         <div className="settings-nav">
-          <Link className="action-link" to="/">Dashboard →</Link>
-          <Link className="action-link" to={printRoute}>Print →</Link>
-          <Link className="action-link" to="/files">Files →</Link>
-          <Link className="action-link" to="/preheat">Preheat →</Link>
-          <Link className="action-link" to="/extrude">Extrude →</Link>
           <Link className="action-link" to="/control">Control →</Link>
+          <Link className="action-link" to="/appearance">Appearance →</Link>
           <Link className="action-link" to="/connectivity">Connectivity →</Link>
           <Link className="action-link" to="/updates">Updates →</Link>
-        </div>
-      </section>
-
-      <section className="card">
-        <div className="card-label">Appearance</div>
-        <div className="card-title">Theme</div>
-        <div>
-          {themeOptions.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              className={`theme-chip button-reset ${theme === option.key ? 'selected' : ''}`}
-              onClick={() => setTheme(option.key)}
-            >
-              <span className="swatch" style={{ background: option.swatch }}></span>
-              {option.label}
-            </button>
-          ))}
         </div>
       </section>
 
