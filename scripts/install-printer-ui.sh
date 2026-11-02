@@ -299,8 +299,19 @@ fi
 HOST=${PRINTER_UI_HOST:-127.0.0.1}
 PORT=${PRINTER_UI_PORT:-4409}
 
+RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+if [[ ! -d "${RUNTIME_DIR}" ]]; then
+  RUNTIME_DIR="/tmp/printer-ui-runtime-$(id -u)"
+  mkdir -p "${RUNTIME_DIR}"
+  chmod 700 "${RUNTIME_DIR}"
+fi
+
+export HOME=${HOME:-/home/$(id -un)}
+export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+
 echo "Launching ${CHROME_BIN} at http://${HOST}:${PORT}"
-exec xinit "${CHROME_BIN}" --kiosk --app="http://${HOST}:${PORT}" --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars -- :0 vt1 -nocursor
+exec xinit "${CHROME_BIN}" --kiosk --app="http://${HOST}:${PORT}" --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars --no-first-run --disable-session-crashed-bubble -- :0 vt1 -nocursor
 EOF
 
 sudo chmod +x "${KIOSK_LAUNCHER_FILE}"
