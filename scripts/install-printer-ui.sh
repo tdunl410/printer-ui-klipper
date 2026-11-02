@@ -316,6 +316,7 @@ fi
 
 export HOME=${HOME:-/home/$(id -un)}
 export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
 unset DBUS_STARTER_ADDRESS
 unset DBUS_STARTER_BUS_TYPE
@@ -345,11 +346,6 @@ if [[ ! -u /usr/lib/chromium/chrome-sandbox && ! -u /usr/lib/chromium-browser/ch
 fi
 
 echo "Launching ${CHROME_BIN} at http://${HOST}:${PORT}"
-if command -v dbus-run-session >/dev/null 2>&1; then
-  exec dbus-run-session -- xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
-fi
-
-echo "dbus-run-session not found; launching without private dbus session"
 exec xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
 EOF
 
@@ -392,6 +388,9 @@ Wants=printer-ui.service
 Type=simple
 EnvironmentFile=${ENV_FILE}
 Environment=HOME=/home/${USER}
+Environment=XDG_RUNTIME_DIR=/run/user/%U
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+PAMName=login
 StandardInput=tty
 TTYPath=/dev/tty1
 TTYReset=yes
