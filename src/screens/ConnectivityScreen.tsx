@@ -14,7 +14,6 @@ interface WifiApiNetwork {
 export function ConnectivityScreen() {
   const connection = usePrinterStore((state) => state.connection);
   const connectionState = usePrinterStore((state) => state.connectionState);
-  const setConnectionUrls = usePrinterStore((state) => state.setConnectionUrls);
   const boot = usePrinterStore((state) => state.boot);
   const [baseUrl, setBaseUrl] = useState(connection.moonrakerBaseUrl);
   const [wsUrl, setWsUrl] = useState(connection.websocketUrl);
