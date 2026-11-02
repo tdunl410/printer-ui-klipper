@@ -336,6 +336,8 @@ CHROME_FLAGS=(
   --disable-session-crashed-bubble
   --disable-gpu
   --disable-dev-shm-usage
+  --start-fullscreen
+  --force-device-scale-factor=1
   --user-data-dir="${CHROME_PROFILE_DIR}"
 )
 
