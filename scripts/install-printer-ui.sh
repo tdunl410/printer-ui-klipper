@@ -239,7 +239,15 @@ ensure_kiosk_runtime() {
         sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium-browser
       fi
     elif package_available chromium; then
-      if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium; then
+      if package_available chromium-sandbox; then
+        if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium chromium-sandbox; then
+          echo "chromium/chromium-sandbox install failed, refreshing apt metadata and retrying once..."
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo apt-get "${apt_opts[@]}" update
+          sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium chromium-sandbox
+        fi
+      elif ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium; then
         echo "chromium install failed, refreshing apt metadata and retrying once..."
         sudo apt-get clean
         sudo rm -rf /var/lib/apt/lists/*
@@ -317,8 +325,32 @@ unset DBUS_SYSTEM_BUS_ADDRESS
 CHROME_PROFILE_DIR="${XDG_RUNTIME_DIR}/printer-ui-chromium-profile"
 mkdir -p "${CHROME_PROFILE_DIR}"
 
+CHROME_FLAGS=(
+  --kiosk
+  --app="http://${HOST}:${PORT}"
+  --disable-pinch
+  --overscroll-history-navigation=0
+  --noerrdialogs
+  --disable-infobars
+  --no-first-run
+  --disable-session-crashed-bubble
+  --disable-gpu
+  --disable-dev-shm-usage
+  --user-data-dir="${CHROME_PROFILE_DIR}"
+)
+
+if [[ ! -u /usr/lib/chromium/chrome-sandbox && ! -u /usr/lib/chromium-browser/chrome-sandbox ]]; then
+  echo "chrome-sandbox is not setuid; enabling --no-sandbox fallback"
+  CHROME_FLAGS+=(--no-sandbox --disable-setuid-sandbox)
+fi
+
 echo "Launching ${CHROME_BIN} at http://${HOST}:${PORT}"
-exec dbus-run-session -- xinit "${CHROME_BIN}" --kiosk --app="http://${HOST}:${PORT}" --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars --no-first-run --disable-session-crashed-bubble --disable-gpu --disable-dev-shm-usage --user-data-dir="${CHROME_PROFILE_DIR}" -- :0 vt1 -nocursor
+if command -v dbus-run-session >/dev/null 2>&1; then
+  exec dbus-run-session -- xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+fi
+
+echo "dbus-run-session not found; launching without private dbus session"
+exec xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
 EOF
 
 sudo chmod +x "${KIOSK_LAUNCHER_FILE}"
