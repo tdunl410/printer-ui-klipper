@@ -316,7 +316,6 @@ fi
 
 export HOME=${HOME:-/home/$(id -un)}
 export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
-export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
 unset DBUS_STARTER_ADDRESS
 unset DBUS_STARTER_BUS_TYPE
@@ -346,7 +345,13 @@ if [[ ! -u /usr/lib/chromium/chrome-sandbox && ! -u /usr/lib/chromium-browser/ch
 fi
 
 echo "Launching ${CHROME_BIN} at http://${HOST}:${PORT}"
-exec xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+if command -v dbus-run-session >/dev/null 2>&1; then
+  exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
+    xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+else
+  exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+    xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+fi
 EOF
 
 sudo chmod +x "${KIOSK_LAUNCHER_FILE}"
@@ -389,7 +394,6 @@ Type=simple
 EnvironmentFile=${ENV_FILE}
 Environment=HOME=/home/${USER}
 Environment=XDG_RUNTIME_DIR=/run/user/%U
-Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
 PAMName=login
 StandardInput=tty
 TTYPath=/dev/tty1
