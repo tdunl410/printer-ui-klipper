@@ -197,7 +197,7 @@ export function UpdatesScreen() {
         {commitLabel ? <div className="file-item">Commit: {commitLabel}</div> : null}
         {feedbackMessage ? <div className="file-item">Status: {feedbackMessage}</div> : null}
         {pendingUpdates.length > 0 ? (
-          <div className="btn-row top-gap">
+          <div className="btn-row updates-actions top-gap">
             {pendingUpdates.map((entry) => (
               <button
                 key={entry.name}
@@ -211,7 +211,7 @@ export function UpdatesScreen() {
             ))}
           </div>
         ) : null}
-        <div className="btn-row">
+        <div className="btn-row updates-actions">
           <button type="button" className="btn accent" onClick={() => boot()}>Refresh</button>
           <button
             type="button"

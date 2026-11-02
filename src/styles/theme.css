@@ -317,6 +317,10 @@ body {
   gap: 10px;
 }
 
+.btn-row.updates-actions {
+  grid-template-columns: 1fr;
+}
+
 .btn-row.four {
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
