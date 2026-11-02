@@ -308,10 +308,17 @@ fi
 
 export HOME=${HOME:-/home/$(id -un)}
 export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
-export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+
+unset DBUS_STARTER_ADDRESS
+unset DBUS_STARTER_BUS_TYPE
+unset DBUS_SESSION_BUS_ADDRESS
+unset DBUS_SYSTEM_BUS_ADDRESS
+
+CHROME_PROFILE_DIR="${XDG_RUNTIME_DIR}/printer-ui-chromium-profile"
+mkdir -p "${CHROME_PROFILE_DIR}"
 
 echo "Launching ${CHROME_BIN} at http://${HOST}:${PORT}"
-exec xinit "${CHROME_BIN}" --kiosk --app="http://${HOST}:${PORT}" --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars --no-first-run --disable-session-crashed-bubble -- :0 vt1 -nocursor
+exec dbus-run-session -- xinit "${CHROME_BIN}" --kiosk --app="http://${HOST}:${PORT}" --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars --no-first-run --disable-session-crashed-bubble --disable-gpu --disable-dev-shm-usage --user-data-dir="${CHROME_PROFILE_DIR}" -- :0 vt1 -nocursor
 EOF
 
 sudo chmod +x "${KIOSK_LAUNCHER_FILE}"
