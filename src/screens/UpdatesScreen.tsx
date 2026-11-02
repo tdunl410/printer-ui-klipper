@@ -18,6 +18,7 @@ export function UpdatesScreen() {
   const connectionState = usePrinterStore((state) => state.connectionState);
   const versions = usePrinterStore((state) => state.versions);
   const updateCount = usePrinterStore((state) => state.updateCount);
+  const detectedUpdates = usePrinterStore((state) => state.detectedUpdates);
   const [updateFeedback, setUpdateFeedback] = useState<UiUpdateStatus>({
     status: 'idle',
     logs: [],
@@ -27,6 +28,8 @@ export function UpdatesScreen() {
     targetCommit: '',
   });
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const pendingUpdates = detectedUpdates.filter((entry) => entry.isPending);
 
   const commitLabel = useMemo(() => {
     if (updateFeedback.currentCommit && updateFeedback.targetCommit) {
@@ -96,6 +99,80 @@ export function UpdatesScreen() {
     setIsUpdating(false);
   };
 
+  const onUpdateAll = async () => {
+    setIsUpdating(true);
+    setUpdateFeedback({
+      status: 'running',
+      logs: [],
+      lastLog: 'Starting full update…',
+      error: '',
+      currentCommit: '',
+      targetCommit: '',
+    });
+
+    await runAction('Update All', async () => {
+      try {
+        await commands.updateAll();
+        setUpdateFeedback((state) => ({
+          ...state,
+          status: 'success',
+          lastLog: 'Full update requested. Reloading when complete…',
+        }));
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 2500);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Full update failed.';
+        setUpdateFeedback((state) => ({
+          ...state,
+          status: 'error',
+          error: message,
+          lastLog: message,
+        }));
+        throw error;
+      }
+    });
+
+    setIsUpdating(false);
+  };
+
+  const onUpdateTarget = async (name: string) => {
+    setIsUpdating(true);
+    setUpdateFeedback({
+      status: 'running',
+      logs: [],
+      lastLog: `Starting ${name} update…`,
+      error: '',
+      currentCommit: '',
+      targetCommit: '',
+    });
+
+    await runAction(`Update ${name}`, async () => {
+      try {
+        await commands.updateTarget(name);
+        setUpdateFeedback((state) => ({
+          ...state,
+          status: 'success',
+          lastLog: `${name} update requested. Reloading when complete…`,
+        }));
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 2500);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : `${name} update failed.`;
+        setUpdateFeedback((state) => ({
+          ...state,
+          status: 'error',
+          error: message,
+          lastLog: message,
+        }));
+        throw error;
+      }
+    });
+
+    setIsUpdating(false);
+  };
+
   return (
     <Layout title="Updates" subtitle="Versions + Logs">
       <section className="status-row">
@@ -119,8 +196,31 @@ export function UpdatesScreen() {
         <div className="file-item">{updateCount > 0 ? `${updateCount} updates reported by Moonraker` : 'No pending updates reported'}</div>
         {commitLabel ? <div className="file-item">Commit: {commitLabel}</div> : null}
         {feedbackMessage ? <div className="file-item">Status: {feedbackMessage}</div> : null}
+        {pendingUpdates.length > 0 ? (
+          <div className="btn-row top-gap">
+            {pendingUpdates.map((entry) => (
+              <button
+                key={entry.name}
+                type="button"
+                className="btn"
+                onClick={() => { void onUpdateTarget(entry.name); }}
+                disabled={isUpdating}
+              >
+                Update {entry.displayName}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className="btn-row">
           <button type="button" className="btn accent" onClick={() => boot()}>Refresh</button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => { void onUpdateAll(); }}
+            disabled={isUpdating || pendingUpdates.length === 0}
+          >
+            Update All
+          </button>
           <button
             type="button"
             className="btn"
@@ -133,8 +233,6 @@ export function UpdatesScreen() {
           <button type="button" className="btn" onClick={() => runAction('Restart Host', () => commands.systemAction('restart-host'))}>Restart Host</button>
         </div>
       </section>
-
-
     </Layout>
   );
 }

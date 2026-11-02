@@ -239,7 +239,15 @@ ensure_kiosk_runtime() {
         sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium-browser
       fi
     elif package_available chromium; then
-      if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium; then
+      if package_available chromium-sandbox; then
+        if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium chromium-sandbox; then
+          echo "chromium/chromium-sandbox install failed, refreshing apt metadata and retrying once..."
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo apt-get "${apt_opts[@]}" update
+          sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium chromium-sandbox
+        fi
+      elif ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium; then
         echo "chromium install failed, refreshing apt metadata and retrying once..."
         sudo apt-get clean
         sudo rm -rf /var/lib/apt/lists/*
@@ -299,8 +307,53 @@ fi
 HOST=${PRINTER_UI_HOST:-127.0.0.1}
 PORT=${PRINTER_UI_PORT:-4409}
 
+RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+if [[ ! -d "${RUNTIME_DIR}" ]]; then
+  RUNTIME_DIR="/tmp/printer-ui-runtime-$(id -u)"
+  mkdir -p "${RUNTIME_DIR}"
+  chmod 700 "${RUNTIME_DIR}"
+fi
+
+export HOME=${HOME:-/home/$(id -un)}
+export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
+
+unset DBUS_STARTER_ADDRESS
+unset DBUS_STARTER_BUS_TYPE
+unset DBUS_SESSION_BUS_ADDRESS
+unset DBUS_SYSTEM_BUS_ADDRESS
+
+CHROME_PROFILE_DIR="${XDG_RUNTIME_DIR}/printer-ui-chromium-profile"
+mkdir -p "${CHROME_PROFILE_DIR}"
+
+CHROME_FLAGS=(
+  --kiosk
+  --app="http://${HOST}:${PORT}"
+  --disable-pinch
+  --overscroll-history-navigation=0
+  --noerrdialogs
+  --disable-infobars
+  --no-first-run
+  --disable-session-crashed-bubble
+  --disable-gpu
+  --disable-dev-shm-usage
+  --start-fullscreen
+  --force-device-scale-factor=1
+  --user-data-dir="${CHROME_PROFILE_DIR}"
+)
+
+if [[ ! -u /usr/lib/chromium/chrome-sandbox && ! -u /usr/lib/chromium-browser/chrome-sandbox ]]; then
+  echo "chrome-sandbox is not setuid; enabling --no-sandbox fallback"
+  CHROME_FLAGS+=(--no-sandbox --disable-setuid-sandbox)
+fi
+
 echo "Launching ${CHROME_BIN} at http://${HOST}:${PORT}"
-exec xinit "${CHROME_BIN}" --kiosk --app="http://${HOST}:${PORT}" --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-infobars -- :0 vt1 -nocursor
+if command -v dbus-run-session >/dev/null 2>&1; then
+  exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
+    xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+else
+  exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+    xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+fi
 EOF
 
 sudo chmod +x "${KIOSK_LAUNCHER_FILE}"
@@ -342,6 +395,8 @@ Wants=printer-ui.service
 Type=simple
 EnvironmentFile=${ENV_FILE}
 Environment=HOME=/home/${USER}
+Environment=XDG_RUNTIME_DIR=/run/user/%U
+PAMName=login
 StandardInput=tty
 TTYPath=/dev/tty1
 TTYReset=yes

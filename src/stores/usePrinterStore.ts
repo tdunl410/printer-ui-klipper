@@ -20,6 +20,17 @@ import { hhmmFromSeconds } from '../utils/format';
 
 type ThemeKey = 'purple' | 'blue' | 'green' | 'rose';
 
+type DetectedUpdate = {
+  name: string;
+  displayName: string;
+  version: string;
+  remoteVersion: string;
+  channel: string;
+  commitsBehind: number;
+  isValid: boolean;
+  isPending: boolean;
+};
+
 interface PrinterStore {
   profileName: string;
   connectionState: ConnectionState;
@@ -35,6 +46,7 @@ interface PrinterStore {
   logs: string[];
   versions: SystemVersions;
   updateCount: number;
+  detectedUpdates: DetectedUpdate[];
   commandQueue: CommandStatus[];
   theme: ThemeKey;
   fanPartPercent: number;
@@ -478,15 +490,34 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
     if (updateRes.status === 'fulfilled') {
       const versionInfo = ((updateRes.value.result as any) || {}).version_info || {};
-      const entries = Object.values(versionInfo) as Array<{ channel?: string; is_valid?: boolean; commits_behind?: number }>;
-      const pending = entries.filter((entry) => {
-        if (typeof entry.commits_behind === 'number') {
-          return entry.commits_behind > 0;
-        }
-        return entry.is_valid === false || entry.channel === 'dev';
-      }).length;
+      const entries = Object.entries(versionInfo).map(([name, value]) => {
+        const entry = (value as Record<string, any>) || {};
+        const commitsBehind = Number(entry.commits_behind ?? entry.commitsBehind ?? 0);
+        const isPending = typeof entry.commits_behind === 'number'
+          ? entry.commits_behind > 0
+          : entry.is_valid === false || entry.channel === 'dev';
+        const displayName = String(entry.name ?? name ?? 'Unknown').trim() || String(name || 'Unknown');
 
-      set({ updateCount: pending });
+        return {
+          name: String(name || entry.name || 'unknown').trim() || 'unknown',
+          displayName: displayName
+            .replace(/[-_]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .replace(/\b\w/g, (match) => match.toUpperCase()),
+          version: String(entry.version ?? entry.current_version ?? entry.current ?? ''),
+          remoteVersion: String(entry.remote_version ?? entry.remoteVersion ?? entry.version ?? ''),
+          channel: String(entry.channel ?? ''),
+          commitsBehind: Number.isFinite(commitsBehind) ? commitsBehind : 0,
+          isValid: entry.is_valid !== false,
+          isPending,
+        } satisfies DetectedUpdate;
+      });
+      const pending = entries.filter((entry) => entry.isPending);
+
+      set({
+        updateCount: pending.length,
+        detectedUpdates: entries,
+      });
     }
   };
 
@@ -505,6 +536,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     logs: [],
     versions: {},
     updateCount: 0,
+    detectedUpdates: [],
     commandQueue: [],
     theme: initialTheme,
     fanPartPercent: 0,
