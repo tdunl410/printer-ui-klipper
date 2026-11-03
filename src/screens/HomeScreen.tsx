@@ -54,8 +54,9 @@ export function HomeScreen() {
         </button>
       </div>
 
-      <div className="card-label">Machine Statistics</div>
+      
       <section className="stats">
+        <div className="card-label stats-title">Machine Statistics</div>
         <article className="stat">
           <div className="value">{Math.round(stats.totalTimeHours)}h</div>
           <div className="label">Total Time</div>
