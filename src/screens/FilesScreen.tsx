@@ -139,11 +139,7 @@ export function FilesScreen() {
 
 
       <section className="card file-list-panel">
-        <div className="card-label">Available GCODE</div>
-        <div className="kv">
-          <span>Showing</span>
-          <strong>{visibleFiles.length} / {filteredFiles.length}</strong>
-        </div>
+        <div className="card-label">Available GCODE<br></br></div>
         <KeyboardInput label="Search files" placeholder="Search files" value={search} onChange={setSearch} />
         <div className="btn-row top-gap">
           <button type="button" className={`btn ${sortBy === 'modified' ? 'accent' : ''}`} onClick={() => setSortBy('modified')}>Newest</button>
