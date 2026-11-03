@@ -3,10 +3,10 @@ import extrudeIcon from '../../assets/extrude.svg';
 import heaterIcon from '../../assets/heater.svg';
 import moveIcon from '../../assets/move.svg';
 import networkIcon from '../../assets/network.svg';
-import printerRender from '../../assets/printer-render.png';
 import { HeaterKeypad, useHeaterKeypad } from '../components/HeaterKeypad';
 import { Layout } from '../components/Layout';
 import { usePrinterStore } from '../stores/usePrinterStore';
+import { printerRenders } from '../utils/printerRenders';
 
 export function HomeScreen() {
   const profileName = usePrinterStore((state) => state.profileName);
@@ -14,7 +14,9 @@ export function HomeScreen() {
   const job = usePrinterStore((state) => state.job);
   const temperatures = usePrinterStore((state) => state.temperatures);
   const stats = usePrinterStore((state) => state.stats);
+  const printerRenderName = usePrinterStore((state) => state.printerRender);
   const keypad = useHeaterKeypad();
+  const printerRender = printerRenders.find((render) => render.name === printerRenderName) ?? printerRenders[0];
 
   const printRoute = job.state === 'printing' || job.state === 'paused' ? '/print' : '/files';
   const connectionBadge = connectionState === 'online' ? 'Ready to Print' : 'Disconnected';
@@ -42,7 +44,7 @@ export function HomeScreen() {
       </section>
 
       <div className="hero">
-        <img src={printerRender} alt="Printer render" />
+        {printerRender ? <img src={printerRender.src} alt="Printer render" /> : null}
         <button type="button" className="pill temp-pill" style={{ left: 16, top: 26 }} onClick={() => keypad.open('extruder')}>
           {Math.round(temperatures.nozzle.current)}°C <span className="target">/{Math.round(temperatures.nozzle.target)}°C</span>
         </button>

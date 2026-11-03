@@ -17,8 +17,9 @@ import { computeJobState, deriveTemperatures, normalizeKlipperState, toPercent }
 import { MoonrakerHttpClient } from '../transport/moonrakerHttp';
 import { MoonrakerSocket } from '../transport/moonrakerSocket';
 import { hhmmFromSeconds } from '../utils/format';
+import { defaultPrinterRender, printerRenders } from '../utils/printerRenders';
 
-type ThemeKey = 'purple' | 'blue' | 'green' | 'rose';
+type ThemeKey = 'purple' | 'blue' | 'green' | 'rose' | 'red' | 'orange';
 
 type DetectedUpdate = {
   name: string;
@@ -49,6 +50,7 @@ interface PrinterStore {
   detectedUpdates: DetectedUpdate[];
   commandQueue: CommandStatus[];
   theme: ThemeKey;
+  printerRender: string;
   fanPartPercent: number;
   fanChamberPercent: number;
   speedPercent: number;
@@ -57,6 +59,8 @@ interface PrinterStore {
   boot: () => void;
   disconnect: () => void;
   setTheme: (theme: ThemeKey) => void;
+  setPrinterName: (name: string) => void;
+  setPrinterRender: (render: string) => void;
   setConnectionUrls: (baseUrl: string, wsUrl: string) => void;
   runAction: (label: string, action: () => Promise<unknown>) => Promise<void>;
   setSelectedFile: (path: string) => void;
@@ -227,6 +231,11 @@ const parseNetworkInterfaces = (networkResult: Record<string, unknown>) => {
 
 export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: PrinterGetState) => {
   const initialTheme = (localStorage.getItem('printer-ui-theme') as ThemeKey | null) ?? 'purple';
+  const initialPrinterName = localStorage.getItem('printer-ui-name')?.trim() || 'Printer';
+  const savedPrinterRender = localStorage.getItem('printer-ui-render');
+  const initialPrinterRender = printerRenders.find((render) => render.name === savedPrinterRender)?.name
+    ?? defaultPrinterRender?.name
+    ?? '';
 
   const addCommand = (status: CommandStatus) => {
     set((state) => ({
@@ -474,7 +483,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     const preferredHostName = candidateHostNames.find((entry) => !isIpOrLocalHost(entry)) ?? '';
     const existingName = get().profileName;
     const nextRawName = configuredPrinterName || preferredHostName || (isIpOrLocalHost(existingName) ? 'Printer' : existingName);
-    set({ profileName: normalizeProfileName(nextRawName) });
+    const savedPrinterName = localStorage.getItem('printer-ui-name')?.trim();
+    set({ profileName: savedPrinterName || normalizeProfileName(nextRawName) });
 
     if (networkRes.status === 'fulfilled') {
       const interfaces = parseNetworkInterfaces(networkRes.value);
@@ -522,7 +532,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
   };
 
   return {
-    profileName: 'Printer',
+    profileName: initialPrinterName,
     connectionState: 'connecting',
     connection: defaultConnection(),
     temperatures: defaultTemperatures,
@@ -539,6 +549,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     detectedUpdates: [],
     commandQueue: [],
     theme: initialTheme,
+    printerRender: initialPrinterRender,
     fanPartPercent: 0,
     fanChamberPercent: 0,
     speedPercent: 100,
@@ -692,6 +703,23 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       localStorage.setItem('printer-ui-theme', theme);
       document.body.dataset.theme = theme;
       set({ theme });
+    },
+    setPrinterName: (name: string) => {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        throw new Error('Printer name cannot be empty');
+      }
+
+      localStorage.setItem('printer-ui-name', trimmedName);
+      set({ profileName: trimmedName });
+    },
+    setPrinterRender: (render: string) => {
+      if (!printerRenders.some((option) => option.name === render)) {
+        throw new Error(`Unknown printer render: ${render}`);
+      }
+
+      localStorage.setItem('printer-ui-render', render);
+      set({ printerRender: render });
     },
     setConnectionUrls: (baseUrl: string, wsUrl: string) => {
       localStorage.setItem('moonraker-base-url', baseUrl);
