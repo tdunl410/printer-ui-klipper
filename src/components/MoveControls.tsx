@@ -57,17 +57,17 @@ export function MoveControls() {
       <section className="card">
         <div className="card-title">Homing</div>
         <div className="btn-row">
-          <button type="button" className="btn accent with-icon" onClick={() => runAction('Home All', () => commands.home('xyz'))}>
+          <button type="button" className="btn accent with-icon" aria-label="Home all" onClick={() => runAction('Home All', () => commands.home('xyz'))}>
             <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
-            All
+            <span className="btn-label">All</span>
           </button>
-          <button type="button" className="btn with-icon" onClick={() => runAction('Home XY', () => commands.home('xy'))}>
+          <button type="button" className="btn with-icon" aria-label="Home XY" onClick={() => runAction('Home XY', () => commands.home('xy'))}>
             <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
-            XY
+            <span className="btn-label">XY</span>
           </button>
-          <button type="button" className="btn with-icon" onClick={() => runAction('Home Z', () => commands.home('z'))}>
+          <button type="button" className="btn with-icon" aria-label="Home Z" onClick={() => runAction('Home Z', () => commands.home('z'))}>
             <img className="button-icon" src={homeIcon} alt="" aria-hidden="true" />
-            Z
+            <span className="btn-label">Z</span>
           </button>
         </div>
       </section>

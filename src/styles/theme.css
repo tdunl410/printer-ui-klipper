@@ -1380,3 +1380,42 @@ body {
   .file-thumb { width: 72px; height: 72px; }
 
 }
+
+/* Narrow screens: keep multi-button rows inside the viewport */
+.btn-row > .btn {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 360px) {
+  .btn-row:not(.two):not(.updates-actions) > .btn {
+    min-height: 72px;
+    padding: 12px 6px;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  /* Icon buttons drop their text and rely on the icon */
+  .btn-row > .btn.with-icon .btn-label {
+    display: none;
+  }
+
+  .btn-row > .btn.with-icon .button-icon {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 360px), (min-aspect-ratio: 5/4) and (max-width: 760px) {
+  .floating-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  .floating-actions .home-action-link {
+    min-height: 72px;
+    justify-content: center;
+    padding: 12px 6px;
+  }
+
+  .floating-actions .btn-label {
+    display: none;
+  }
+}
