@@ -1,5 +1,7 @@
 # Klipper Portrait Touch UI
 Klipper UI for a portrait Waveshare 7.9" touchscreen setup.
+Plz support me I dont want to maintain this. 
+https://buymeacoffee.com/tiger3dprinting
 
 ## Main Installation (Recommended)
 Run on your printer host user (non-root, must have `sudo`):
