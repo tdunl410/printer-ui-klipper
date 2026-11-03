@@ -16,6 +16,8 @@ INSTALL_NODE_METHOD=binary ./scripts/install-printer-ui.sh
 This installs:
 - `/opt/printer-ui/dist` static frontend files
 - `/opt/printer-ui/server/static-server.mjs` runtime server
+- `/opt/printer-ui/server/kiosk-launch.sh` kiosk launcher (source: `server/kiosk-launch.sh`)
+- display tools used by the launcher: `xdotool`, `x11-utils`, `x11-xserver-utils`
 - `/etc/default/printer-ui` runtime environment
 - `printer-ui.service` systemd service (enabled + started)
 - `printer-ui-kiosk.service` systemd service (available for Chromium kiosk mode)
@@ -30,6 +32,11 @@ Enable kiosk mode:
 sudo systemctl enable --now printer-ui-kiosk.service
 ```
 
+The kiosk launcher always sizes the Chromium window to the exact X screen resolution
+(for example `400x1280`). It runs without a window manager, so it detects the size with
+`xdpyinfo`/`xrandr` and keeps the window pinned to it with `xdotool`. To force a size, set
+`PRINTER_UI_WINDOW_SIZE=400,1280` in `/etc/default/printer-ui`.
+
 ## Update After Changes
 ```bash
 cd ~/printer_ui
@@ -41,6 +48,7 @@ sudo systemctl restart printer-ui-kiosk.service
 ## Troubleshooting / Known Issues
 - Node install issues: [docs/issues/node-install.md](docs/issues/node-install.md)
 - Chromium install issues: [docs/issues/chromium-install.md](docs/issues/chromium-install.md)
+- UI only fills part of the screen: see [docs/issues/kiosk-window-size.md](docs/issues/kiosk-window-size.md)
 - Kiosk restarts or screen blinking: [docs/issues/kiosk-restarts-or-blinking.md](docs/issues/kiosk-restarts-or-blinking.md)
 - Update button/source path issues: [docs/issues/update-source-path.md](docs/issues/update-source-path.md)
 - `npm ci` lockfile drift issues: [docs/issues/npm-lockfile-drift.md](docs/issues/npm-lockfile-drift.md)
