@@ -72,7 +72,7 @@ export function MoveControls() {
         </div>
       </section>
 
-      <section className="card">
+      <section className="card axis-card">
         <div className="card-title">Axis Controls</div>
         <div className="btn-row four">
           {distanceOptions.map((distance) => (

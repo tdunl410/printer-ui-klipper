@@ -64,6 +64,13 @@ sudo mkdir -p "${INSTALL_DIR}/dist"
 sudo cp -r dist/* "${INSTALL_DIR}/dist/"
 sudo mkdir -p "${INSTALL_DIR}/server"
 sudo cp server/static-server.mjs "${INSTALL_DIR}/server/static-server.mjs"
-nohup bash -lc 'sleep 2; sudo systemctl restart printer-ui.service' >/dev/null 2>&1 &
+sudo cp server/kiosk-launch.sh "${INSTALL_DIR}/server/kiosk-launch.sh"
+sudo chmod +x "${INSTALL_DIR}/server/kiosk-launch.sh"
+for tool_pkg in xdotool:xdotool xdpyinfo:x11-utils xrandr:x11-xserver-utils; do
+  if ! command -v "${tool_pkg%%:*}" >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get install -y --no-install-recommends "${tool_pkg##*:}" || echo "Warning: could not install ${tool_pkg##*:}"
+  fi
+done
+nohup bash -lc 'sleep 2; sudo systemctl restart printer-ui.service; sudo systemctl try-restart printer-ui-kiosk.service 2>/dev/null || true' >/dev/null 2>&1 &
 echo "Update complete."
 popd >/dev/null

@@ -44,6 +44,22 @@ body[data-theme='rose'] {
   --accent-text: #ffd3e8;
 }
 
+body[data-theme='red'] {
+  --accent: #ef4444;
+  --accent-2: #fb7185;
+  --accent-rgb: 239, 68, 68;
+  --accent-2-rgb: 251, 113, 133;
+  --accent-text: #fecaca;
+}
+
+body[data-theme='orange'] {
+  --accent: #f97316;
+  --accent-2: #fb923c;
+  --accent-rgb: 249, 115, 22;
+  --accent-2-rgb: 251, 146, 60;
+  --accent-text: #fed7aa;
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -221,6 +237,11 @@ body {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   padding: 14px;
+}
+
+.stats-title {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
 }
 
 .stat {
@@ -668,6 +689,31 @@ body {
 .button-reset.theme-chip {
   width: auto;
   text-align: center;
+}
+
+.printer-render-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.printer-render-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.printer-render-option.selected {
+  border-color: rgba(var(--accent-rgb), 0.65);
+}
+
+.printer-render-option img {
+  width: 100%;
+  height: 100px;
+  object-fit: contain;
 }
 
 .visually-hidden {
@@ -1194,3 +1240,143 @@ body {
 .ex-seg button { min-height: 52px; background: var(--surface-strong); color: inherit; border: 0; font: inherit; font-weight: 600; font-size: 17px; }
 .ex-seg button + button { border-left: 2px solid var(--surface); }
 .ex-seg button.active { background: var(--accent); color: #fff; }
+
+/* Landscape / wide screens (e.g. 1024x600): two columns, icon-only side dock.
+   Keyed on aspect ratio so any resolution of that shape gets the same layout. */
+@media (min-aspect-ratio: 5/4) {
+  .screen {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* header, status row, three stacked items, then a flexible row that absorbs spare height */
+    grid-template-rows: auto auto repeat(3, min-content) 1fr;
+    grid-auto-rows: min-content;
+    align-items: start;
+    align-content: start;
+    column-gap: var(--gap);
+    row-gap: 10px;
+    padding: 10px 16px 10px 100px;
+  }
+
+  .screen > .header,
+  .screen > .status-row,
+  .screen > .progress-bar {
+    grid-column: 1 / -1;
+  }
+
+  /* Home: hero fills the left column, everything else stacks on the right */
+  .screen > .hero {
+    grid-column: 1;
+    grid-row: 3 / span 4;
+    align-self: start;
+    min-height: 300px;
+  }
+
+  .screen > .hero ~ * {
+    grid-column: 2;
+  }
+
+  /* Control: axis card fills the left column, the other cards stack on the right */
+  .screen > .axis-card {
+    grid-column: 1;
+    grid-row: 3 / span 4;
+    align-self: start;
+  }
+
+  .screen:has(> .axis-card) > .card:not(.axis-card) {
+    grid-column: 2;
+  }
+
+  .hero img { max-height: 260px; }
+  .home-primary { min-height: 64px; padding: 12px; font-size: 28px; }
+  .home-action-link { min-height: 56px; padding: 10px 14px; }
+  .floating-actions { grid-template-columns: repeat(3, 1fr); }
+
+  .printer-title { font-size: 24px; }
+  .subline { font-size: 14px; margin-top: 2px; }
+  .icon-btn { padding: 8px 12px; border-radius: 12px; }
+
+  .card { padding: 12px; }
+  .card-title { font-size: 18px; margin-bottom: 8px; }
+  .status-chip { padding: 8px 6px; }
+
+  .settings-nav { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .settings-nav .action-link { min-height: 48px; padding: 10px 12px; }
+
+  .btn-row { gap: 8px; }
+  .btn { min-height: 52px; }
+
+  .dock {
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    transform: none;
+    width: 76px;
+    max-width: none;
+    min-height: 0;
+    grid-template-columns: 1fr;
+    grid-auto-rows: 1fr;
+    padding: 8px 6px;
+    gap: 8px;
+    border-radius: 18px;
+    box-shadow: 8px 0 24px rgba(8, 10, 16, 0.42);
+  }
+
+  .dock a {
+    min-height: 0;
+    padding: 6px;
+  }
+
+  .dock-icon { width: 30px; height: 30px; }
+
+  /* Icon-only dock; labels stay available to screen readers */
+  .dock-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  /* Files: panel fills the screen, controls share one row, files in two columns */
+  .screen:has(> .file-list-panel) {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .screen > .file-list-panel {
+    grid-column: 1 / -1;
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+    column-gap: 10px;
+    row-gap: 8px;
+  }
+
+  .file-list-panel > .card-label,
+  .file-list-panel > .card-title,
+  .file-list-panel > .kv,
+  .file-list-panel > .file-list,
+  .file-list-panel > .macro-item {
+    grid-column: 1 / -1;
+  }
+
+  .file-list-panel > .card-title { margin-bottom: 0; }
+  .file-list-panel > .input-button { grid-column: 1; align-self: stretch; }
+  .file-list-panel > .btn-row { grid-column: 2; margin-top: 0; }
+  .file-list-panel > .btn-row .btn { min-height: 44px; }
+
+  .file-list {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: min-content;
+    gap: 8px;
+    align-content: start;
+  }
+
+  .file-list > .macro-item { grid-column: 1 / -1; }
+  .file-list > .file-item { margin-bottom: 0; }
+  .file-preview-item { grid-template-columns: 72px minmax(0, 1fr); }
+  .file-thumb { width: 72px; height: 72px; }
+
+}

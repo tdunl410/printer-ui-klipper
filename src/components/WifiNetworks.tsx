@@ -98,7 +98,6 @@ export function WifiNetworks({ onConnected }: { onConnected?: () => void }) {
 
   return (
     <section className="card">
-      <div className="card-label">Wireless</div>
       <div className="card-title">Available Networks</div>
       <div className="kv"><span>Connected to</span><strong>{current?.ssid || '-'}</strong></div>
       {error ? <div className="field-label">{error}</div> : null}

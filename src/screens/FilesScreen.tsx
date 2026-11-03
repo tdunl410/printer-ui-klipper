@@ -140,7 +140,6 @@ export function FilesScreen() {
 
       <section className="card file-list-panel">
         <div className="card-label">Available GCODE</div>
-        <div className="card-title">Files</div>
         <div className="kv">
           <span>Showing</span>
           <strong>{visibleFiles.length} / {filteredFiles.length}</strong>
