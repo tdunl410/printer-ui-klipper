@@ -84,17 +84,17 @@ export function HomeScreen() {
       )}
 
       <section className="floating-actions">
-        <Link className="action-link with-icon home-action-link" to="/control">
+        <Link className="action-link with-icon home-action-link" to="/control" aria-label="Move">
           <img className="action-icon" src={moveIcon} alt="" aria-hidden="true" />
-          Move
+          <span className="btn-label">Move</span>
         </Link>
-        <Link className="action-link with-icon home-action-link" to="/preheat">
+        <Link className="action-link with-icon home-action-link" to="/preheat" aria-label="Preheat">
           <img className="action-icon" src={heaterIcon} alt="" aria-hidden="true" />
-          Preheat
+          <span className="btn-label">Preheat</span>
         </Link>
-        <Link className="action-link with-icon home-action-link" to="/extrude">
+        <Link className="action-link with-icon home-action-link" to="/extrude" aria-label="Extrude">
           <img className="action-icon" src={extrudeIcon} alt="" aria-hidden="true" />
-          Extrude
+          <span className="btn-label">Extrude</span>
         </Link>
       </section>
 

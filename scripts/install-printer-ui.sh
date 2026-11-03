@@ -332,6 +332,8 @@ cat <<EOF | sudo tee "${KIOSK_SERVICE_FILE}" >/dev/null
 Description=Printer UI Chromium Kiosk
 After=network-online.target printer-ui.service
 Wants=printer-ui.service
+Conflicts=getty@tty1.service
+After=getty@tty1.service
 
 [Service]
 Type=simple
@@ -342,7 +344,7 @@ PAMName=login
 StandardInput=tty
 TTYPath=/dev/tty1
 TTYReset=yes
-TTYVHangup=yes
+TTYVHangup=no
 TTYVTDisallocate=yes
 ExecStart=${KIOSK_LAUNCHER_FILE}
 Restart=always
