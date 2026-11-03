@@ -9,7 +9,7 @@ Run on your printer host user (non-root, must have `sudo`):
 ```bash
 git clone https://github.com/tdunl410/printer-ui-klipper.git printer_ui
 cd printer_ui
-chmod +x scripts/install-printer-ui.sh scripts/update-printer-ui.sh
+chmod +x scripts/install-printer-ui.sh scripts/update-printer-ui.sh scripts/uninstall-printer-ui.sh
 INSTALL_NODE_METHOD=binary ./scripts/install-printer-ui.sh
 ```
 
@@ -44,6 +44,26 @@ cd ~/printer_ui
 sudo systemctl restart printer-ui.service
 sudo systemctl restart printer-ui-kiosk.service
 ```
+
+## Uninstall
+Run from your repo as your regular printer user (non-root, with `sudo`):
+
+```bash
+cd ~/printer_ui
+./scripts/uninstall-printer-ui.sh
+```
+
+This removes:
+- `/opt/printer-ui`
+- `/etc/default/printer-ui`
+- `/etc/systemd/system/printer-ui.service`
+- `/etc/systemd/system/printer-ui-kiosk.service`
+- your cloned `printer_ui` repo directory
+
+It also stops/disables the `printer-ui.service` and `printer-ui-kiosk.service` units if present,
+then reloads systemd.
+
+It does **not** remove Node.js, Chromium, or display tools.
 
 ## Troubleshooting / Known Issues
 - Node install issues: [docs/issues/node-install.md](docs/issues/node-install.md)
