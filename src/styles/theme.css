@@ -1406,7 +1406,7 @@ body {
   }
 }
 
-@media (max-width: 360px), (min-aspect-ratio: 5/4) and (max-width: 760px) {
+@media (max-width: 360px), (min-aspect-ratio: 5/4) and (max-width: 900px) {
   .floating-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   .floating-actions .home-action-link {
