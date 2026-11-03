@@ -337,9 +337,19 @@ CHROME_FLAGS=(
   --disable-gpu
   --disable-dev-shm-usage
   --start-fullscreen
+  --window-position=0,0
   --force-device-scale-factor=1
   --user-data-dir="${CHROME_PROFILE_DIR}"
 )
+
+# No window manager runs under xinit, so fullscreen is ignored; size the window to the X screen.
+# Override with PRINTER_UI_WINDOW_SIZE=WIDTH,HEIGHT if auto-detect is wrong.
+CHROME_CMD='size="${PRINTER_UI_WINDOW_SIZE:-}"
+if [ -z "$size" ]; then
+  size=$(xrandr 2>/dev/null | sed -n "s/^Screen 0:.*current \([0-9]*\) x \([0-9]*\).*/\1,\2/p")
+fi
+[ -n "$size" ] || size=$(xdpyinfo 2>/dev/null | sed -n "s/^ *dimensions: *\([0-9]*\)x\([0-9]*\).*/\1,\2/p")
+exec "$@" ${size:+--window-size=$size}'
 
 if [[ ! -u /usr/lib/chromium/chrome-sandbox && ! -u /usr/lib/chromium-browser/chrome-sandbox ]]; then
   echo "chrome-sandbox is not setuid; enabling --no-sandbox fallback"
@@ -349,10 +359,10 @@ fi
 echo "Launching ${CHROME_BIN} at http://${HOST}:${PORT}"
 if command -v dbus-run-session >/dev/null 2>&1; then
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
-    xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+    xinit /bin/sh -c "${CHROME_CMD}" sh "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
 else
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
-    xinit "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+    xinit /bin/sh -c "${CHROME_CMD}" sh "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
 fi
 EOF
 
