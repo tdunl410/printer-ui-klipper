@@ -28,7 +28,6 @@ export function AppearanceScreen() {
   return (
     <Layout title="Appearance" subtitle=" " homeAction>
       <section className="card">
-        <div className="card-label">Themes</div>
         <div className="card-title">Accent Color</div>
         <div>
           {themeOptions.map((option) => (
@@ -45,7 +44,6 @@ export function AppearanceScreen() {
         </div>
       </section>
       <section className="card">
-        <div className="card-label">Printer</div>
         <div className="card-title">Printer Name</div>
         <form
           className="btn-row"
@@ -69,7 +67,6 @@ export function AppearanceScreen() {
         </form>
       </section>
       <section className="card">
-        <div className="card-label">Printer</div>
         <div className="card-title">Printer Render</div>
         <div className="printer-render-options">
           {printerRenders.map((option) => (
