@@ -39,6 +39,22 @@ export class CommandService {
     return this.socketFirst('printer.print.cancel');
   }
 
+  async excludeObjects(names: string[]) {
+    const uniqueNames = Array.from(
+      new Set(
+        names
+          .map((name) => name.trim())
+          .filter(Boolean),
+      ),
+    );
+
+    for (const name of uniqueNames) {
+      await this.gcode(`EXCLUDE_OBJECT NAME=${this.quoteGcodeString(name)}`);
+    }
+
+    return { excluded: uniqueNames };
+  }
+
   // Same endpoint Mainsail uses: bypasses the gcode queue so it works mid-macro or mid-print.
   // Also sent over the already-open websocket so it can't queue behind pending HTTP requests.
   async emergencyStop() {
@@ -298,5 +314,9 @@ export class CommandService {
 
   private async gcode(script: string) {
     return this.http.post('/printer/gcode/script', { script });
+  }
+
+  private quoteGcodeString(value: string) {
+    return `"${value.replace(/(["\\])/g, '\\$1')}"`;
   }
 }

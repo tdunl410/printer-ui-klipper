@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import arrowDownIcon from '../../assets/arrow-down.svg';
 import arrowUpIcon from '../../assets/arrow-up.svg';
@@ -13,6 +13,73 @@ import { fetchThumbnailUrl } from '../utils/thumbnail';
 
 const Z_STEPS = [0.01, 0.05, 0.1] as const;
 const PCT_STEPS = [1, 5, 10, 25] as const;
+const EXCLUDE_VIEW_WIDTH = 320;
+const EXCLUDE_VIEW_HEIGHT = 220;
+const EXCLUDE_VIEW_PADDING = 12;
+
+type PlateBounds = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+};
+
+const defaultBounds: PlateBounds = {
+  minX: 0,
+  minY: 0,
+  maxX: 220,
+  maxY: 220,
+};
+
+const computePlateBounds = (objects: { polygon: [number, number][] }[]): PlateBounds => {
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+
+  objects.forEach((item) => {
+    item.polygon.forEach(([x, y]) => {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    });
+  });
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+    return defaultBounds;
+  }
+
+  if (Math.abs(maxX - minX) < 0.001) {
+    minX -= 1;
+    maxX += 1;
+  }
+
+  if (Math.abs(maxY - minY) < 0.001) {
+    minY -= 1;
+    maxY += 1;
+  }
+
+  return { minX, minY, maxX, maxY };
+};
+
+const projectPolygon = (polygon: [number, number][], bounds: PlateBounds) => {
+  const width = EXCLUDE_VIEW_WIDTH - EXCLUDE_VIEW_PADDING * 2;
+  const height = EXCLUDE_VIEW_HEIGHT - EXCLUDE_VIEW_PADDING * 2;
+  const scaleX = width / (bounds.maxX - bounds.minX);
+  const scaleY = height / (bounds.maxY - bounds.minY);
+  const scale = Math.min(scaleX, scaleY);
+  const xOffset = (EXCLUDE_VIEW_WIDTH - (bounds.maxX - bounds.minX) * scale) / 2;
+  const yOffset = (EXCLUDE_VIEW_HEIGHT - (bounds.maxY - bounds.minY) * scale) / 2;
+
+  return polygon
+    .map(([x, y]) => {
+      const px = xOffset + (x - bounds.minX) * scale;
+      const py = EXCLUDE_VIEW_HEIGHT - (yOffset + (y - bounds.minY) * scale);
+      return `${px.toFixed(2)},${py.toFixed(2)}`;
+    })
+    .join(' ');
+};
 
 export function PrintScreen() {
   const commands = useCommands();
@@ -27,8 +94,24 @@ export function PrintScreen() {
   const zOffset = usePrinterStore((state) => state.zOffset);
   const [confirmAction, setConfirmAction] = useState<'stop' | 'emergency' | null>(null);
   const connection = usePrinterStore((state) => state.connection);
+  const excludeObjects = usePrinterStore((state) => state.excludeObjects);
   const [thumbnailUrl, setThumbnailUrl] = useState<string>();
+  const [showExcludeDialog, setShowExcludeDialog] = useState(false);
+  const [selectedExcludeObjects, setSelectedExcludeObjects] = useState<string[]>([]);
   const isPaused = job.state === 'paused';
+  const plateBounds = useMemo(() => computePlateBounds(excludeObjects.objects), [excludeObjects.objects]);
+  const availableObjects = useMemo(
+    () => excludeObjects.objects.filter((item) => !item.isExcluded),
+    [excludeObjects.objects],
+  );
+  const drawableObjects = useMemo(
+    () => excludeObjects.objects.filter((item) => item.polygon.length > 1),
+    [excludeObjects.objects],
+  );
+  const availableObjectNames = useMemo(
+    () => new Set(availableObjects.map((item) => item.name)),
+    [availableObjects],
+  );
 
   useEffect(() => {
     if (!job.filename) return;
@@ -41,11 +124,30 @@ export function PrintScreen() {
     };
   }, [connection.moonrakerBaseUrl, job.filename]);
 
+  useEffect(() => {
+    setSelectedExcludeObjects((current) => {
+      const next = current.filter((name) => availableObjectNames.has(name));
+      if (next.length === current.length && next.every((name, index) => name === current[index])) {
+        return current;
+      }
+      return next;
+    });
+  }, [availableObjectNames]);
+
   if (job.state !== 'printing' && job.state !== 'paused') {
     return <Navigate to="/files" replace />;
   }
 
   const remainingLabel = job.remaining || job.eta || '00:00';
+
+  const toggleExcludeObject = (name: string, disabled: boolean) => {
+    if (disabled) return;
+    setSelectedExcludeObjects((current) => (
+      current.includes(name)
+        ? current.filter((entry) => entry !== name)
+        : [...current, name]
+    ));
+  };
 
   return (
     <Layout title="Active Print" subtitle={`Part: ${job.filename}`}>
@@ -108,6 +210,17 @@ export function PrintScreen() {
           >
             <img className="button-icon" src={stopSquareIcon} alt="" aria-hidden="true" />
             Stop
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setSelectedExcludeObjects([]);
+              setShowExcludeDialog(true);
+            }}
+            disabled={availableObjects.length === 0}
+          >
+            Exclude Object
           </button>
         </div>
       </section>
@@ -210,6 +323,91 @@ export function PrintScreen() {
             { label: 'Cancel', onClick: () => setConfirmAction(null) },
           ]}
         />
+      ) : null}
+
+      {showExcludeDialog ? (
+        <Dialog
+          subtitle="Print Objects"
+          title="Exclude object"
+          actions={[
+            {
+              label: 'Exclude',
+              variant: 'accent',
+              disabled: selectedExcludeObjects.length === 0,
+              onClick: () => {
+                const names = selectedExcludeObjects;
+                setShowExcludeDialog(false);
+                setSelectedExcludeObjects([]);
+                void runAction(
+                  `Exclude ${names.length} object${names.length === 1 ? '' : 's'}`,
+                  () => commands.excludeObjects(names),
+                );
+              },
+            },
+            {
+              label: 'Close',
+              onClick: () => {
+                setShowExcludeDialog(false);
+                setSelectedExcludeObjects([]);
+              },
+            },
+          ]}
+        >
+          <div className="exclude-dialog-content">
+            <div className="exclude-plate-wrap">
+              {drawableObjects.length > 0 ? (
+                <svg
+                  className="exclude-plate"
+                  viewBox={`0 0 ${EXCLUDE_VIEW_WIDTH} ${EXCLUDE_VIEW_HEIGHT}`}
+                  role="img"
+                  aria-label="Top-down view of current build plate"
+                >
+                  <defs>
+                    <pattern id="exclude-plate-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                      <path d="M 24 0 L 0 0 0 24" className="exclude-grid-line" />
+                    </pattern>
+                  </defs>
+                  <rect x="0" y="0" width={EXCLUDE_VIEW_WIDTH} height={EXCLUDE_VIEW_HEIGHT} className="exclude-plate-bg" />
+                  <rect x="0" y="0" width={EXCLUDE_VIEW_WIDTH} height={EXCLUDE_VIEW_HEIGHT} fill="url(#exclude-plate-grid)" />
+                  {excludeObjects.objects.map((item) => {
+                    if (item.polygon.length < 2) return null;
+                    const isSelected = selectedExcludeObjects.includes(item.name);
+                    const isCurrent = excludeObjects.currentObject === item.name;
+                    return (
+                      <polygon
+                        key={item.name}
+                        points={projectPolygon(item.polygon, plateBounds)}
+                        className={`exclude-polygon ${isCurrent ? 'current' : ''} ${isSelected ? 'selected' : ''} ${item.isExcluded ? 'excluded' : ''}`}
+                        onClick={() => toggleExcludeObject(item.name, item.isExcluded)}
+                      />
+                    );
+                  })}
+                </svg>
+              ) : (
+                <div className="exclude-empty">No object outlines available for this print.</div>
+              )}
+            </div>
+
+            <div className="exclude-object-list" role="list">
+              {excludeObjects.objects.map((item) => {
+                const isSelected = selectedExcludeObjects.includes(item.name);
+                const isCurrent = excludeObjects.currentObject === item.name;
+                return (
+                  <button
+                    key={item.name}
+                    type="button"
+                    className={`exclude-object-chip ${isSelected ? 'selected' : ''} ${isCurrent ? 'current' : ''}`}
+                    onClick={() => toggleExcludeObject(item.name, item.isExcluded)}
+                    disabled={item.isExcluded}
+                  >
+                    <span>{item.name}</span>
+                    {item.isExcluded ? <strong>Excluded</strong> : isCurrent ? <strong>Printing</strong> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Dialog>
       ) : null}
     </Layout>
   );

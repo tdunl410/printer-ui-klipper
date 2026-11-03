@@ -4,6 +4,7 @@ import type {
   CommandStatus,
   ConnectionDetails,
   ConnectionState,
+  ExcludeObjectsState,
   FileEntry,
   JobState,
   KlipperState,
@@ -56,6 +57,7 @@ interface PrinterStore {
   speedPercent: number;
   flowPercent: number;
   zOffset: number;
+  excludeObjects: ExcludeObjectsState;
   boot: () => void;
   disconnect: () => void;
   setTheme: (theme: ThemeKey) => void;
@@ -197,6 +199,57 @@ const getDynamicTemperatureObjects = (status: Record<string, any>, objects: stri
   return Array.from(new Set([...fromHeaters, ...fromObjectList])).filter((name) => name !== 'extruder' && name !== 'heater_bed');
 };
 
+const normalizePolygon = (value: unknown): [number, number][] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((point) => {
+      if (!Array.isArray(point) || point.length < 2) return undefined;
+      const x = Number(point[0]);
+      const y = Number(point[1]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return undefined;
+      return [x, y] as [number, number];
+    })
+    .filter((point): point is [number, number] => Boolean(point));
+};
+
+const parseExcludeObjects = (excludeObject: unknown, fallback: ExcludeObjectsState): ExcludeObjectsState => {
+  if (typeof excludeObject !== 'object' || excludeObject === null) return fallback;
+
+  const root = excludeObject as {
+    objects?: unknown;
+    excluded_objects?: unknown;
+    current_object?: unknown;
+  };
+
+  const excluded = new Set(
+    (Array.isArray(root.excluded_objects) ? root.excluded_objects : [])
+      .map((entry) => String(entry ?? '').trim())
+      .filter(Boolean),
+  );
+
+  const objects = (Array.isArray(root.objects) ? root.objects : [])
+    .map((entry) => {
+      if (typeof entry !== 'object' || entry === null) return undefined;
+      const item = entry as { name?: unknown; polygon?: unknown };
+      const name = String(item.name ?? '').trim();
+      if (!name) return undefined;
+      return {
+        name,
+        polygon: normalizePolygon(item.polygon),
+        isExcluded: excluded.has(name),
+      };
+    })
+    .filter((item): item is ExcludeObjectsState['objects'][number] => Boolean(item));
+
+  const currentObject = String(root.current_object ?? '').trim() || undefined;
+
+  return {
+    objects,
+    currentObject,
+  };
+};
+
 const parseNetworkInterfaces = (networkResult: Record<string, unknown>) => {
   const root = (networkResult.result as any) ?? {};
   const interfaces: any[] = Array.isArray(root.interfaces)
@@ -277,6 +330,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         print_stats: ['state', 'filename', 'print_duration', 'total_duration', 'filament_used', 'info', 'message'],
         display_status: ['progress'],
         fan: ['speed'],
+        exclude_object: ['objects', 'excluded_objects', 'current_object'],
         webhooks: ['state', 'state_message'],
         idle_timeout: ['state'],
         printer_state: ['state'],
@@ -343,6 +397,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       const remainingSeconds = Math.max(0, estimatedTotal - printDuration);
       const currentLayer = status.print_stats?.info?.current_layer;
       const totalLayer = status.print_stats?.info?.total_layer;
+      const excludeObjects = parseExcludeObjects(status.exclude_object, currentState.excludeObjects);
 
       // Fresh websocket values win over a REST response that may be slightly stale
       const live = socketIsLive();
@@ -380,6 +435,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
         zOffset: Number(status.gcode_move?.homing_origin?.[2] ?? state.zOffset),
+        excludeObjects,
         job: {
           ...state.job,
           filename: String(status.print_stats?.filename || ''),
@@ -537,6 +593,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     connection: defaultConnection(),
     temperatures: defaultTemperatures,
     temperatureHistory: {},
+    excludeObjects: { objects: [] },
     job: defaultJob,
     position: defaultPosition,
     stats: defaultStats,
@@ -577,7 +634,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
       socketClient = new MoonrakerSocket(
         connection.websocketUrl,
-        ['toolhead', 'extruder', 'heater_bed', 'print_stats', 'display_status', 'fan', 'idle_timeout', 'gcode_move', 'heaters', 'webhooks'],
+        ['toolhead', 'extruder', 'heater_bed', 'print_stats', 'display_status', 'fan', 'idle_timeout', 'gcode_move', 'heaters', 'webhooks', 'exclude_object'],
         () => set({ connectionState: 'online' }),
         () => set({ connectionState: 'offline' }),
         (payload) => {
@@ -640,6 +697,10 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
             if (status.fan?.speed !== undefined) {
               next.fanPartPercent = toPercent(status.fan.speed, next.fanPartPercent);
+            }
+
+            if (status.exclude_object) {
+              next.excludeObjects = parseExcludeObjects(status.exclude_object, next.excludeObjects);
             }
 
             if (status.toolhead?.position) {

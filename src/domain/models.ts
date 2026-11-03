@@ -80,3 +80,14 @@ export interface ConnectionDetails {
   hostname: string;
   networkInterfaces: NetworkInterfaceInfo[];
 }
+
+export interface ExcludeObjectItem {
+  name: string;
+  polygon: [number, number][];
+  isExcluded: boolean;
+}
+
+export interface ExcludeObjectsState {
+  objects: ExcludeObjectItem[];
+  currentObject?: string;
+}
