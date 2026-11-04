@@ -2,6 +2,61 @@ const jsonHeaders = {
   'Content-Type': 'application/json',
 };
 
+const extractMessageFromJson = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  return extractMessageFromJson(record.message)
+    ?? extractMessageFromJson(record.error)
+    ?? extractMessageFromJson(record.description)
+    ?? extractMessageFromJson(record.reason);
+};
+
+const extractMessageFromText = (value: string): string | undefined => {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.startsWith('Traceback (most recent call last):'))
+    .filter((line) => !line.startsWith('File "'))
+    .filter((line) => !line.startsWith('During handling of the above exception'))
+    .filter((line) => !line.startsWith('raise '));
+
+  if (!lines.length) {
+    return undefined;
+  }
+
+  const preferred = lines[lines.length - 1] ?? lines[0];
+  const normalized = preferred.replace(/^[A-Za-z_][\w.]*:\s*/, '').trim();
+  return normalized || undefined;
+};
+
+const formatRequestError = (status: number, rawBody: string) => {
+  const text = rawBody.trim();
+  if (!text) {
+    return `Request failed (${status})`;
+  }
+
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    const message = extractMessageFromJson(parsed);
+    if (message) {
+      return message;
+    }
+  } catch {
+    // Ignore and fall through to text parsing.
+  }
+
+  return extractMessageFromText(text) ?? `Request failed (${status})`;
+};
+
 export class MoonrakerHttpClient {
   constructor(private readonly baseUrl: string) {}
 
@@ -109,7 +164,7 @@ export class MoonrakerHttpClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || `Request failed (${response.status})`);
+      throw new Error(formatRequestError(response.status, text));
     }
 
     return (await response.json()) as Record<string, unknown>;
@@ -119,7 +174,7 @@ export class MoonrakerHttpClient {
     const response = await fetch(`${this.baseUrl}${path}`);
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || `Request failed (${response.status})`);
+      throw new Error(formatRequestError(response.status, text));
     }
     return (await response.json()) as Record<string, unknown>;
   }
@@ -131,7 +186,7 @@ export class MoonrakerHttpClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || `Request failed (${response.status})`);
+      throw new Error(formatRequestError(response.status, text));
     }
 
     return (await response.json()) as Record<string, unknown>;
@@ -152,7 +207,8 @@ export class MoonrakerHttpClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || `Upload failed (${response.status})`);
+      const message = formatRequestError(response.status, text);
+      throw new Error(message || `Upload failed (${response.status})`);
     }
 
     return (await response.json()) as Record<string, unknown>;
