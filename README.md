@@ -1,7 +1,26 @@
-# Klipper Portrait Touch UI
-Klipper UI for a portrait Waveshare 7.9" touchscreen setup.
+# Klipper Modern UI
+This project started because I didn't like the look of KlipperScreen, and since I'm running a somewhat nonstandard VERRRRYYY tall 7.9" screen on one of my printers, the other user interfaces just didn't look right. 
+Originally it was designed with the express purpose of being for portrait layout, but with some css trickery I have managed to make it look not bad in landscape as well. 
+This is still very much a work in progress. 
+
 Plz support me I dont want to maintain this. 
 https://buymeacoffee.com/tiger3dprinting
+
+## Screenshots
+Captured at the native `400x1280` portrait size (no printer connected, so values are empty).
+
+| Home | Files | Preheat | Extrude |
+|---|---|---|---|
+| ![Home](docs/screenshots/home.png) | ![Files](docs/screenshots/files.png) | ![Preheat](docs/screenshots/preheat.png) | ![Extrude](docs/screenshots/extrude.png) |
+
+| Control | Settings | Connectivity | Updates |
+|---|---|---|---|
+| ![Control](docs/screenshots/control.png) | ![Settings](docs/screenshots/settings.png) | ![Connectivity](docs/screenshots/connectivity.png) | ![Updates](docs/screenshots/updates.png) |
+
+Print screen (shown while Klipper is printing or paused; this capture uses sample data):
+
+<img src="docs/screenshots/print.png" alt="Print" width="200" />
+
 
 ## Main Installation (Recommended)
 Run on your printer host user (non-root, must have `sudo`):
@@ -111,28 +130,3 @@ npm run dev
 npm run build
 npm run preview
 ```
-
-## Screenshots
-Captured at the native `400x1280` portrait size (no printer connected, so values are empty).
-
-| Home | Files | Preheat | Extrude |
-|---|---|---|---|
-| ![Home](docs/screenshots/home.png) | ![Files](docs/screenshots/files.png) | ![Preheat](docs/screenshots/preheat.png) | ![Extrude](docs/screenshots/extrude.png) |
-
-| Control | Settings | Connectivity | Updates |
-|---|---|---|---|
-| ![Control](docs/screenshots/control.png) | ![Settings](docs/screenshots/settings.png) | ![Connectivity](docs/screenshots/connectivity.png) | ![Updates](docs/screenshots/updates.png) |
-
-Print screen (shown while Klipper is printing or paused; this capture uses sample data):
-
-<img src="docs/screenshots/print.png" alt="Print" width="200" />
-
-## Repository Layout
-- `src/transport` Moonraker HTTP and WebSocket clients
-- `src/services` command methods wrapping mutating actions
-- `src/stores` Zustand live state/store
-- `src/screens` routed UI screens
-- `src/components` shared frame/layout and feedback UI
-- `server/static-server.mjs` production static file server for kiosk deployment
-- `scripts/install-printer-ui.sh` install/build/systemd setup
-- `scripts/update-printer-ui.sh` update path after `git pull`
