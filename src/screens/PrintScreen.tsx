@@ -101,6 +101,7 @@ export function PrintScreen() {
   const [selectedExcludeObjects, setSelectedExcludeObjects] = useState<string[]>([]);
   const [fanSliderValue, setFanSliderValue] = useState(() => Math.round(fanPartPercent));
   const fanLastCommittedRef = useRef(Math.round(fanPartPercent));
+  const fanDraggingRef = useRef(false);
   const isPaused = job.state === 'paused';
   const plateBounds = useMemo(() => computePlateBounds(excludeObjects.objects), [excludeObjects.objects]);
   const availableObjects = useMemo(
@@ -139,6 +140,7 @@ export function PrintScreen() {
 
   useEffect(() => {
     const roundedPercent = Math.round(fanPartPercent);
+    if (fanDraggingRef.current) return;
     setFanSliderValue(roundedPercent);
     fanLastCommittedRef.current = roundedPercent;
   }, [fanPartPercent]);
@@ -164,6 +166,15 @@ export function PrintScreen() {
     if (nextPercent === fanLastCommittedRef.current) return;
     fanLastCommittedRef.current = nextPercent;
     void runAction(`Set fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
+  };
+
+  const beginFanDrag = () => {
+    fanDraggingRef.current = true;
+  };
+
+  const endFanDrag = (value: number) => {
+    fanDraggingRef.current = false;
+    commitFanValue(value);
   };
 
   return (
@@ -314,6 +325,9 @@ export function PrintScreen() {
                 aria-label="Part fan speed"
                 value={fanSliderValue}
                 style={{ '--slider-fill': `${fanSliderValue}%` } as CSSProperties}
+                onPointerDown={() => beginFanDrag()}
+                onTouchStart={() => beginFanDrag()}
+                onMouseDown={() => beginFanDrag()}
                 onInput={(event) => {
                   setFanSliderValue(Number(event.currentTarget.value));
                 }}
@@ -322,9 +336,10 @@ export function PrintScreen() {
                   setFanSliderValue(nextPercent);
                   commitFanValue(nextPercent);
                 }}
-                onPointerUp={() => commitFanValue(fanSliderValue)}
-                onTouchEnd={() => commitFanValue(fanSliderValue)}
-                onMouseUp={() => commitFanValue(fanSliderValue)}
+                onPointerUp={(event) => endFanDrag(Number(event.currentTarget.value))}
+                onTouchEnd={(event) => endFanDrag(Number(event.currentTarget.value))}
+                onMouseUp={(event) => endFanDrag(Number(event.currentTarget.value))}
+                onBlur={(event) => endFanDrag(Number(event.currentTarget.value))}
               />
               <button
                 type="button"
