@@ -343,6 +343,11 @@ ensure_kiosk_runtime() {
     cog-platform-drm \
     cog-platform-gtk4 \
     cog-platform-gtk \
+    libcogplatform-x11-0 \
+    libcogplatform-drm-0 \
+    libcogplatform-gtk4-0 \
+    libcogplatform-gtk-0 \
+    libcogplatform-fdo-0 \
     cog-platform-fdo \
     cog-platform-wl \
     cog-platform-wayland
