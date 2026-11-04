@@ -33,6 +33,29 @@ resolve_wpe_backend() {
   fi
 }
 
+ensure_cog_platform_shims() {
+  local platform
+  for platform in x11 drm fdo wl wayland; do
+    local so_name="libcogplatform-${platform}.so"
+    local so_versioned
+    so_versioned="$(ldconfig -p 2>/dev/null | awk -v n="${so_name}" '$1 ~ ("^" n "\\.") { print $NF; exit }')"
+    if [[ -n "${so_versioned}" && -r "${so_versioned}" ]]; then
+      ln -sfn "${so_versioned}" "${XDG_RUNTIME_DIR}/${so_name}"
+    fi
+  done
+
+  case ":${LD_LIBRARY_PATH:-}:" in
+    *":${XDG_RUNTIME_DIR}:"*) ;;
+    *) export LD_LIBRARY_PATH="${XDG_RUNTIME_DIR}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" ;;
+  esac
+}
+
+chromium_bin() {
+  command -v chromium-browser >/dev/null 2>&1 && { echo "$(command -v chromium-browser)"; return 0; }
+  command -v chromium >/dev/null 2>&1 && { echo "$(command -v chromium)"; return 0; }
+  return 1
+}
+
 # Session mode: runs inside the X server started by xinit.
 # There is no window manager, so Cog keeps its default window size unless we
 # resize it ourselves. Keep it pinned to the exact current screen resolution.
@@ -51,6 +74,7 @@ if [[ "${1:-}" == "--session" ]]; then
 
   ensure_runtime_dir
   resolve_wpe_backend
+  ensure_cog_platform_shims
 
   screen_size() {
     local size=""
@@ -133,6 +157,7 @@ export HOME=${HOME:-/home/$(id -un)}
 export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
 
 resolve_wpe_backend
+ensure_cog_platform_shims
 
 unset DBUS_STARTER_ADDRESS
 unset DBUS_STARTER_BUS_TYPE
@@ -158,10 +183,10 @@ has_cog_platform_module() {
   for root in "${search_roots[@]}"; do
     [[ -d "${root}" ]] || continue
     if find "${root}" -maxdepth 10 -type f \( \
-      -name "*cog*platform*${platform}*.so" -o \
-      -name "*${platform}*platform*.so" -o \
-      -name "libcogplatform-${platform}.so" -o \
-      -name "libcogplatform_${platform}.so" \
+      -name "*cog*platform*${platform}*.so*" -o \
+      -name "*${platform}*platform*.so*" -o \
+      -name "libcogplatform-${platform}.so*" -o \
+      -name "libcogplatform_${platform}.so*" \
     \) 2>/dev/null | head -n1 | grep -q .; then
       return 0
     fi
@@ -238,6 +263,23 @@ if [[ -n "${COG_PLATFORM}" ]]; then
   echo "Launching ${COG_BIN} at ${APP_URL} (platform=${COG_PLATFORM})"
 else
   echo "Launching ${COG_BIN} at ${APP_URL} (platform=default)"
+fi
+
+CHROMIUM_BIN=""
+if [[ -z "${COG_PLATFORM}" ]] && ! has_wayland_display; then
+  if CHROMIUM_BIN="$(chromium_bin 2>/dev/null || true)" && [[ -n "${CHROMIUM_BIN}" ]]; then
+    echo "No usable non-Wayland Cog platform detected; falling back to Chromium kiosk"
+    if command -v xdpyinfo >/dev/null 2>&1 && xdpyinfo -display :0 >/dev/null 2>&1; then
+      exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" DISPLAY=:0 \
+        "${CHROMIUM_BIN}" --kiosk --start-fullscreen --noerrdialogs --disable-session-crashed-bubble "${APP_URL}"
+    fi
+    if command -v dbus-run-session >/dev/null 2>&1; then
+      exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
+        xinit "${CHROMIUM_BIN}" --kiosk --start-fullscreen --noerrdialogs --disable-session-crashed-bubble "${APP_URL}" -- :0 vt1 -nocursor
+    fi
+    exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+      xinit "${CHROMIUM_BIN}" --kiosk --start-fullscreen --noerrdialogs --disable-session-crashed-bubble "${APP_URL}" -- :0 vt1 -nocursor
+  fi
 fi
 
 DRM_RENDERER="${PRINTER_UI_COG_DRM_RENDERER:-gles}"

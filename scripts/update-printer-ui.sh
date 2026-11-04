@@ -19,6 +19,58 @@ package_available() {
   apt-cache show "${pkg}" >/dev/null 2>&1
 }
 
+apt_install_if_available() {
+  local -a apt_opts=()
+  while [[ "$#" -gt 0 ]]; do
+    if [[ "$1" == "--" ]]; then
+      shift
+      break
+    fi
+    apt_opts+=("$1")
+    shift
+  done
+
+  local pkg
+  for pkg in "$@"; do
+    if package_available "${pkg}"; then
+      apt_install_with_recovery "${apt_opts[@]}" -- "${pkg}" || \
+        echo "Warning: could not install ${pkg}"
+    fi
+  done
+}
+
+apt_install_first_available() {
+  local -a apt_opts=()
+  while [[ "$#" -gt 0 ]]; do
+    if [[ "$1" == "--" ]]; then
+      shift
+      break
+    fi
+    apt_opts+=("$1")
+    shift
+  done
+
+  local pkg
+  for pkg in "$@"; do
+    if package_available "${pkg}"; then
+      apt_install_with_recovery "${apt_opts[@]}" -- "${pkg}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+command_exists_any() {
+  local command_name
+  for command_name in "$@"; do
+    if command -v "${command_name}" >/dev/null 2>&1; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 apt_update_with_recovery() {
   local -a apt_opts=("$@")
 
@@ -85,67 +137,43 @@ ensure_kiosk_runtime() {
     "-o" "Acquire::https::No-Cache=true"
   )
 
-  local need_install=0
-  command -v xinit >/dev/null 2>&1 || need_install=1
-  command -v cog >/dev/null 2>&1 || need_install=1
-
-  if [[ "${need_install}" -eq 0 ]]; then
-    return 0
-  fi
-
   if ! command -v apt-get >/dev/null 2>&1; then
     echo "Kiosk runtime dependencies missing and apt-get is unavailable." >&2
-    echo "Install manually: xinit xserver-xorg cog" >&2
+    echo "Install manually: xinit xserver-xorg and either cog or chromium-browser" >&2
     exit 1
   fi
 
-  echo "Installing kiosk runtime dependencies (xinit + cog)..."
+  echo "Installing kiosk runtime dependencies..."
 
   apt_update_with_recovery "${apt_opts[@]}"
 
-  if ! command -v xinit >/dev/null 2>&1; then
-    apt_install_with_recovery "${apt_opts[@]}" -- xinit xserver-xorg
-  fi
+  apt_install_with_recovery "${apt_opts[@]}" -- xinit xserver-xorg
+  apt_install_if_available "${apt_opts[@]}" -- xdotool x11-utils x11-xserver-utils
 
   if ! command -v cog >/dev/null 2>&1; then
-    if ! package_available cog; then
-      echo "No cog package found in apt repositories." >&2
-      exit 1
+    if package_available cog; then
+      apt_install_with_recovery "${apt_opts[@]}" -- cog
     fi
-
-    apt_install_with_recovery "${apt_opts[@]}" -- cog
   fi
 
-  if package_available cog-platform-x11; then
-    apt_install_with_recovery "${apt_opts[@]}" -- cog-platform-x11 || \
-      echo "Warning: could not install cog-platform-x11; set PRINTER_UI_COG_PLATFORM=drm if x11 is unavailable"
+  if ! command_exists_any chromium-browser chromium; then
+    if ! apt_install_first_available "${apt_opts[@]}" -- chromium-browser chromium; then
+      echo "Warning: chromium-browser/chromium package not found in apt repositories"
+    fi
   fi
 
-  if package_available cog-platform-drm; then
-    apt_install_with_recovery "${apt_opts[@]}" -- cog-platform-drm || \
-      echo "Warning: could not install cog-platform-drm"
-  fi
+  apt_install_if_available "${apt_opts[@]}" -- \
+    cog-platform-x11 \
+    cog-platform-drm \
+    cog-platform-fdo \
+    cog-platform-wl \
+    cog-platform-wayland
 
-  if package_available cog-platform-fdo; then
-    apt_install_with_recovery "${apt_opts[@]}" -- cog-platform-fdo || \
-      echo "Warning: could not install cog-platform-fdo"
-  fi
-
-  if package_available wpebackend-fdo; then
-    apt_install_with_recovery "${apt_opts[@]}" -- wpebackend-fdo || \
-      echo "Warning: could not install wpebackend-fdo"
-  elif package_available libwpebackend-fdo-1.0-1; then
-    apt_install_with_recovery "${apt_opts[@]}" -- libwpebackend-fdo-1.0-1 || \
-      echo "Warning: could not install libwpebackend-fdo-1.0-1"
-  fi
-
-  if package_available wpebackend-default; then
-    apt_install_with_recovery "${apt_opts[@]}" -- wpebackend-default || \
-      echo "Warning: could not install wpebackend-default"
-  elif package_available libwpebackend-default-1.0-1; then
-    apt_install_with_recovery "${apt_opts[@]}" -- libwpebackend-default-1.0-1 || \
-      echo "Warning: could not install libwpebackend-default-1.0-1"
-  fi
+  apt_install_if_available "${apt_opts[@]}" -- \
+    wpebackend-fdo \
+    libwpebackend-fdo-1.0-1 \
+    wpebackend-default \
+    libwpebackend-default-1.0-1
 
   local mesa_pkgs=()
   package_available libegl-mesa0 && mesa_pkgs+=(libegl-mesa0)
@@ -154,6 +182,18 @@ ensure_kiosk_runtime() {
   if [[ ${#mesa_pkgs[@]} -gt 0 ]]; then
     apt_install_with_recovery "${apt_opts[@]}" -- "${mesa_pkgs[@]}" || \
       echo "Warning: could not install some Mesa runtime packages (${mesa_pkgs[*]})"
+  fi
+
+  sudo ldconfig || true
+
+  if ! command -v xinit >/dev/null 2>&1; then
+    echo "xinit is still missing after update." >&2
+    exit 1
+  fi
+
+  if ! command_exists_any cog chromium-browser chromium; then
+    echo "No kiosk browser runtime found after update (expected cog or chromium)." >&2
+    exit 1
   fi
 }
 
@@ -210,17 +250,6 @@ sudo mkdir -p "${INSTALL_DIR}/server"
 sudo cp server/static-server.mjs "${INSTALL_DIR}/server/static-server.mjs"
 sudo cp server/kiosk-launch.sh "${INSTALL_DIR}/server/kiosk-launch.sh"
 sudo chmod +x "${INSTALL_DIR}/server/kiosk-launch.sh"
-for tool_pkg in xdotool:xdotool xdpyinfo:x11-utils xrandr:x11-xserver-utils; do
-  if ! command -v "${tool_pkg%%:*}" >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
-    apt_install_with_recovery \
-      -o Acquire::Retries=5 \
-      -o Acquire::ForceIPv4=true \
-      -o Acquire::By-Hash=true \
-      -o Acquire::http::No-Cache=true \
-      -o Acquire::https::No-Cache=true \
-      -- "${tool_pkg##*:}" || echo "Warning: could not install ${tool_pkg##*:}"
-  fi
-done
 nohup bash -lc 'sleep 2; sudo systemctl restart printer-ui.service; sudo systemctl try-restart printer-ui-kiosk.service 2>/dev/null || true' >/dev/null 2>&1 &
 echo "Update complete."
 popd >/dev/null
