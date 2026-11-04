@@ -1131,7 +1131,7 @@ body {
 }
 
 .keyboard-sheet {
-  width: 100%;
+  width: min(100%, 960px);
   background: var(--surface);
   border-top: 1px solid var(--border);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
@@ -1188,7 +1188,7 @@ body {
 
 .key {
   flex: 1 1 0;
-  max-width: 40px;
+  max-width: clamp(40px, 8vw, 72px);
   min-height: 46px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1204,7 +1204,7 @@ body {
 
 .key-wide {
   flex: 1.5 1 0;
-  max-width: 58px;
+  max-width: clamp(58px, 10vw, 108px);
 }
 
 .key-space {
@@ -1215,7 +1215,7 @@ body {
 
 .key-done {
   flex: 2 1 0;
-  max-width: 90px;
+  max-width: clamp(90px, 14vw, 180px);
   font-size: 15px;
   font-weight: 650;
   background: color-mix(in srgb, var(--accent) 38%, var(--surface-strong));
@@ -1501,7 +1501,7 @@ body {
   .home-status-row .status-chip { padding: 6px 6px; }
   .home-status-row .status-chip .v { margin-top: 1px; }
 
-  .settings-nav { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .settings-nav { grid-template-columns: 1fr; gap: 8px; }
   .settings-nav .action-link { min-height: 48px; padding: 10px 12px; }
 
   .btn-row { gap: 8px; }
@@ -1539,6 +1539,21 @@ body {
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
+
+  /* Preheat: keep cards in explicit rows so they don't drop into the flexible row */
+  .screen:has(.temp-graph-wrap) {
+    grid-template-rows: auto auto min-content min-content 1fr;
+  }
+
+  .screen:has(.temp-graph-wrap) > .card:nth-of-type(2) { grid-column: 1; grid-row: 3; }
+  .screen:has(.temp-graph-wrap) > .card:nth-of-type(3) { grid-column: 2; grid-row: 3; }
+  .screen:has(.temp-graph-wrap) > .card:nth-of-type(4) { grid-column: 2; grid-row: 4; }
+  .screen:has(.temp-graph-wrap) > .card:nth-of-type(5) { grid-column: 1; grid-row: 4; }
+
+  .screen:has(.temp-graph-wrap) .temp-graph {
+    height: 120px;
+  }
+
   /* Files: panel fills the screen, controls share one row, files in two columns */
   .screen:has(> .file-list-panel) {
     grid-template-rows: auto minmax(0, 1fr);
@@ -1644,5 +1659,5 @@ body {
   .screen:has(.temp-graph-wrap) > .card:nth-of-type(3) { grid-column: 2; grid-row: 3; }
   .screen:has(.temp-graph-wrap) > .card:nth-of-type(4) { grid-column: 2; grid-row: 4 / span 2; }
   .screen:has(.temp-graph-wrap) > .card:nth-of-type(5) { grid-column: 1; grid-row: 5; }
-  .temp-graph { height: 56px; }
+  .temp-graph { height: 96px; }
 }

@@ -15,9 +15,9 @@ export interface Preset {
 const STORAGE_KEY = 'printer-ui-presets';
 
 const defaultPresets: Preset[] = [
-  { id: 'pla', name: 'PLA', nozzle: 210, bed: 60, chamber: 0, fan: 100 },
-  { id: 'abs', name: 'ABS', nozzle: 245, bed: 100, chamber: 0, fan: 0 },
-  { id: 'asa', name: 'ASA', nozzle: 255, bed: 105, chamber: 45, fan: 0 },
+  { id: 'pla', name: 'PLA', nozzle: 210, bed: 60, chamber: 0, fan: 50 },
+  { id: 'abs', name: 'ABS', nozzle: 280, bed: 100, chamber: 80, fan: 30 },
+  { id: 'cooldown', name: 'COOLDOWN', nozzle: 0, bed: 0, chamber: 1, fan: 0 },
 ];
 
 function loadPresets(): Preset[] {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
+import { KeyboardInput } from '../components/OnScreenKeyboard';
 import { usePrinterStore } from '../stores/usePrinterStore';
 import { printerRenders } from '../utils/printerRenders';
 
@@ -52,15 +53,7 @@ export function AppearanceScreen() {
             if (printerName.trim()) setPrinterName(printerName);
           }}
         >
-          <input
-            className="input"
-            type="text"
-            aria-label="Printer name"
-            value={printerName}
-            onChange={(event) => setPrinterNameDraft(event.target.value)}
-            maxLength={60}
-            required
-          />
+          <KeyboardInput label="Printer name" value={printerName} onChange={setPrinterNameDraft} placeholder="Printer name" />
           <button className="btn accent" type="submit" disabled={!printerName.trim() || printerName.trim() === profileName}>
             Save Name
           </button>
