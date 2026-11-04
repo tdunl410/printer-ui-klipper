@@ -12,47 +12,17 @@ ensure_runtime_dir() {
 }
 
 resolve_wpe_backend() {
-  if [[ -z "${WPE_BACKEND:-}" ]]; then
-    if ldconfig -p 2>/dev/null | grep -q "libWPEBackend-default\.so"; then
-      :
-    elif ldconfig -p 2>/dev/null | grep -q "libWPEBackend-fdo"; then
-      export WPE_BACKEND=fdo
-      echo "WPE_BACKEND not set; using fdo backend"
-    fi
+  if ldconfig -p 2>/dev/null | grep -q "libWPEBackend-default\.so"; then
+    return 0
   fi
 
-  if ! ldconfig -p 2>/dev/null | grep -q "libWPEBackend-default\.so"; then
-    local fdo_backend
-    fdo_backend="$(ldconfig -p 2>/dev/null | awk '/libWPEBackend-fdo/ {print $NF; exit}')"
-    if [[ -n "${fdo_backend}" && -r "${fdo_backend}" ]]; then
-      local shim_path="${XDG_RUNTIME_DIR}/libWPEBackend-default.so"
-      ln -sfn "${fdo_backend}" "${shim_path}"
-      export LD_LIBRARY_PATH="${XDG_RUNTIME_DIR}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
-      echo "libWPEBackend-default.so not found; using runtime shim to ${fdo_backend}"
-    fi
+  if ldconfig -p 2>/dev/null | grep -q "libWPEBackend-fdo"; then
+    export WPE_BACKEND="${PRINTER_UI_WPE_BACKEND:-fdo}"
+    echo "WPE default backend not found; using WPE_BACKEND=${WPE_BACKEND}"
+    return 0
   fi
-}
 
-ensure_cog_platform_shims() {
-  local platform
-  for platform in x11 drm fdo wl wayland; do
-    local so_name="libcogplatform-${platform}.so"
-    local so_versioned
-    so_versioned="$(ldconfig -p 2>/dev/null | awk -v n="${so_name}" '$1 ~ ("^" n "\\.") { print $NF; exit }')"
-    if [[ -n "${so_versioned}" && -r "${so_versioned}" ]]; then
-      ln -sfn "${so_versioned}" "${XDG_RUNTIME_DIR}/${so_name}"
-    fi
-  done
-
-  case ":${LD_LIBRARY_PATH:-}:" in
-    *":${XDG_RUNTIME_DIR}:"*) ;;
-    *) export LD_LIBRARY_PATH="${XDG_RUNTIME_DIR}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" ;;
-  esac
-}
-
-chromium_bin() {
-  command -v chromium-browser >/dev/null 2>&1 && { echo "$(command -v chromium-browser)"; return 0; }
-  command -v chromium >/dev/null 2>&1 && { echo "$(command -v chromium)"; return 0; }
+  echo "No usable WPE backend found (expected libWPEBackend-default.so or libWPEBackend-fdo)." >&2
   return 1
 }
 
@@ -74,7 +44,6 @@ if [[ "${1:-}" == "--session" ]]; then
 
   ensure_runtime_dir
   resolve_wpe_backend
-  ensure_cog_platform_shims
 
   screen_size() {
     local size=""
@@ -157,7 +126,6 @@ export HOME=${HOME:-/home/$(id -un)}
 export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
 
 resolve_wpe_backend
-ensure_cog_platform_shims
 
 unset DBUS_STARTER_ADDRESS
 unset DBUS_STARTER_BUS_TYPE
@@ -196,7 +164,7 @@ has_cog_platform_module() {
 }
 
 detect_cog_platform() {
-  local candidates=(x11 drm fdo wl wayland)
+  local candidates=(drm x11)
   local candidate
   for candidate in "${candidates[@]}"; do
     if has_cog_platform_module "${candidate}"; then
@@ -226,61 +194,22 @@ if [[ "${COG_PLATFORM}" == "auto" ]]; then
   if [[ -n "${detected_platform}" ]]; then
     COG_PLATFORM="${detected_platform}"
   else
-    COG_PLATFORM=""
-    echo "No explicit Cog platform module detected; letting Cog choose defaults"
+    echo "No usable non-Wayland Cog platform module detected (expected drm or x11)." >&2
+    exit 1
   fi
 elif ! has_cog_platform_module "${COG_PLATFORM}"; then
-  detected_platform="$(detect_cog_platform || true)"
-  if [[ -n "${detected_platform}" ]]; then
-    echo "Requested Cog platform '${COG_PLATFORM}' not found; falling back to '${detected_platform}'"
-    COG_PLATFORM="${detected_platform}"
-  else
-    echo "Requested Cog platform '${COG_PLATFORM}' not found and no known platform modules detected; letting Cog choose defaults"
-    COG_PLATFORM=""
-  fi
+  echo "Requested Cog platform '${COG_PLATFORM}' not found." >&2
+  exit 1
 fi
 
 if [[ "${COG_PLATFORM}" == "fdo" || "${COG_PLATFORM}" == "wl" || "${COG_PLATFORM}" == "wayland" ]]; then
   if ! has_wayland_display; then
-    fallback_platform=""
-    if has_cog_platform_module drm; then
-      fallback_platform="drm"
-    elif has_cog_platform_module x11; then
-      fallback_platform="x11"
-    fi
-
-    if [[ -n "${fallback_platform}" ]]; then
-      echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland, but no Wayland display is available; falling back to '${fallback_platform}'"
-      COG_PLATFORM="${fallback_platform}"
-    else
-      echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland, but no non-Wayland Cog platform module was detected; letting Cog choose defaults"
-      COG_PLATFORM=""
-    fi
+    echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland, but no Wayland display is available." >&2
+    exit 1
   fi
 fi
 
-if [[ -n "${COG_PLATFORM}" ]]; then
-  echo "Launching ${COG_BIN} at ${APP_URL} (platform=${COG_PLATFORM})"
-else
-  echo "Launching ${COG_BIN} at ${APP_URL} (platform=default)"
-fi
-
-CHROMIUM_BIN=""
-if [[ -z "${COG_PLATFORM}" ]] && ! has_wayland_display; then
-  if CHROMIUM_BIN="$(chromium_bin 2>/dev/null || true)" && [[ -n "${CHROMIUM_BIN}" ]]; then
-    echo "No usable non-Wayland Cog platform detected; falling back to Chromium kiosk"
-    if command -v xdpyinfo >/dev/null 2>&1 && xdpyinfo -display :0 >/dev/null 2>&1; then
-      exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" DISPLAY=:0 \
-        "${CHROMIUM_BIN}" --kiosk --start-fullscreen --noerrdialogs --disable-session-crashed-bubble "${APP_URL}"
-    fi
-    if command -v dbus-run-session >/dev/null 2>&1; then
-      exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
-        xinit "${CHROMIUM_BIN}" --kiosk --start-fullscreen --noerrdialogs --disable-session-crashed-bubble "${APP_URL}" -- :0 vt1 -nocursor
-    fi
-    exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
-      xinit "${CHROMIUM_BIN}" --kiosk --start-fullscreen --noerrdialogs --disable-session-crashed-bubble "${APP_URL}" -- :0 vt1 -nocursor
-  fi
-fi
+echo "Launching ${COG_BIN} at ${APP_URL} (platform=${COG_PLATFORM})"
 
 DRM_RENDERER="${PRINTER_UI_COG_DRM_RENDERER:-gles}"
 DRM_DISABLE_ATOMIC="${PRINTER_UI_COG_DRM_DISABLE_ATOMIC:-1}"
@@ -308,12 +237,8 @@ fi
 
 if command -v xdpyinfo >/dev/null 2>&1 && xdpyinfo -display :0 >/dev/null 2>&1; then
   echo "Detected active X display :0; starting Cog on existing server"
-  if [[ -n "${COG_PLATFORM}" ]]; then
-    exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" DISPLAY=:0 \
-      "${COG_BIN}" --platform="${COG_PLATFORM}" "${APP_URL}"
-  fi
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" DISPLAY=:0 \
-    "${COG_BIN}" "${APP_URL}"
+    "${COG_BIN}" --platform="${COG_PLATFORM}" "${APP_URL}"
 fi
 
 if ! command -v xinit >/dev/null 2>&1; then
@@ -322,17 +247,9 @@ if ! command -v xinit >/dev/null 2>&1; then
 fi
 
 if command -v dbus-run-session >/dev/null 2>&1; then
-  if [[ -n "${COG_PLATFORM}" ]]; then
-    exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
-      xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" "${COG_PLATFORM}" --platform="${COG_PLATFORM}" -- :0 vt1 -nocursor
-  fi
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
-    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" "${COG_PLATFORM}" --platform="${COG_PLATFORM}" -- :0 vt1 -nocursor
 else
-  if [[ -n "${COG_PLATFORM}" ]]; then
-    exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
-      xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" "${COG_PLATFORM}" --platform="${COG_PLATFORM}" -- :0 vt1 -nocursor
-  fi
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
-    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" "${COG_PLATFORM}" --platform="${COG_PLATFORM}" -- :0 vt1 -nocursor
 fi

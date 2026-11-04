@@ -33,6 +33,26 @@ package_available() {
   apt-cache show "${pkg}" >/dev/null 2>&1
 }
 
+apt_install_if_available() {
+  local -a apt_opts=()
+  while [[ "$#" -gt 0 ]]; do
+    if [[ "$1" == "--" ]]; then
+      shift
+      break
+    fi
+    apt_opts+=("$1")
+    shift
+  done
+
+  local pkg
+  for pkg in "$@"; do
+    if package_available "${pkg}"; then
+      apt_install_with_recovery "${apt_opts[@]}" -- "${pkg}" || \
+        echo "Warning: could not install ${pkg}"
+    fi
+  done
+}
+
 apt_update_with_recovery() {
   local -a apt_opts=("$@")
 
@@ -269,22 +289,6 @@ ensure_kiosk_runtime() {
     "-o" "Acquire::https::No-Cache=true"
   )
 
-  local cog_bin
-  cog_bin="$(command -v cog || true)"
-  local need_install=0
-
-  if ! command -v xinit >/dev/null 2>&1; then
-    need_install=1
-  fi
-
-  if [[ -z "${cog_bin}" ]]; then
-    need_install=1
-  fi
-
-  if [[ "${need_install}" -eq 0 ]]; then
-    return 0
-  fi
-
   if [[ "${AUTO_INSTALL_KIOSK_DEPS}" != "1" ]]; then
     echo "Kiosk runtime dependencies are missing (xinit/cog)." >&2
     echo "Install manually or rerun with AUTO_INSTALL_KIOSK_DEPS=1." >&2
@@ -300,50 +304,28 @@ ensure_kiosk_runtime() {
 
   apt_update_with_recovery "${apt_opts[@]}"
 
-  if ! command -v xinit >/dev/null 2>&1; then
-    apt_install_with_recovery "${apt_opts[@]}" -- xinit xserver-xorg
+  apt_install_with_recovery "${apt_opts[@]}" -- xinit xserver-xorg
+  apt_install_if_available "${apt_opts[@]}" -- xdotool x11-utils x11-xserver-utils
+
+  if package_available cog; then
+    apt_install_with_recovery "${apt_opts[@]}" -- cog
+  else
+    echo "Required package 'cog' was not found in apt repositories." >&2
+    exit 1
   fi
 
-  cog_bin="$(command -v cog || true)"
-  if [[ -z "${cog_bin}" ]]; then
-    if package_available cog; then
-      apt_install_with_recovery "${apt_opts[@]}" -- cog
-    else
-      echo "No cog package found in apt repositories." >&2
-      exit 1
-    fi
-  fi
+  apt_install_if_available "${apt_opts[@]}" -- \
+    cog-platform-x11 \
+    cog-platform-drm \
+    cog-platform-fdo \
+    cog-platform-wl \
+    cog-platform-wayland
 
-  if package_available cog-platform-x11; then
-    apt_install_with_recovery "${apt_opts[@]}" -- cog-platform-x11 || \
-      echo "Warning: could not install cog-platform-x11; set PRINTER_UI_COG_PLATFORM=drm if x11 is unavailable"
-  fi
-
-  if package_available cog-platform-drm; then
-    apt_install_with_recovery "${apt_opts[@]}" -- cog-platform-drm || \
-      echo "Warning: could not install cog-platform-drm"
-  fi
-
-  if package_available cog-platform-fdo; then
-    apt_install_with_recovery "${apt_opts[@]}" -- cog-platform-fdo || \
-      echo "Warning: could not install cog-platform-fdo"
-  fi
-
-  if package_available wpebackend-fdo; then
-    apt_install_with_recovery "${apt_opts[@]}" -- wpebackend-fdo || \
-      echo "Warning: could not install wpebackend-fdo"
-  elif package_available libwpebackend-fdo-1.0-1; then
-    apt_install_with_recovery "${apt_opts[@]}" -- libwpebackend-fdo-1.0-1 || \
-      echo "Warning: could not install libwpebackend-fdo-1.0-1"
-  fi
-
-  if package_available wpebackend-default; then
-    apt_install_with_recovery "${apt_opts[@]}" -- wpebackend-default || \
-      echo "Warning: could not install wpebackend-default"
-  elif package_available libwpebackend-default-1.0-1; then
-    apt_install_with_recovery "${apt_opts[@]}" -- libwpebackend-default-1.0-1 || \
-      echo "Warning: could not install libwpebackend-default-1.0-1"
-  fi
+  apt_install_if_available "${apt_opts[@]}" -- \
+    wpebackend-fdo \
+    libwpebackend-fdo-1.0-1 \
+    wpebackend-default \
+    libwpebackend-default-1.0-1
 
   local mesa_pkgs=()
   package_available libegl-mesa0 && mesa_pkgs+=(libegl-mesa0)
@@ -354,9 +336,25 @@ ensure_kiosk_runtime() {
       echo "Warning: could not install some Mesa runtime packages (${mesa_pkgs[*]})"
   fi
 
-  cog_bin="$(command -v cog || true)"
-  if [[ -z "${cog_bin}" ]]; then
-    echo "Cog install did not provide a runnable binary." >&2
+  sudo ldconfig || true
+
+  if ! command -v xinit >/dev/null 2>&1; then
+    echo "xinit is still missing after install." >&2
+    exit 1
+  fi
+
+  if ! command -v cog >/dev/null 2>&1; then
+    echo "cog is still missing after install." >&2
+    exit 1
+  fi
+
+  if ! ldconfig -p 2>/dev/null | grep -Eq 'libWPEBackend-(default|fdo)'; then
+    echo "No usable WPE backend found after install (expected libWPEBackend-default or libWPEBackend-fdo)." >&2
+    exit 1
+  fi
+
+  if ! ldconfig -p 2>/dev/null | grep -Eq 'libcogplatform-(drm|x11)\.so(\.|$)'; then
+    echo "No usable non-Wayland Cog platform library found after install (expected libcogplatform-drm.so* or libcogplatform-x11.so*)." >&2
     exit 1
   fi
 }

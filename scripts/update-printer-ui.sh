@@ -39,38 +39,6 @@ apt_install_if_available() {
   done
 }
 
-apt_install_first_available() {
-  local -a apt_opts=()
-  while [[ "$#" -gt 0 ]]; do
-    if [[ "$1" == "--" ]]; then
-      shift
-      break
-    fi
-    apt_opts+=("$1")
-    shift
-  done
-
-  local pkg
-  for pkg in "$@"; do
-    if package_available "${pkg}"; then
-      apt_install_with_recovery "${apt_opts[@]}" -- "${pkg}"
-      return 0
-    fi
-  done
-
-  return 1
-}
-
-command_exists_any() {
-  local command_name
-  for command_name in "$@"; do
-    if command -v "${command_name}" >/dev/null 2>&1; then
-      return 0
-    fi
-  done
-  return 1
-}
-
 apt_update_with_recovery() {
   local -a apt_opts=("$@")
 
@@ -139,7 +107,7 @@ ensure_kiosk_runtime() {
 
   if ! command -v apt-get >/dev/null 2>&1; then
     echo "Kiosk runtime dependencies missing and apt-get is unavailable." >&2
-    echo "Install manually: xinit xserver-xorg and either cog or chromium-browser" >&2
+    echo "Install manually: xinit xserver-xorg cog and Cog/WPE runtime packages" >&2
     exit 1
   fi
 
@@ -150,16 +118,11 @@ ensure_kiosk_runtime() {
   apt_install_with_recovery "${apt_opts[@]}" -- xinit xserver-xorg
   apt_install_if_available "${apt_opts[@]}" -- xdotool x11-utils x11-xserver-utils
 
-  if ! command -v cog >/dev/null 2>&1; then
-    if package_available cog; then
-      apt_install_with_recovery "${apt_opts[@]}" -- cog
-    fi
-  fi
-
-  if ! command_exists_any chromium-browser chromium; then
-    if ! apt_install_first_available "${apt_opts[@]}" -- chromium-browser chromium; then
-      echo "Warning: chromium-browser/chromium package not found in apt repositories"
-    fi
+  if package_available cog; then
+    apt_install_with_recovery "${apt_opts[@]}" -- cog
+  else
+    echo "Required package 'cog' was not found in apt repositories." >&2
+    exit 1
   fi
 
   apt_install_if_available "${apt_opts[@]}" -- \
@@ -191,8 +154,18 @@ ensure_kiosk_runtime() {
     exit 1
   fi
 
-  if ! command_exists_any cog chromium-browser chromium; then
-    echo "No kiosk browser runtime found after update (expected cog or chromium)." >&2
+  if ! command -v cog >/dev/null 2>&1; then
+    echo "cog is still missing after update." >&2
+    exit 1
+  fi
+
+  if ! ldconfig -p 2>/dev/null | grep -Eq 'libWPEBackend-(default|fdo)'; then
+    echo "No usable WPE backend found after update (expected libWPEBackend-default or libWPEBackend-fdo)." >&2
+    exit 1
+  fi
+
+  if ! ldconfig -p 2>/dev/null | grep -Eq 'libcogplatform-(drm|x11)\.so(\.|$)'; then
+    echo "No usable non-Wayland Cog platform library found after update (expected libcogplatform-drm.so* or libcogplatform-x11.so*)." >&2
     exit 1
   fi
 }
