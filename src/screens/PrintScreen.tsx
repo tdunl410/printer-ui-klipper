@@ -153,143 +153,149 @@ export function PrintScreen() {
 
   return (
     <Layout title="Active Print" subtitle={`Part: ${job.filename}`}>
-      <section className="card print-time-card">
-        <div className="card-label">Time Remaining</div>
-        <div className="card-title">{remainingLabel}</div>
-        <div
-          className="progress-bar print-time-progress"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(job.progress * 100)}
-        >
-          <div className="progress-fill" style={{ width: pct(Math.min(1, Math.max(0, job.progress))) }} />
-        </div>
-        <div className="kv"><span>{pct(job.progress)} complete</span><strong>ETA {job.eta}</strong></div>
-      </section>
+      <div className="print-columns">
+        <div className="print-column print-column-left">
+          <section className="card print-time-card">
+            <div className="card-label">Time Remaining</div>
+            <div className="card-title">{remainingLabel}</div>
+            <div
+              className="progress-bar print-time-progress"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(job.progress * 100)}
+            >
+              <div className="progress-fill" style={{ width: pct(Math.min(1, Math.max(0, job.progress))) }} />
+            </div>
+            <div className="kv"><span>{pct(job.progress)} complete</span><strong>ETA {job.eta}</strong></div>
+          </section>
 
-      <section className="card print-thumb-card">
-        <div className="card-label">Current Job</div>
-        <div className="media-thumb print-media-thumb">
-          {thumbnailUrl ? (
-            <img src={thumbnailUrl} alt={`${job.filename} preview`} />
-          ) : (
-            <div className="file-thumb-placeholder">No Preview</div>
-          )}
-        </div>
-      </section>
-
-      <section className="card print-progress-card">
-        <div className="card-label">Progress</div>
-        <div className="kv"><span>Time Elapsed</span><strong>{job.elapsed}</strong></div>
-        <div className="kv"><span>Time Remaining</span><strong>{remainingLabel}</strong></div>
-        <div className="kv"><span>Speed</span><strong>{currentSpeedLabel}</strong></div>
-        <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
-      </section>
-
-      <article className="card print-temps-card">
-        <div className="card-label">Temperatures</div>
-        <div className="kv"><span>Hotend</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></div>
-        <div className="kv"><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></div>
-        <div className="kv"><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></div>
-      </article>
-
-      <section className="card print-actions-card">
-        <div className="card-label">Actions</div>
-        <div className="btn-row">
-          <button
-            type="button"
-            className="btn accent with-icon"
-            onClick={() => runAction(isPaused ? 'Resume Print' : 'Pause Print', () => (isPaused ? commands.resumePrint() : commands.pausePrint()))}
-          >
-            <img className="button-icon" src={isPaused ? resumeIcon : pauseIcon} alt="" aria-hidden="true" />
-            {isPaused ? 'Resume' : 'Pause'}
-          </button>
-          <button
-            type="button"
-            className="btn with-icon"
-            onClick={() => setConfirmAction('stop')}
-          >
-            <img className="button-icon" src={stopSquareIcon} alt="" aria-hidden="true" />
-            Stop
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              setSelectedExcludeObjects([]);
-              setShowExcludeDialog(true);
-            }}
-            disabled={availableObjects.length === 0}
-          >
-            Exclude Object
-          </button>
-        </div>
-      </section>
-
-      <section className="card print-finetune-card">
-        <div className="card-label">Fine Tune</div>
-        <div className="card-title">Live Adjust</div>
-        <div className="tune-grid">
-          <button type="button" className="tune-btn tune-reset" onClick={() => runAction('Reset Z offset', () => commands.resetZOffset())}>
-            <span className="tune-value">{zOffset.toFixed(2)}mm</span>
-            <span className="tune-sub">Z Offset · reset</span>
-          </button>
-          <button type="button" className="tune-btn tune-reset" onClick={() => runAction('Reset speed', () => commands.setPrintSpeed(100))}>
-            <span className="tune-value">{speedPercent}%</span>
-            <span className="tune-sub">Speed · reset</span>
-          </button>
-          <button type="button" className="tune-btn tune-reset" onClick={() => runAction('Reset flow', () => commands.setFlow(100))}>
-            <span className="tune-value">{flowPercent}%</span>
-            <span className="tune-sub">Flow · reset</span>
-          </button>
-
-          <button type="button" className="tune-btn" onClick={() => runAction('Z offset up', () => commands.adjustZOffset(zStep))}>
-            <img className="tune-icon" src={arrowUpIcon} alt="" aria-hidden="true" />
-            <span>Z+</span>
-          </button>
-          <button type="button" className="tune-btn" onClick={() => runAction('Speed up', () => commands.setPrintSpeed(speedPercent + pctStep))}>
-            <img className="tune-icon" src={arrowUpIcon} alt="" aria-hidden="true" />
-            <span>Speed +</span>
-          </button>
-          <button type="button" className="tune-btn" onClick={() => runAction('Flow up', () => commands.setFlow(flowPercent + pctStep))}>
-            <img className="tune-icon" src={arrowUpIcon} alt="" aria-hidden="true" />
-            <span>Flow +</span>
-          </button>
-
-          <button type="button" className="tune-btn" onClick={() => runAction('Z offset down', () => commands.adjustZOffset(-zStep))}>
-            <img className="tune-icon" src={arrowDownIcon} alt="" aria-hidden="true" />
-            <span>Z-</span>
-          </button>
-          <button type="button" className="tune-btn" onClick={() => runAction('Speed down', () => commands.setPrintSpeed(speedPercent - pctStep))}>
-            <img className="tune-icon" src={arrowDownIcon} alt="" aria-hidden="true" />
-            <span>Speed -</span>
-          </button>
-          <button type="button" className="tune-btn" onClick={() => runAction('Flow down', () => commands.setFlow(flowPercent - pctStep))}>
-            <img className="tune-icon" src={arrowDownIcon} alt="" aria-hidden="true" />
-            <span>Flow -</span>
-          </button>
+          <section className="card print-thumb-card">
+            <div className="card-label">Current Job</div>
+            <div className="media-thumb print-media-thumb">
+              {thumbnailUrl ? (
+                <img src={thumbnailUrl} alt={`${job.filename} preview`} />
+              ) : (
+                <div className="file-thumb-placeholder">No Preview</div>
+              )}
+            </div>
+          </section>
         </div>
 
-        <div className="tune-steps">
-          <div className="tune-step-group">
-            {Z_STEPS.map((step) => (
-              <button type="button" key={step} className={`tune-step ${zStep === step ? 'active' : ''}`} onClick={() => setZStep(step)}>{step}</button>
-            ))}
-          </div>
-          <div className="tune-step-group">
-            {PCT_STEPS.map((step) => (
-              <button type="button" key={step} className={`tune-step ${pctStep === step ? 'active' : ''}`} onClick={() => setPctStep(step)}>{step}%</button>
-            ))}
-          </div>
-        </div>
+        <div className="print-column print-column-right">
+          <section className="card print-progress-card">
+            <div className="card-label">Progress</div>
+            <div className="kv"><span>Time Elapsed</span><strong>{job.elapsed}</strong></div>
+            <div className="kv"><span>Time Remaining</span><strong>{remainingLabel}</strong></div>
+            <div className="kv"><span>Speed</span><strong>{currentSpeedLabel}</strong></div>
+            <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
+          </section>
 
-        <div className="kv top-gap"><span>Part Fan</span><strong>{fanPartPercent}%</strong></div>
-        <div className="btn-row two">
-          <button type="button" className="btn" onClick={() => runAction('Fan down', () => commands.setFan(Math.max(0, fanPartPercent - pctStep), 'fan'))}>Fan -{pctStep}%</button>
-          <button type="button" className="btn" onClick={() => runAction('Fan up', () => commands.setFan(Math.min(100, fanPartPercent + pctStep), 'fan'))}>Fan +{pctStep}%</button>
+          <article className="card print-temps-card">
+            <div className="card-label">Temperatures</div>
+            <div className="kv"><span>Hotend</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></div>
+            <div className="kv"><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></div>
+            <div className="kv"><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></div>
+          </article>
+
+          <section className="card print-actions-card">
+            <div className="card-label">Actions</div>
+            <div className="btn-row">
+              <button
+                type="button"
+                className="btn accent with-icon"
+                onClick={() => runAction(isPaused ? 'Resume Print' : 'Pause Print', () => (isPaused ? commands.resumePrint() : commands.pausePrint()))}
+              >
+                <img className="button-icon" src={isPaused ? resumeIcon : pauseIcon} alt="" aria-hidden="true" />
+                {isPaused ? 'Resume' : 'Pause'}
+              </button>
+              <button
+                type="button"
+                className="btn with-icon"
+                onClick={() => setConfirmAction('stop')}
+              >
+                <img className="button-icon" src={stopSquareIcon} alt="" aria-hidden="true" />
+                Stop
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setSelectedExcludeObjects([]);
+                  setShowExcludeDialog(true);
+                }}
+                disabled={availableObjects.length === 0}
+              >
+                Exclude Object
+              </button>
+            </div>
+          </section>
+
+          <section className="card print-finetune-card">
+            <div className="card-label">Fine Tune</div>
+            <div className="card-title">Live Adjust</div>
+            <div className="tune-grid">
+              <button type="button" className="tune-btn tune-reset" onClick={() => runAction('Reset Z offset', () => commands.resetZOffset())}>
+                <span className="tune-value">{zOffset.toFixed(2)}mm</span>
+                <span className="tune-sub">Z Offset · reset</span>
+              </button>
+              <button type="button" className="tune-btn tune-reset" onClick={() => runAction('Reset speed', () => commands.setPrintSpeed(100))}>
+                <span className="tune-value">{speedPercent}%</span>
+                <span className="tune-sub">Speed · reset</span>
+              </button>
+              <button type="button" className="tune-btn tune-reset" onClick={() => runAction('Reset flow', () => commands.setFlow(100))}>
+                <span className="tune-value">{flowPercent}%</span>
+                <span className="tune-sub">Flow · reset</span>
+              </button>
+
+              <button type="button" className="tune-btn" onClick={() => runAction('Z offset up', () => commands.adjustZOffset(zStep))}>
+                <img className="tune-icon" src={arrowUpIcon} alt="" aria-hidden="true" />
+                <span>Z+</span>
+              </button>
+              <button type="button" className="tune-btn" onClick={() => runAction('Speed up', () => commands.setPrintSpeed(speedPercent + pctStep))}>
+                <img className="tune-icon" src={arrowUpIcon} alt="" aria-hidden="true" />
+                <span>Speed +</span>
+              </button>
+              <button type="button" className="tune-btn" onClick={() => runAction('Flow up', () => commands.setFlow(flowPercent + pctStep))}>
+                <img className="tune-icon" src={arrowUpIcon} alt="" aria-hidden="true" />
+                <span>Flow +</span>
+              </button>
+
+              <button type="button" className="tune-btn" onClick={() => runAction('Z offset down', () => commands.adjustZOffset(-zStep))}>
+                <img className="tune-icon" src={arrowDownIcon} alt="" aria-hidden="true" />
+                <span>Z-</span>
+              </button>
+              <button type="button" className="tune-btn" onClick={() => runAction('Speed down', () => commands.setPrintSpeed(speedPercent - pctStep))}>
+                <img className="tune-icon" src={arrowDownIcon} alt="" aria-hidden="true" />
+                <span>Speed -</span>
+              </button>
+              <button type="button" className="tune-btn" onClick={() => runAction('Flow down', () => commands.setFlow(flowPercent - pctStep))}>
+                <img className="tune-icon" src={arrowDownIcon} alt="" aria-hidden="true" />
+                <span>Flow -</span>
+              </button>
+            </div>
+
+            <div className="tune-steps">
+              <div className="tune-step-group">
+                {Z_STEPS.map((step) => (
+                  <button type="button" key={step} className={`tune-step ${zStep === step ? 'active' : ''}`} onClick={() => setZStep(step)}>{step}</button>
+                ))}
+              </div>
+              <div className="tune-step-group">
+                {PCT_STEPS.map((step) => (
+                  <button type="button" key={step} className={`tune-step ${pctStep === step ? 'active' : ''}`} onClick={() => setPctStep(step)}>{step}%</button>
+                ))}
+              </div>
+            </div>
+
+            <div className="kv top-gap"><span>Part Fan</span><strong>{fanPartPercent}%</strong></div>
+            <div className="btn-row two">
+              <button type="button" className="btn" onClick={() => runAction('Fan down', () => commands.setFan(Math.max(0, fanPartPercent - pctStep), 'fan'))}>Fan -{pctStep}%</button>
+              <button type="button" className="btn" onClick={() => runAction('Fan up', () => commands.setFan(Math.min(100, fanPartPercent + pctStep), 'fan'))}>Fan +{pctStep}%</button>
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
 
       {confirmAction === 'stop' ? (
         <Dialog
