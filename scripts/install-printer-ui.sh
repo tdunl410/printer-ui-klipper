@@ -339,9 +339,7 @@ ensure_kiosk_runtime() {
     echo "No separate cog-platform-* packages are listed; checking platform packages bundled by cog."
   fi
 
-  if package_available cage; then
-    apt_install_with_recovery "${apt_opts[@]}" -- cage
-  fi
+  apt_install_with_recovery "${apt_opts[@]}" -- cage
 
   apt_install_if_available "${apt_opts[@]}" -- \
     wpebackend-fdo \
@@ -367,6 +365,11 @@ ensure_kiosk_runtime() {
 
   if ! command -v cog >/dev/null 2>&1; then
     echo "cog is still missing after install." >&2
+    exit 1
+  fi
+
+  if ! command -v cage >/dev/null 2>&1; then
+    echo "cage is still missing after install; the Cog Wayland platform cannot start without a compositor." >&2
     exit 1
   fi
 
