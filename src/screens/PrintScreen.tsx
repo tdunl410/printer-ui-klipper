@@ -289,9 +289,27 @@ export function PrintScreen() {
             </div>
 
             <div className="kv top-gap"><span>Part Fan</span><strong>{fanPartPercent}%</strong></div>
-            <div className="btn-row two">
-              <button type="button" className="btn" onClick={() => runAction('Fan down', () => commands.setFan(Math.max(0, fanPartPercent - pctStep), 'fan'))}>Fan -{pctStep}%</button>
-              <button type="button" className="btn" onClick={() => runAction('Fan up', () => commands.setFan(Math.min(100, fanPartPercent + pctStep), 'fan'))}>Fan +{pctStep}%</button>
+            <div className="fan-slider-row">
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                className="fan-slider"
+                aria-label="Part fan speed"
+                value={Math.round(fanPartPercent)}
+                onChange={(event) => {
+                  const nextPercent = Number(event.currentTarget.value);
+                  void runAction(`Set fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
+                }}
+              />
+              <button
+                type="button"
+                className="btn"
+                onClick={() => runAction('Fan off', () => commands.setFan(0, 'fan'))}
+              >
+                OFF
+              </button>
             </div>
           </section>
         </div>

@@ -91,3 +91,9 @@ export interface ExcludeObjectsState {
   objects: ExcludeObjectItem[];
   currentObject?: string;
 }
+
+export interface OutputPinState {
+  name: string;
+  label: string;
+  percent: number;
+}

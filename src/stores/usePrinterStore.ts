@@ -9,6 +9,7 @@ import type {
   JobState,
   KlipperState,
   MachineStats,
+  OutputPinState,
   PositionState,
   PrinterTemperatures,
   SystemVersions,
@@ -53,7 +54,7 @@ interface PrinterStore {
   theme: ThemeKey;
   printerRender: string;
   fanPartPercent: number;
-  fanChamberPercent: number;
+  outputPins: OutputPinState[];
   printerSpeedMmS: number;
   speedPercent: number;
   flowPercent: number;
@@ -116,6 +117,46 @@ const isIpOrLocalHost = (value: string) => {
   if (raw === 'localhost' || raw === '127.0.0.1' || raw === '::1') return true;
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(raw)) return true;
   return false;
+};
+
+const outputPinNameFromObject = (objectName: string) => {
+  if (!objectName.startsWith('output_pin ')) return undefined;
+  const name = objectName.slice('output_pin '.length).trim();
+  return name || undefined;
+};
+
+const outputPinLabel = (name: string) => {
+  return name
+    .trim()
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+};
+
+const getOutputPinNames = (objectNames: string[]) => {
+  return objectNames
+    .map((name) => outputPinNameFromObject(name))
+    .filter((name): name is string => Boolean(name));
+};
+
+const mapOutputPins = (
+  dynamicStatus: Record<string, any>,
+  names: string[],
+  fallback: OutputPinState[],
+): OutputPinState[] => {
+  const fallbackByName = new Map(fallback.map((pin) => [pin.name, pin]));
+  const uniqueNames = Array.from(new Set(names));
+
+  return uniqueNames.map((name) => {
+    const key = `output_pin ${name}`;
+    const state = dynamicStatus[key] ?? dynamicStatus[name] ?? {};
+    const previous = fallbackByName.get(name);
+    return {
+      name,
+      label: outputPinLabel(name),
+      percent: toPercent(state.value ?? state.speed, previous?.percent ?? 0),
+    };
+  });
 };
 
 const pushHistory = (history: Record<string, number[]>, key: string, value: number, max = 64) => {
@@ -385,12 +426,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
       const { sensors, chamber, ambient, controller, raspberryPi } = deriveTemperatures(dynamicStatus, currentState.temperatures);
 
-      const auxFanEntry =
-        dynamicStatus['output_pin aux_fan'] ??
-        dynamicStatus.aux_fan ??
-        Object.entries(dynamicStatus).find(([name]) => /output_pin\s+aux_fan|\baux_fan\b/i.test(name))?.[1];
-
-      const chamberFanEntry = Object.entries(dynamicStatus).find(([name]) => /chamber.*fan|fan.*chamber/i.test(name));
+      const outputPinNames = getOutputPinNames(objectNames);
 
       const printDuration = Number(status.print_stats?.print_duration ?? 0);
       const progress = Number(status.display_status?.progress ?? 0);
@@ -427,12 +463,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               z: Number(status.toolhead?.position?.[2] ?? 0),
             },
         fanPartPercent: live ? state.fanPartPercent : toPercent(status.fan?.speed, state.fanPartPercent),
-        fanChamberPercent: live
-          ? state.fanChamberPercent
-          : toPercent(
-              (auxFanEntry as any)?.value ?? (auxFanEntry as any)?.speed ?? (chamberFanEntry?.[1] as any)?.speed,
-              state.fanChamberPercent,
-            ),
+        outputPins: mapOutputPins(dynamicStatus, outputPinNames, state.outputPins),
         printerSpeedMmS: Number(status.gcode_move?.speed ?? state.printerSpeedMmS),
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
@@ -610,7 +641,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     theme: initialTheme,
     printerRender: initialPrinterRender,
     fanPartPercent: 0,
-    fanChamberPercent: 0,
+    outputPins: [],
     printerSpeedMmS: 0,
     speedPercent: 100,
     flowPercent: 100,
@@ -687,8 +718,13 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               });
               const derived = deriveTemperatures(dynamicCache, next.temperatures);
               next.temperatures = { ...next.temperatures, ...derived };
-              const auxLive = dynamicCache['output_pin aux_fan'];
-              if (auxLive) next.fanChamberPercent = toPercent(auxLive.value, next.fanChamberPercent);
+              const knownOutputPins = Array.from(new Set([
+                ...next.outputPins.map((pin) => pin.name),
+                ...Object.keys(dynamicCache)
+                  .map((name) => outputPinNameFromObject(name))
+                  .filter((name): name is string => Boolean(name)),
+              ]));
+              next.outputPins = mapOutputPins(dynamicCache, knownOutputPins, next.outputPins);
             }
 
             if (status.gcode_move) {

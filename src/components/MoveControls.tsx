@@ -41,7 +41,7 @@ export function MoveControls() {
   const commands = useCommands();
   const position = usePrinterStore((state) => state.position);
   const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
-  const fanChamberPercent = usePrinterStore((state) => state.fanChamberPercent);
+  const outputPins = usePrinterStore((state) => state.outputPins);
   const runAction = usePrinterStore((state) => state.runAction);
   const [moveDistance, setMoveDistance] = useState(10);
   const distanceOptions = [5, 10, 25, 50];
@@ -120,18 +120,44 @@ export function MoveControls() {
       <section className="card">
         <div className="card-title">Cooling</div>
         <div className="kv"><span>Part Fan</span><strong>{fanPartPercent}%</strong></div>
-        <div className="btn-row">
-          <button type="button" className="btn" onClick={() => runAction('Part fan -10%', () => commands.setFan(fanPartPercent - 10, 'fan'))}>-10%</button>
-          <button type="button" className="btn" onClick={() => runAction('Part fan off', () => commands.setFan(0, 'fan'))}>Off</button>
-          <button type="button" className="btn" onClick={() => runAction('Part fan +10%', () => commands.setFan(fanPartPercent + 10, 'fan'))}>+10%</button>
+        <div className="fan-slider-row">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            className="fan-slider"
+            aria-label="Part fan speed"
+            value={Math.round(fanPartPercent)}
+            onChange={(event) => {
+              const nextPercent = Number(event.currentTarget.value);
+              void runAction(`Set part fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
+            }}
+          />
+          <button type="button" className="btn" onClick={() => runAction('Part fan off', () => commands.setFan(0, 'fan'))}>OFF</button>
         </div>
-        <div className="spacer" />
-        <div className="kv"><span>Aux Fan</span><strong>{fanChamberPercent}%</strong></div>
-        <div className="btn-row">
-          <button type="button" className="btn" onClick={() => runAction('Aux fan -10%', () => commands.setFan(fanChamberPercent - 10, 'aux_fan'))}>-10%</button>
-          <button type="button" className="btn" onClick={() => runAction('Aux fan off', () => commands.setFan(0, 'aux_fan'))}>Off</button>
-          <button type="button" className="btn" onClick={() => runAction('Aux fan +10%', () => commands.setFan(fanChamberPercent + 10, 'aux_fan'))}>+10%</button>
-        </div>
+        {outputPins.map((pin) => (
+          <div key={pin.name}>
+            <div className="spacer" />
+            <div className="kv"><span>{pin.label}</span><strong>{pin.percent}%</strong></div>
+            <div className="fan-slider-row">
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                className="fan-slider"
+                aria-label={`${pin.label} speed`}
+                value={Math.round(pin.percent)}
+                onChange={(event) => {
+                  const nextPercent = Number(event.currentTarget.value);
+                  void runAction(`Set ${pin.label} ${nextPercent}%`, () => commands.setOutputPin(nextPercent, pin.name));
+                }}
+              />
+              <button type="button" className="btn" onClick={() => runAction(`${pin.label} off`, () => commands.setOutputPin(0, pin.name))}>OFF</button>
+            </div>
+          </div>
+        ))}
       </section>
     </>
   );

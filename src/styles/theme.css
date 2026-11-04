@@ -1355,6 +1355,23 @@ body {
   background: color-mix(in srgb, var(--accent) 55%, var(--surface-strong));
 }
 
+.fan-slider-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.fan-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.fan-slider:disabled {
+  opacity: 0.6;
+}
+
 .ex-temp { display: flex; align-items: center; margin: 6px 0 12px; }
 .ex-temp-value { font-size: 34px; font-weight: 700; }
 .ex-temp-sub { color: var(--muted, #8b93a7); font-size: 14px; margin-top: 2px; }

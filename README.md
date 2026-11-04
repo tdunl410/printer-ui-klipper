@@ -68,15 +68,17 @@ sudo systemctl restart printer-ui-kiosk.service
 Add this to `moonraker.conf` to let Moonraker manage updates for printer-ui:
 
 ```ini
+[update_manager]
+channel: dev
+
 [update_manager printer-ui]
 type: git_repo
+channel: dev
 path: /home/pi/printer_ui
 origin: https://github.com/tdunl410/printer-ui-klipper.git
 primary_branch: main
-install_script: scripts/update-printer-ui.sh
 managed_services:
-	printer-ui
-	printer-ui-kiosk
+  printer-ui
 ```
 
 Then restart Moonraker and confirm the entry appears in update status:
