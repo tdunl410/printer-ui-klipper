@@ -168,6 +168,14 @@ export function PrintScreen() {
     void runAction(`Set fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
   };
 
+  const fanPercentFromClientX = (element: HTMLInputElement, clientX: number) => {
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0) return fanSliderValue;
+    const ratio = (clientX - rect.left) / rect.width;
+    const boundedRatio = Math.max(0, Math.min(1, ratio));
+    return Math.round(boundedRatio * 100);
+  };
+
   const beginFanDrag = () => {
     fanDraggingRef.current = true;
   };
@@ -325,9 +333,29 @@ export function PrintScreen() {
                 aria-label="Part fan speed"
                 value={fanSliderValue}
                 style={{ '--slider-fill': `${fanSliderValue}%` } as CSSProperties}
-                onPointerDown={() => beginFanDrag()}
+                onPointerDown={(event) => {
+                  beginFanDrag();
+                  try {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                  } catch {}
+                  setFanSliderValue(fanPercentFromClientX(event.currentTarget, event.clientX));
+                }}
                 onTouchStart={() => beginFanDrag()}
                 onMouseDown={() => beginFanDrag()}
+                onPointerMove={(event) => {
+                  if (!fanDraggingRef.current) return;
+                  setFanSliderValue(fanPercentFromClientX(event.currentTarget, event.clientX));
+                }}
+                onTouchMove={(event) => {
+                  if (!fanDraggingRef.current) return;
+                  const touch = event.touches[0];
+                  if (!touch) return;
+                  setFanSliderValue(fanPercentFromClientX(event.currentTarget, touch.clientX));
+                }}
+                onMouseMove={(event) => {
+                  if (!fanDraggingRef.current || event.buttons !== 1) return;
+                  setFanSliderValue(fanPercentFromClientX(event.currentTarget, event.clientX));
+                }}
                 onInput={(event) => {
                   setFanSliderValue(Number(event.currentTarget.value));
                 }}
@@ -336,7 +364,12 @@ export function PrintScreen() {
                   setFanSliderValue(nextPercent);
                   commitFanValue(nextPercent);
                 }}
-                onPointerUp={(event) => endFanDrag(Number(event.currentTarget.value))}
+                onPointerUp={(event) => {
+                  try {
+                    event.currentTarget.releasePointerCapture(event.pointerId);
+                  } catch {}
+                  endFanDrag(Number(event.currentTarget.value));
+                }}
                 onTouchEnd={(event) => endFanDrag(Number(event.currentTarget.value))}
                 onMouseUp={(event) => endFanDrag(Number(event.currentTarget.value))}
                 onBlur={(event) => endFanDrag(Number(event.currentTarget.value))}
