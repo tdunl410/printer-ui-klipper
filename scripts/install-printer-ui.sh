@@ -261,6 +261,14 @@ ensure_kiosk_runtime() {
       echo "Warning: could not install cog-platform-x11; set PRINTER_UI_COG_PLATFORM=drm if x11 is unavailable"
   fi
 
+  if package_available wpebackend-fdo; then
+    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends wpebackend-fdo || \
+      echo "Warning: could not install wpebackend-fdo"
+  elif package_available libwpebackend-fdo-1.0-1; then
+    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends libwpebackend-fdo-1.0-1 || \
+      echo "Warning: could not install libwpebackend-fdo-1.0-1"
+  fi
+
   cog_bin="$(command -v cog || true)"
   if [[ -z "${cog_bin}" ]]; then
     echo "Cog install did not provide a runnable binary." >&2

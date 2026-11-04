@@ -98,6 +98,51 @@ COG_PLATFORM="${PRINTER_UI_COG_PLATFORM:-x11}"
 
 SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 
+has_cog_platform_module() {
+  local platform="$1"
+  local search_roots=(
+    /usr/lib
+    /usr/lib64
+    /usr/local/lib
+    /usr/lib/aarch64-linux-gnu
+    /usr/lib/arm-linux-gnueabihf
+    /usr/lib/x86_64-linux-gnu
+  )
+
+  for root in "${search_roots[@]}"; do
+    [[ -d "${root}" ]] || continue
+    if find "${root}" -maxdepth 7 -type f \( -name "*cog*platform*${platform}*.so" -o -name "*${platform}*platform*.so" -o -name "libcogplatform-${platform}.so" \) 2>/dev/null | head -n1 | grep -q .; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+if [[ -z "${WPE_BACKEND:-}" ]]; then
+  if ldconfig -p 2>/dev/null | grep -q "libWPEBackend-default\.so"; then
+    :
+  elif ldconfig -p 2>/dev/null | grep -q "libWPEBackend-fdo"; then
+    export WPE_BACKEND=fdo
+    echo "WPE_BACKEND not set; using fdo backend"
+  fi
+fi
+
+if [[ "${COG_PLATFORM}" == "x11" ]] && ! has_cog_platform_module x11; then
+  echo "Cog x11 platform module not found; falling back to drm"
+  COG_PLATFORM="drm"
+fi
+
+if [[ "${COG_PLATFORM}" == "drm" ]] && ! has_cog_platform_module drm; then
+  if has_cog_platform_module x11; then
+    echo "Cog drm platform module not found; falling back to x11"
+    COG_PLATFORM="x11"
+  else
+    echo "No usable Cog platform modules detected (x11/drm). Install cog platform packages."
+    exit 1
+  fi
+fi
+
 echo "Launching ${COG_BIN} at ${APP_URL} (platform=${COG_PLATFORM})"
 
 if [[ "${COG_PLATFORM}" != "x11" ]]; then
