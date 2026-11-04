@@ -14,8 +14,13 @@ const root = process.env.PRINTER_UI_DIST ?? join(process.cwd(), 'dist');
 const loopbackAddresses = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const serverDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(serverDir, '..');
+const sourceRoot = process.env.PRINTER_UI_SOURCE_DIR?.trim() || '';
+const userHome = process.env.HOME?.trim() || '';
 const updateScript = process.env.PRINTER_UI_UPDATE_SCRIPT ?? join(projectRoot, 'scripts', 'update-printer-ui.sh');
-const configPath = process.env.PRINTER_UI_CONFIG_PATH ?? join(projectRoot, 'data', 'user-config.json');
+const configPath = process.env.PRINTER_UI_CONFIG_PATH?.trim()
+  || (sourceRoot ? join(sourceRoot, 'data', 'user-config.json') : '')
+  || (userHome ? join(userHome, '.config', 'printer-ui', 'user-config.json') : '')
+  || join(projectRoot, 'data', 'user-config.json');
 const MAX_UPDATE_LOG_LINES = 80;
 
 const defaultUiConfig = {
