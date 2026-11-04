@@ -26,6 +26,30 @@ package_available() {
   apt-cache show "${pkg}" >/dev/null 2>&1
 }
 
+has_supported_cog_platform_module() {
+  local search_roots=(
+    /usr/lib
+    /usr/lib64
+    /usr/local/lib
+    /usr/lib/aarch64-linux-gnu
+    /usr/lib/arm-linux-gnueabihf
+    /usr/lib/x86_64-linux-gnu
+  )
+  local root
+  for root in "${search_roots[@]}"; do
+    [[ -d "${root}" ]] || continue
+    if find "${root}" -maxdepth 10 -type f \( \
+      -name 'libcogplatform-drm.so*' -o \
+      -name 'libcogplatform-x11.so*' -o \
+      -name 'libcogplatform-gtk4.so*' -o \
+      -name 'libcogplatform-gtk.so*' \
+    \) 2>/dev/null | head -n1 | grep -q .; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 apt_install_if_available() {
   local -a apt_opts=()
   while [[ "$#" -gt 0 ]]; do
@@ -135,6 +159,8 @@ ensure_kiosk_runtime() {
   apt_install_if_available "${apt_opts[@]}" -- \
     cog-platform-x11 \
     cog-platform-drm \
+    cog-platform-gtk4 \
+    cog-platform-gtk \
     cog-platform-fdo \
     cog-platform-wl \
     cog-platform-wayland
@@ -171,8 +197,8 @@ ensure_kiosk_runtime() {
     exit 1
   fi
 
-  if ! ldconfig -p 2>/dev/null | grep -Eq 'libcogplatform-(drm|x11)\.so(\.|$)'; then
-    echo "No usable non-Wayland Cog platform library found after update (expected libcogplatform-drm.so* or libcogplatform-x11.so*)." >&2
+  if ! has_supported_cog_platform_module; then
+    echo "No usable non-Wayland Cog platform library found after update (expected drm, x11, gtk4, or gtk Cog platform module)." >&2
     exit 1
   fi
 }
