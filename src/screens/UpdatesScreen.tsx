@@ -42,63 +42,6 @@ export function UpdatesScreen() {
     || updateFeedback.lastLog
     || (updateFeedback.status === 'running' ? 'Update in progress…' : '');
 
-  const updateButtonText = isUpdating
-    ? `Updating${commitLabel ? ` (${commitLabel})` : '…'}`
-    : updateFeedback.status === 'success' && updateFeedback.targetCommit
-      ? `Updated ${updateFeedback.targetCommit}`
-      : 'Update Screen';
-
-  const onUpdateScreen = async () => {
-    setIsUpdating(true);
-    setUpdateFeedback({
-      status: 'running',
-      logs: [],
-      lastLog: 'Starting update…',
-      error: '',
-      currentCommit: '',
-      targetCommit: '',
-    });
-
-    await runAction('Update Screen', async () => {
-      try {
-        const result = await commands.updateScreen((status) => {
-          setUpdateFeedback({
-            status: status.status,
-            logs: status.logs,
-            lastLog: status.lastLog,
-            error: status.error,
-            currentCommit: status.currentCommit,
-            targetCommit: status.targetCommit,
-          });
-        });
-
-        setUpdateFeedback({
-          status: result.status,
-          logs: result.logs,
-          lastLog: result.lastLog || 'Update complete. Reloading screen…',
-          error: result.error,
-          currentCommit: result.currentCommit,
-          targetCommit: result.targetCommit,
-        });
-
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 2500);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Update failed.';
-        setUpdateFeedback((state) => ({
-          ...state,
-          status: 'error',
-          error: message,
-          lastLog: message,
-        }));
-        throw error;
-      }
-    });
-
-    setIsUpdating(false);
-  };
-
   const onUpdateAll = async () => {
     setIsUpdating(true);
     setUpdateFeedback({
@@ -220,14 +163,6 @@ export function UpdatesScreen() {
             disabled={isUpdating || pendingUpdates.length === 0}
           >
             Update All
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => { void onUpdateScreen(); }}
-            disabled={isUpdating}
-          >
-            {updateButtonText}
           </button>
           <button type="button" className="btn" onClick={() => runAction('Restart Klipper', () => commands.systemAction('restart-klipper'))}>Restart Klipper</button>
           <button type="button" className="btn" onClick={() => runAction('Restart Host', () => commands.systemAction('restart-host'))}>Restart Host</button>

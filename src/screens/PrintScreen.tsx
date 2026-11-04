@@ -194,7 +194,7 @@ export function PrintScreen() {
         <div className="kv"><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></div>
       </article>
 
-      <section className="card">
+      <section className="card print-actions-card">
         <div className="card-label">Actions</div>
         <div className="btn-row">
           <button
@@ -227,7 +227,7 @@ export function PrintScreen() {
         </div>
       </section>
 
-      <section className="card">
+      <section className="card print-finetune-card">
         <div className="card-label">Fine Tune</div>
         <div className="card-title">Live Adjust</div>
         <div className="tune-grid">

@@ -1074,7 +1074,23 @@ body {
 }
 
 .print-time-progress {
-  height: 12px;
+  height: 10px;
+}
+
+.print-time-card {
+  padding: 10px;
+}
+
+.print-time-card .card-label {
+  margin-bottom: 2px;
+}
+
+.print-time-card .card-title {
+  margin-bottom: 6px;
+}
+
+.print-time-card .kv {
+  margin: 6px 0 0;
 }
 
 .progress-fill {
@@ -1397,26 +1413,32 @@ body {
   /* Print: stack Time + Thumbnail on left, and Progress + Temperatures + controls on right */
   .screen:has(> .print-time-card) > .print-time-card {
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 2;
   }
 
   .screen:has(> .print-time-card) > .print-thumb-card {
     grid-column: 1;
-    grid-row: 4 / span 3;
+    grid-row: 3 / span 3;
   }
 
   .screen:has(> .print-time-card) > .print-progress-card {
     grid-column: 2;
-    grid-row: 3;
+    grid-row: 2;
   }
 
   .screen:has(> .print-time-card) > .print-temps-card {
     grid-column: 2;
+    grid-row: 3;
+  }
+
+  .screen:has(> .print-time-card) > .print-actions-card {
+    grid-column: 2;
     grid-row: 4;
   }
 
-  .screen:has(> .print-time-card) > .print-temps-card ~ .card {
+  .screen:has(> .print-time-card) > .print-finetune-card {
     grid-column: 2;
+    grid-row: 5;
   }
 
   .hero img { max-height: 260px; }

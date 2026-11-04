@@ -2,5 +2,9 @@ node_modules/
 dist/
 .DS_Store
 *.tsbuildinfo
+**/*.tsbuildinfo
+tsconfig*.tsbuildinfo
+tsinfo.tsbuildinfo
+.vite/
 vite.config.js
 vite.config.d.ts

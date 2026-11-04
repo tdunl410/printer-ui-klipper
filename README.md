@@ -45,6 +45,32 @@ sudo systemctl restart printer-ui.service
 sudo systemctl restart printer-ui-kiosk.service
 ```
 
+## Moonraker Update Manager
+Add this to `moonraker.conf` to let Moonraker manage updates for printer-ui:
+
+```ini
+[update_manager printer-ui]
+type: git_repo
+path: /home/pi/printer_ui
+origin: https://github.com/tdunl410/printer-ui-klipper.git
+primary_branch: main
+install_script: scripts/update-printer-ui.sh
+managed_services:
+	printer-ui
+	printer-ui-kiosk
+```
+
+Then restart Moonraker and confirm the entry appears in update status:
+
+```bash
+sudo systemctl restart moonraker
+curl -s http://127.0.0.1:7125/machine/update/status | jq
+```
+
+Notes:
+- Set `path` to your real git clone location (not `/opt/printer-ui`).
+- If you use a fork, change `origin` to your repository URL.
+
 ## Uninstall
 Run from your repo as your regular printer user (non-root, with `sudo`):
 
