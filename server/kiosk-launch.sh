@@ -120,11 +120,29 @@ has_cog_platform_module() {
 
   for root in "${search_roots[@]}"; do
     [[ -d "${root}" ]] || continue
-    if find "${root}" -maxdepth 7 -type f \( -name "*cog*platform*${platform}*.so" -o -name "*${platform}*platform*.so" -o -name "libcogplatform-${platform}.so" \) 2>/dev/null | head -n1 | grep -q .; then
+    if find "${root}" -maxdepth 10 -type f \( \
+      -name "*cog*platform*${platform}*.so" -o \
+      -name "*${platform}*platform*.so" -o \
+      -name "libcogplatform-${platform}.so" -o \
+      -name "libcogplatform_${platform}.so" \
+    \) 2>/dev/null | head -n1 | grep -q .; then
       return 0
     fi
   done
 
+  return 1
+}
+
+detect_cog_platform() {
+  local candidates=(x11 drm fdo wl wayland)
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if has_cog_platform_module "${candidate}"; then
+      echo "${candidate}"
+      return 0
+    fi
+  done
+  echo ""
   return 1
 }
 
@@ -138,32 +156,29 @@ if [[ -z "${WPE_BACKEND:-}" ]]; then
 fi
 
 if [[ "${COG_PLATFORM}" == "auto" ]]; then
-  if has_cog_platform_module x11; then
-    COG_PLATFORM="x11"
-  elif has_cog_platform_module drm; then
-    COG_PLATFORM="drm"
+  detected_platform="$(detect_cog_platform || true)"
+  if [[ -n "${detected_platform}" ]]; then
+    COG_PLATFORM="${detected_platform}"
   else
-    echo "No usable Cog platform modules detected (x11/drm). Install cog platform packages."
-    exit 1
+    COG_PLATFORM=""
+    echo "No explicit Cog platform module detected; letting Cog choose defaults"
+  fi
+elif ! has_cog_platform_module "${COG_PLATFORM}"; then
+  detected_platform="$(detect_cog_platform || true)"
+  if [[ -n "${detected_platform}" ]]; then
+    echo "Requested Cog platform '${COG_PLATFORM}' not found; falling back to '${detected_platform}'"
+    COG_PLATFORM="${detected_platform}"
+  else
+    echo "Requested Cog platform '${COG_PLATFORM}' not found and no known platform modules detected; letting Cog choose defaults"
+    COG_PLATFORM=""
   fi
 fi
 
-if [[ "${COG_PLATFORM}" == "x11" ]] && ! has_cog_platform_module x11; then
-  echo "Cog x11 platform module not found; falling back to drm"
-  COG_PLATFORM="drm"
+if [[ -n "${COG_PLATFORM}" ]]; then
+  echo "Launching ${COG_BIN} at ${APP_URL} (platform=${COG_PLATFORM})"
+else
+  echo "Launching ${COG_BIN} at ${APP_URL} (platform=default)"
 fi
-
-if [[ "${COG_PLATFORM}" == "drm" ]] && ! has_cog_platform_module drm; then
-  if has_cog_platform_module x11; then
-    echo "Cog drm platform module not found; falling back to x11"
-    COG_PLATFORM="x11"
-  else
-    echo "No usable Cog platform modules detected (x11/drm). Install cog platform packages."
-    exit 1
-  fi
-fi
-
-echo "Launching ${COG_BIN} at ${APP_URL} (platform=${COG_PLATFORM})"
 
 DRM_RENDERER="${PRINTER_UI_COG_DRM_RENDERER:-gles}"
 DRM_DISABLE_ATOMIC="${PRINTER_UI_COG_DRM_DISABLE_ATOMIC:-1}"
@@ -180,7 +195,7 @@ pointer=$( [[ "${DRM_POINTER}" == "1" || "${DRM_POINTER}" == "true" || "${DRM_PO
 cursor=$( [[ "${DRM_CURSOR}" == "1" || "${DRM_CURSOR}" == "true" || "${DRM_CURSOR}" == "on" ]] && echo true || echo false )
 EOF
 
-if [[ "${COG_PLATFORM}" != "x11" ]]; then
+if [[ -n "${COG_PLATFORM}" && "${COG_PLATFORM}" != "x11" ]]; then
   if [[ "${COG_PLATFORM}" == "drm" ]]; then
     exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
       "${COG_BIN}" -C "${COG_CONFIG_FILE}" --platform="${COG_PLATFORM}" --platform-params="${DRM_PLATFORM_PARAMS}" "${APP_URL}"
@@ -191,8 +206,12 @@ fi
 
 if command -v xdpyinfo >/dev/null 2>&1 && xdpyinfo -display :0 >/dev/null 2>&1; then
   echo "Detected active X display :0; starting Cog on existing server"
+  if [[ -n "${COG_PLATFORM}" ]]; then
+    exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" DISPLAY=:0 \
+      "${COG_BIN}" --platform="${COG_PLATFORM}" "${APP_URL}"
+  fi
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" DISPLAY=:0 \
-    "${COG_BIN}" --platform=x11 "${APP_URL}"
+    "${COG_BIN}" "${APP_URL}"
 fi
 
 if ! command -v xinit >/dev/null 2>&1; then
@@ -201,9 +220,17 @@ if ! command -v xinit >/dev/null 2>&1; then
 fi
 
 if command -v dbus-run-session >/dev/null 2>&1; then
+  if [[ -n "${COG_PLATFORM}" ]]; then
+    exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
+      xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" "${COG_PLATFORM}" --platform="${COG_PLATFORM}" -- :0 vt1 -nocursor
+  fi
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
-    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" x11 --platform=x11 -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" -- :0 vt1 -nocursor
 else
+  if [[ -n "${COG_PLATFORM}" ]]; then
+    exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+      xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" "${COG_PLATFORM}" --platform="${COG_PLATFORM}" -- :0 vt1 -nocursor
+  fi
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
-    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" x11 --platform=x11 -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" -- :0 vt1 -nocursor
 fi
