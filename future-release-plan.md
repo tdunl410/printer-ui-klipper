@@ -14,7 +14,7 @@ Moonraker `git_repo` updates do not run your deploy build/copy flow, so updates 
 - Printer stores runtime files at `/opt/printer-ui`
 - `/opt/printer-ui/release_info.json` is included in every release artifact
 - `printer-ui.service` serves `/opt/printer-ui/dist`
-- Optional: `printer-ui-kiosk.service` continues to launch Chromium
+- Optional: `printer-ui-kiosk.service` continues to launch Cog (WPE WebKit)
 
 ## Artifact format (required)
 

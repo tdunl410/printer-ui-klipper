@@ -82,4 +82,4 @@ fi
 
 echo
 echo "Printer UI uninstall complete."
-echo "Left untouched: Node.js, Chromium, and display dependencies."
+echo "Left untouched: Node.js, Cog/WPE WebKit, and display dependencies."

@@ -14,6 +14,57 @@ npm_is_healthy() {
   command -v npm >/dev/null 2>&1 && npm --version >/dev/null 2>&1
 }
 
+package_available() {
+  local pkg="$1"
+  apt-cache show "${pkg}" >/dev/null 2>&1
+}
+
+ensure_kiosk_runtime() {
+  local apt_opts=("-o" "Acquire::Retries=5" "-o" "Acquire::ForceIPv4=true")
+
+  local need_install=0
+  command -v xinit >/dev/null 2>&1 || need_install=1
+  command -v cog >/dev/null 2>&1 || need_install=1
+
+  if [[ "${need_install}" -eq 0 ]]; then
+    return 0
+  fi
+
+  if ! command -v apt-get >/dev/null 2>&1; then
+    echo "Kiosk runtime dependencies missing and apt-get is unavailable." >&2
+    echo "Install manually: xinit xserver-xorg cog" >&2
+    exit 1
+  fi
+
+  echo "Installing kiosk runtime dependencies (xinit + cog)..."
+
+  if ! sudo apt-get "${apt_opts[@]}" update; then
+    echo "Initial apt update failed. Resetting apt metadata and retrying..."
+    sudo apt-get clean
+    sudo rm -rf /var/lib/apt/lists/*
+    sudo apt-get "${apt_opts[@]}" update
+  fi
+
+  if ! command -v xinit >/dev/null 2>&1; then
+    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends xinit xserver-xorg
+  fi
+
+  if ! command -v cog >/dev/null 2>&1; then
+    if ! package_available cog; then
+      echo "No cog package found in apt repositories." >&2
+      exit 1
+    fi
+
+    if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog; then
+      echo "cog install failed, refreshing apt metadata and retrying once..."
+      sudo apt-get clean
+      sudo rm -rf /var/lib/apt/lists/*
+      sudo apt-get "${apt_opts[@]}" update
+      sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog
+    fi
+  fi
+}
+
 install_dependencies() {
   if [[ -f package-lock.json ]]; then
     set +e
@@ -58,6 +109,7 @@ if ! npm_is_healthy; then
   exit 0
 fi
 
+ensure_kiosk_runtime
 install_dependencies
 npm run build
 sudo mkdir -p "${INSTALL_DIR}/dist"

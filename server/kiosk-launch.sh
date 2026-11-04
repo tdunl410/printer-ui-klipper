@@ -2,11 +2,13 @@
 set -euo pipefail
 
 # Session mode: runs inside the X server started by xinit.
-# There is no window manager, so Chromium keeps its default window size unless we
+# There is no window manager, so Cog keeps its default window size unless we
 # resize it ourselves. Keep it pinned to the exact current screen resolution.
 if [[ "${1:-}" == "--session" ]]; then
   shift
-  CHROME_BIN="$1"
+  COG_BIN="$1"
+  shift
+  APP_URL="$1"
   shift
 
   screen_size() {
@@ -26,20 +28,19 @@ if [[ "${1:-}" == "--session" ]]; then
   read -r W H <<<"$(screen_size)"
   if [[ -n "${W:-}" && -n "${H:-}" ]]; then
     echo "Screen size: ${W}x${H}"
-    set -- "$@" "--window-position=0,0" "--window-size=${W},${H}"
   else
-    echo "Could not detect screen size; relying on Chromium defaults"
+    echo "Could not detect screen size; relying on Cog defaults"
   fi
 
-  "${CHROME_BIN}" "$@" &
-  CHROME_PID=$!
+  "${COG_BIN}" "${APP_URL}" "$@" &
+  COG_PID=$!
 
   if command -v xdotool >/dev/null 2>&1; then
     (
-      while kill -0 "${CHROME_PID}" 2>/dev/null; do
+      while kill -0 "${COG_PID}" 2>/dev/null; do
         read -r W H <<<"$(screen_size)"
         if [[ -n "${W:-}" && -n "${H:-}" ]]; then
-          for win in $(xdotool search --onlyvisible --class chromium 2>/dev/null); do
+          for win in $(xdotool search --onlyvisible --class 'cog|Cog|WPE' 2>/dev/null); do
             geom="$(xdotool getwindowgeometry --shell "${win}" 2>/dev/null || true)"
             cw="$(sed -n 's/^WIDTH=//p' <<<"${geom}")"
             ch="$(sed -n 's/^HEIGHT=//p' <<<"${geom}")"
@@ -59,7 +60,7 @@ if [[ "${1:-}" == "--session" ]]; then
     echo "xdotool not found; install it (sudo apt-get install -y xdotool) to keep the window at full screen size"
   fi
 
-  wait "${CHROME_PID}"
+  wait "${COG_PID}"
   exit $?
 fi
 
@@ -73,9 +74,9 @@ if ! command -v xinit >/dev/null 2>&1; then
   exit 1
 fi
 
-CHROME_BIN=$(command -v chromium-browser || command -v chromium || command -v google-chrome || true)
-if [[ -z "${CHROME_BIN}" ]]; then
-  echo "Chromium not found. Install it with: sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium"
+COG_BIN=$(command -v cog || true)
+if [[ -z "${COG_BIN}" ]]; then
+  echo "Cog not found. Install it with: sudo apt-get install -y cog"
   exit 1
 fi
 
@@ -97,44 +98,15 @@ unset DBUS_STARTER_BUS_TYPE
 unset DBUS_SESSION_BUS_ADDRESS
 unset DBUS_SYSTEM_BUS_ADDRESS
 
-CHROME_PROFILE_DIR="${XDG_RUNTIME_DIR}/printer-ui-chromium-profile"
-mkdir -p "${CHROME_PROFILE_DIR}"
-
-CHROME_FLAGS=(
-  --kiosk
-  --app="http://${HOST}:${PORT}"
-  --disable-pinch
-  --overscroll-history-navigation=0
-  --noerrdialogs
-  --disable-infobars
-  --disable-extensions
-  --disable-sync
-  --disable-background-networking
-  --disable-component-update
-  --disable-default-apps
-  --no-first-run
-  --disable-session-crashed-bubble
-  --disable-features=BackForwardCache
-  --disable-site-isolation-trials
-  --disable-gpu
-  --disable-dev-shm-usage
-  --start-fullscreen
-  --force-device-scale-factor=1
-  --user-data-dir="${CHROME_PROFILE_DIR}"
-)
-
-if [[ ! -u /usr/lib/chromium/chrome-sandbox && ! -u /usr/lib/chromium-browser/chrome-sandbox ]]; then
-  echo "chrome-sandbox is not setuid; enabling --no-sandbox fallback"
-  CHROME_FLAGS+=(--no-sandbox --disable-setuid-sandbox)
-fi
+APP_URL="http://${HOST}:${PORT}"
 
 SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 
-echo "Launching ${CHROME_BIN} at http://${HOST}:${PORT}"
+echo "Launching ${COG_BIN} at ${APP_URL}"
 if command -v dbus-run-session >/dev/null 2>&1; then
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
-    xinit "${SELF}" --session "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" -- :0 vt1 -nocursor
 else
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
-    xinit "${SELF}" --session "${CHROME_BIN}" "${CHROME_FLAGS[@]}" -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" -- :0 vt1 -nocursor
 fi

@@ -39,7 +39,7 @@ This installs:
 - display tools used by the launcher: `xdotool`, `x11-utils`, `x11-xserver-utils`
 - `/etc/default/printer-ui` runtime environment
 - `printer-ui.service` systemd service (enabled + started)
-- `printer-ui-kiosk.service` systemd service (available for Chromium kiosk mode)
+- `printer-ui-kiosk.service` systemd service (available for WPE WebKit + Cog kiosk mode)
 
 Defaults:
 - Host/port: `127.0.0.1:4409`
@@ -51,13 +51,10 @@ Enable kiosk mode:
 sudo systemctl enable --now printer-ui-kiosk.service
 ```
 
-The kiosk launcher always sizes the Chromium window to the exact X screen resolution
+The kiosk launcher always sizes the Cog window to the exact X screen resolution
 (for example `400x1280`). It runs without a window manager, so it detects the size with
 `xdpyinfo`/`xrandr` and keeps the window pinned to it with `xdotool`. To force a size, set
 `PRINTER_UI_WINDOW_SIZE=400,1280` in `/etc/default/printer-ui`.
-
-The kiosk launch defaults also disable non-kiosk Chromium features and disable
-BackForwardCache/site isolation trials to reduce memory usage on low-resource systems.
 
 ## Update After Changes
 ```bash
@@ -113,11 +110,11 @@ This removes:
 It also stops/disables the `printer-ui.service` and `printer-ui-kiosk.service` units if present,
 then reloads systemd.
 
-It does **not** remove Node.js, Chromium, or display tools.
+It does **not** remove Node.js, Cog/WPE WebKit, or display tools.
 
 ## Troubleshooting / Known Issues
 - Node install issues: [docs/issues/node-install.md](docs/issues/node-install.md)
-- Chromium install issues: [docs/issues/chromium-install.md](docs/issues/chromium-install.md)
+- Cog/WPE install issues: [docs/issues/cog-install.md](docs/issues/cog-install.md)
 - UI only fills part of the screen: see [docs/issues/kiosk-window-size.md](docs/issues/kiosk-window-size.md)
 - Kiosk restarts or screen blinking: [docs/issues/kiosk-restarts-or-blinking.md](docs/issues/kiosk-restarts-or-blinking.md)
 - Update button/source path issues: [docs/issues/update-source-path.md](docs/issues/update-source-path.md)

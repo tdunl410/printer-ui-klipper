@@ -5,11 +5,11 @@ The UI is drawn at its default window size (about 380x285) in the top-left corne
 `xrandr` reports the full resolution (for example `400x1280`).
 
 ## Cause
-The kiosk runs Chromium under `xinit` with no window manager, so `--start-fullscreen` is
+The kiosk runs Cog under `xinit` with no window manager, so fullscreen behavior may be
 ignored and the window keeps its default size.
 
 ## Fix
-`server/kiosk-launch.sh` detects the screen size and resizes the Chromium window to it,
+`server/kiosk-launch.sh` detects the screen size and resizes the Cog window to it,
 re-checking every 2 seconds. Update and restart:
 
 ```bash

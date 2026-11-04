@@ -1,6 +1,6 @@
-# Chromium Install Issues
+# Cog/WPE Install Issues
 
-If Chromium fails to install on Raspberry Pi OS/Debian, run these blocks on the Pi in order.
+If Cog (WPE WebKit launcher) fails to install on Raspberry Pi OS/Debian, run these blocks on the Pi in order.
 
 ## 1) Temporarily block bullseye-security repo
 ```bash
@@ -21,13 +21,7 @@ sudo apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 update
 
 ## 3) Install kiosk dependencies
 ```bash
-sudo apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 install -y --no-install-recommends xinit xserver-xorg chromium-browser
-```
-
-If that package name fails, try Debian package names:
-
-```bash
-sudo apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 install -y --no-install-recommends xinit xserver-xorg chromium chromium-sandbox
+sudo apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 install -y --no-install-recommends xinit xserver-xorg cog
 ```
 
 ## 4) Re-run installer and verify kiosk service
@@ -35,6 +29,7 @@ sudo apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 install -y --no-in
 INSTALL_NODE_METHOD=binary ./scripts/install-printer-ui.sh
 sudo systemctl restart printer-ui-kiosk.service
 systemctl status printer-ui-kiosk.service --no-pager
+tail -n 120 /tmp/printer-ui-kiosk.log
 ```
 
 ## 5) Restore normal repo priority

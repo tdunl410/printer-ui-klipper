@@ -200,15 +200,15 @@ ensure_display_tools() {
 ensure_kiosk_runtime() {
   local apt_opts=("-o" "Acquire::Retries=5" "-o" "Acquire::ForceIPv4=true")
 
-  local chrome_bin
-  chrome_bin="$(command -v chromium-browser || command -v chromium || command -v google-chrome || true)"
+  local cog_bin
+  cog_bin="$(command -v cog || true)"
   local need_install=0
 
   if ! command -v xinit >/dev/null 2>&1; then
     need_install=1
   fi
 
-  if [[ -z "${chrome_bin}" ]]; then
+  if [[ -z "${cog_bin}" ]]; then
     need_install=1
   fi
 
@@ -217,7 +217,7 @@ ensure_kiosk_runtime() {
   fi
 
   if [[ "${AUTO_INSTALL_KIOSK_DEPS}" != "1" ]]; then
-    echo "Kiosk runtime dependencies are missing (xinit/chromium)." >&2
+    echo "Kiosk runtime dependencies are missing (xinit/cog)." >&2
     echo "Install manually or rerun with AUTO_INSTALL_KIOSK_DEPS=1." >&2
     exit 1
   fi
@@ -227,7 +227,7 @@ ensure_kiosk_runtime() {
     exit 1
   fi
 
-  echo "Installing kiosk runtime dependencies (xinit + chromium)..."
+  echo "Installing kiosk runtime dependencies (xinit + cog)..."
 
   if ! sudo apt-get "${apt_opts[@]}" update; then
     echo "Initial apt update failed. Resetting apt metadata and retrying..."
@@ -240,41 +240,25 @@ ensure_kiosk_runtime() {
     sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends xinit xserver-xorg
   fi
 
-  chrome_bin="$(command -v chromium-browser || command -v chromium || true)"
-  if [[ -z "${chrome_bin}" ]]; then
-    if package_available chromium-browser; then
-      if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium-browser; then
-        echo "chromium-browser install failed, refreshing apt metadata and retrying once..."
+  cog_bin="$(command -v cog || true)"
+  if [[ -z "${cog_bin}" ]]; then
+    if package_available cog; then
+      if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog; then
+        echo "cog install failed, refreshing apt metadata and retrying once..."
         sudo apt-get clean
         sudo rm -rf /var/lib/apt/lists/*
         sudo apt-get "${apt_opts[@]}" update
-        sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium-browser
-      fi
-    elif package_available chromium; then
-      if package_available chromium-sandbox; then
-        if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium chromium-sandbox; then
-          echo "chromium/chromium-sandbox install failed, refreshing apt metadata and retrying once..."
-          sudo apt-get clean
-          sudo rm -rf /var/lib/apt/lists/*
-          sudo apt-get "${apt_opts[@]}" update
-          sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium chromium-sandbox
-        fi
-      elif ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium; then
-        echo "chromium install failed, refreshing apt metadata and retrying once..."
-        sudo apt-get clean
-        sudo rm -rf /var/lib/apt/lists/*
-        sudo apt-get "${apt_opts[@]}" update
-        sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends chromium
+        sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog
       fi
     else
-      echo "No chromium package found in apt repositories." >&2
+      echo "No cog package found in apt repositories." >&2
       exit 1
     fi
   fi
 
-  chrome_bin="$(command -v chromium-browser || command -v chromium || command -v google-chrome || true)"
-  if [[ -z "${chrome_bin}" ]]; then
-    echo "Chromium install did not provide a runnable browser binary." >&2
+  cog_bin="$(command -v cog || true)"
+  if [[ -z "${cog_bin}" ]]; then
+    echo "Cog install did not provide a runnable binary." >&2
     exit 1
   fi
 }
@@ -329,7 +313,7 @@ EOF
 
 cat <<EOF | sudo tee "${KIOSK_SERVICE_FILE}" >/dev/null
 [Unit]
-Description=Printer UI Chromium Kiosk
+Description=Printer UI WPE WebKit Kiosk (Cog)
 After=network-online.target printer-ui.service
 Wants=printer-ui.service
 Conflicts=getty@tty1.service
