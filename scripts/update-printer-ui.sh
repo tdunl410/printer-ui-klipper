@@ -33,9 +33,21 @@ apt_update_with_recovery() {
 }
 
 apt_install_with_recovery() {
-  local -a apt_opts=("$1" "$2" "$3" "$4")
-  shift 4
+  local -a apt_opts=()
+  while [[ "$#" -gt 0 ]]; do
+    if [[ "$1" == "--" ]]; then
+      shift
+      break
+    fi
+    apt_opts+=("$1")
+    shift
+  done
+
   local -a packages=("$@")
+  if [[ ${#packages[@]} -eq 0 ]]; then
+    echo "apt_install_with_recovery called without package names" >&2
+    return 1
+  fi
 
   if sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends "${packages[@]}"; then
     return 0
@@ -65,7 +77,13 @@ apt_install_with_recovery() {
 }
 
 ensure_kiosk_runtime() {
-  local apt_opts=("-o" "Acquire::Retries=5" "-o" "Acquire::ForceIPv4=true")
+  local apt_opts=(
+    "-o" "Acquire::Retries=5"
+    "-o" "Acquire::ForceIPv4=true"
+    "-o" "Acquire::By-Hash=true"
+    "-o" "Acquire::http::No-Cache=true"
+    "-o" "Acquire::https::No-Cache=true"
+  )
 
   local need_install=0
   command -v xinit >/dev/null 2>&1 || need_install=1
@@ -86,7 +104,7 @@ ensure_kiosk_runtime() {
   apt_update_with_recovery "${apt_opts[@]}"
 
   if ! command -v xinit >/dev/null 2>&1; then
-    apt_install_with_recovery "${apt_opts[@]}" xinit xserver-xorg
+    apt_install_with_recovery "${apt_opts[@]}" -- xinit xserver-xorg
   fi
 
   if ! command -v cog >/dev/null 2>&1; then
@@ -95,24 +113,24 @@ ensure_kiosk_runtime() {
       exit 1
     fi
 
-    apt_install_with_recovery "${apt_opts[@]}" cog
+    apt_install_with_recovery "${apt_opts[@]}" -- cog
   fi
 
   if package_available cog-platform-x11; then
-    apt_install_with_recovery "${apt_opts[@]}" cog-platform-x11 || \
+    apt_install_with_recovery "${apt_opts[@]}" -- cog-platform-x11 || \
       echo "Warning: could not install cog-platform-x11; set PRINTER_UI_COG_PLATFORM=drm if x11 is unavailable"
   fi
 
   if package_available cog-platform-drm; then
-    apt_install_with_recovery "${apt_opts[@]}" cog-platform-drm || \
+    apt_install_with_recovery "${apt_opts[@]}" -- cog-platform-drm || \
       echo "Warning: could not install cog-platform-drm"
   fi
 
   if package_available wpebackend-fdo; then
-    apt_install_with_recovery "${apt_opts[@]}" wpebackend-fdo || \
+    apt_install_with_recovery "${apt_opts[@]}" -- wpebackend-fdo || \
       echo "Warning: could not install wpebackend-fdo"
   elif package_available libwpebackend-fdo-1.0-1; then
-    apt_install_with_recovery "${apt_opts[@]}" libwpebackend-fdo-1.0-1 || \
+    apt_install_with_recovery "${apt_opts[@]}" -- libwpebackend-fdo-1.0-1 || \
       echo "Warning: could not install libwpebackend-fdo-1.0-1"
   fi
 
@@ -121,7 +139,7 @@ ensure_kiosk_runtime() {
   package_available libgles2-mesa && mesa_pkgs+=(libgles2-mesa)
   package_available libgbm1 && mesa_pkgs+=(libgbm1)
   if [[ ${#mesa_pkgs[@]} -gt 0 ]]; then
-    apt_install_with_recovery "${apt_opts[@]}" "${mesa_pkgs[@]}" || \
+    apt_install_with_recovery "${apt_opts[@]}" -- "${mesa_pkgs[@]}" || \
       echo "Warning: could not install some Mesa runtime packages (${mesa_pkgs[*]})"
   fi
 }
@@ -181,7 +199,13 @@ sudo cp server/kiosk-launch.sh "${INSTALL_DIR}/server/kiosk-launch.sh"
 sudo chmod +x "${INSTALL_DIR}/server/kiosk-launch.sh"
 for tool_pkg in xdotool:xdotool xdpyinfo:x11-utils xrandr:x11-xserver-utils; do
   if ! command -v "${tool_pkg%%:*}" >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
-    apt_install_with_recovery -o Acquire::Retries=5 -o Acquire::ForceIPv4=true "${tool_pkg##*:}" || echo "Warning: could not install ${tool_pkg##*:}"
+    apt_install_with_recovery \
+      -o Acquire::Retries=5 \
+      -o Acquire::ForceIPv4=true \
+      -o Acquire::By-Hash=true \
+      -o Acquire::http::No-Cache=true \
+      -o Acquire::https::No-Cache=true \
+      -- "${tool_pkg##*:}" || echo "Warning: could not install ${tool_pkg##*:}"
   fi
 done
 nohup bash -lc 'sleep 2; sudo systemctl restart printer-ui.service; sudo systemctl try-restart printer-ui-kiosk.service 2>/dev/null || true' >/dev/null 2>&1 &
