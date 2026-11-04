@@ -17,6 +17,7 @@ export function ConnectivityScreen() {
   const connectionState = usePrinterStore((state) => state.connectionState);
   const boot = usePrinterStore((state) => state.boot);
   const [apiConnectedWifi, setApiConnectedWifi] = useState<WifiApiNetwork | null>(null);
+  const [apiPrimaryIp, setApiPrimaryIp] = useState('');
 
   const wifi = connection.networkInterfaces.find((entry) => entry.type === 'wifi');
   const ethernet = connection.networkInterfaces.find((entry) => entry.type === 'ethernet');
@@ -27,16 +28,17 @@ export function ConnectivityScreen() {
   const activeInterfaceIp = connection.networkInterfaces
     .find((entry) => entry.isUp && entry.ipAddresses.length > 0)
     ?.ipAddresses.find(Boolean);
-  const displayedIpAddress = wifiIp || apiWifiIp || ethernetIp || activeInterfaceIp || '-';
+  const displayedIpAddress = wifiIp || apiWifiIp || ethernetIp || activeInterfaceIp || apiPrimaryIp || '-';
 
   const refreshConnectedWifi = useCallback(async () => {
     try {
       const response = await fetch('/api/wifi/networks');
       if (!response.ok) return;
-      const payload = (await response.json()) as { networks?: WifiApiNetwork[] };
+      const payload = (await response.json()) as { networks?: WifiApiNetwork[]; primaryIp?: string };
       if (!Array.isArray(payload.networks)) return;
       const connected = payload.networks.find((network) => network.connected) ?? null;
       setApiConnectedWifi(connected);
+      setApiPrimaryIp(typeof payload.primaryIp === 'string' ? payload.primaryIp : '');
     } catch {
       // Keep last known/fallback values from Moonraker state.
     }

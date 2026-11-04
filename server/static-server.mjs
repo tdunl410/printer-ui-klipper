@@ -1,5 +1,5 @@
 import { constants as fsConstants, createReadStream } from 'node:fs';
-import { access, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -201,22 +201,90 @@ function splitTerse(line) {
   return line.split(/(?<!\\):/).map((part) => part.replace(/\\:/g, ':').replace(/\\\\/g, '\\'));
 }
 
+const firstIpv4 = (raw) => {
+  const value = String(raw ?? '').trim();
+  if (!value) return '';
+  const ip = value.includes('/') ? value.split('/')[0] : value;
+  return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(ip) ? ip : '';
+};
+
+async function readConnectedDevices() {
+  const statusOutput = await nmcli(['-t', '-f', 'DEVICE,TYPE,STATE,CONNECTION', 'device', 'status']);
+  const devices = statusOutput
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => {
+      const [device, type, state, connection] = splitTerse(line);
+      return {
+        device: String(device ?? '').trim(),
+        type: String(type ?? '').trim(),
+        state: String(state ?? '').trim(),
+        connection: String(connection ?? '').trim(),
+      };
+    })
+    .filter((entry) => entry.device && entry.state === 'connected');
+
+  const withIps = await Promise.all(devices.map(async (entry) => {
+    try {
+      const ipOutput = await nmcli(['-g', 'IP4.ADDRESS', 'device', 'show', entry.device], 10000);
+      const ipAddresses = ipOutput
+        .split('\n')
+        .map(firstIpv4)
+        .filter(Boolean);
+      return { ...entry, ipAddresses };
+    } catch {
+      return { ...entry, ipAddresses: [] };
+    }
+  }));
+
+  return withIps;
+}
+
 async function listWifiNetworks(rescan) {
   const output = await nmcli(['-t', '-f', 'IN-USE,SSID,SIGNAL,SECURITY', 'dev', 'wifi', 'list', '--rescan', rescan ? 'yes' : 'auto']);
+  const connectedDevices = await readConnectedDevices();
+  const wifiBySsid = new Map(
+    connectedDevices
+      .filter((entry) => entry.type === 'wifi' && entry.connection && entry.connection !== '--')
+      .map((entry) => [entry.connection, entry]),
+  );
+
   const bySsid = new Map();
   for (const line of output.split('\n').filter(Boolean)) {
     const [inUse, ssid, signal, security] = splitTerse(line);
     if (!ssid) continue;
-    const entry = { ssid, signal: Number(signal) || 0, secured: Boolean(security && security !== '--'), connected: inUse === '*' };
+    const connected = inUse === '*';
+    const connectedInfo = connected ? wifiBySsid.get(ssid) : undefined;
+    const ipAddresses = connectedInfo?.ipAddresses ?? [];
+    const entry = {
+      ssid,
+      signal: Number(signal) || 0,
+      secured: Boolean(security && security !== '--'),
+      connected,
+      ipAddress: ipAddresses[0],
+      ipAddresses,
+    };
     const existing = bySsid.get(ssid);
     if (!existing) {
       bySsid.set(ssid, entry);
     } else {
       existing.connected ||= entry.connected;
       existing.signal = Math.max(existing.signal, entry.signal);
+      if (!existing.ipAddress && entry.ipAddress) {
+        existing.ipAddress = entry.ipAddress;
+      }
+      if ((!Array.isArray(existing.ipAddresses) || existing.ipAddresses.length === 0) && Array.isArray(entry.ipAddresses) && entry.ipAddresses.length > 0) {
+        existing.ipAddresses = entry.ipAddresses;
+      }
     }
   }
-  return [...bySsid.values()].sort((a, b) => Number(b.connected) - Number(a.connected) || b.signal - a.signal);
+
+  const primaryIp = connectedDevices.find((entry) => entry.ipAddresses.length > 0)?.ipAddresses[0] ?? '';
+
+  return {
+    networks: [...bySsid.values()].sort((a, b) => Number(b.connected) - Number(a.connected) || b.signal - a.signal),
+    primaryIp,
+  };
 }
 
 function readBody(req, maxSize = 4096) {
@@ -277,15 +345,23 @@ async function ensureUiConfig() {
     const merged = deepMerge(defaultUiConfig, parsed);
     return merged;
   } catch {
-    await writeFile(configPath, `${JSON.stringify(defaultUiConfig, null, 2)}\n`, 'utf8');
-    return structuredClone(defaultUiConfig);
+    try {
+      await access(configPath, fsConstants.F_OK);
+      return structuredClone(defaultUiConfig);
+    } catch {
+      await saveUiConfig(defaultUiConfig);
+      return structuredClone(defaultUiConfig);
+    }
   }
 }
 
 async function saveUiConfig(config) {
   const directory = dirname(configPath);
   await mkdir(directory, { recursive: true });
-  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  const nextText = `${JSON.stringify(config, null, 2)}\n`;
+  const tempPath = `${configPath}.tmp`;
+  await writeFile(tempPath, nextText, 'utf8');
+  await rename(tempPath, configPath);
 }
 
 // Wi-Fi control is limited to the local kiosk browser
@@ -298,7 +374,7 @@ async function handleWifi(req, res, path) {
   try {
     if (req.method === 'GET' && path === '/api/wifi/networks') {
       const rescan = new URL(req.url, 'http://localhost').searchParams.get('rescan') === '1';
-      sendJson(res, 200, { networks: await listWifiNetworks(rescan) });
+      sendJson(res, 200, await listWifiNetworks(rescan));
       return;
     }
 
