@@ -60,6 +60,13 @@ By default the launcher auto-selects a Cog platform (`x11` when available, other
 You can override with `PRINTER_UI_COG_PLATFORM=x11` or `PRINTER_UI_COG_PLATFORM=drm` in
 `/etc/default/printer-ui`.
 
+When using `PRINTER_UI_COG_PLATFORM=drm`, the launcher defaults to Cog's `gles` renderer and
+disables atomic modesetting for broader Raspberry Pi compatibility. You can override with:
+- `PRINTER_UI_COG_DRM_RENDERER=modeset|gles`
+- `PRINTER_UI_COG_DRM_DISABLE_ATOMIC=1|0`
+- `PRINTER_UI_COG_DRM_POINTER=1|0`
+- `PRINTER_UI_COG_DRM_CURSOR=1|0`
+
 ## Update After Changes
 ```bash
 cd ~/printer_ui

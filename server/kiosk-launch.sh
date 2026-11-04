@@ -10,6 +10,12 @@ if [[ "${1:-}" == "--session" ]]; then
   shift
   APP_URL="$1"
   shift
+  SESSION_PLATFORM="${1:-}"
+  if [[ -n "${SESSION_PLATFORM}" && "${SESSION_PLATFORM}" != --* ]]; then
+    shift
+  else
+    SESSION_PLATFORM=""
+  fi
 
   screen_size() {
     local size=""
@@ -28,6 +34,9 @@ if [[ "${1:-}" == "--session" ]]; then
   read -r W H <<<"$(screen_size)"
   if [[ -n "${W:-}" && -n "${H:-}" ]]; then
     echo "Screen size: ${W}x${H}"
+    if [[ "${SESSION_PLATFORM}" == "drm" ]]; then
+      export COG_PLATFORM_DRM_VIDEO_MODE="${W}x${H}"
+    fi
   else
     echo "Could not detect screen size; relying on Cog defaults"
   fi
@@ -156,7 +165,42 @@ fi
 
 echo "Launching ${COG_BIN} at ${APP_URL} (platform=${COG_PLATFORM})"
 
+DRM_RENDERER="${PRINTER_UI_COG_DRM_RENDERER:-gles}"
+DRM_DISABLE_ATOMIC="${PRINTER_UI_COG_DRM_DISABLE_ATOMIC:-1}"
+DRM_POINTER="${PRINTER_UI_COG_DRM_POINTER:-0}"
+DRM_CURSOR="${PRINTER_UI_COG_DRM_CURSOR:-0}"
+
+build_drm_platform_params() {
+  local params="renderer=${DRM_RENDERER}"
+  if [[ "${DRM_POINTER}" == "1" || "${DRM_POINTER}" == "true" || "${DRM_POINTER}" == "on" ]]; then
+    params+=",pointer=true"
+  else
+    params+=",pointer=false"
+  fi
+  if [[ "${DRM_CURSOR}" == "1" || "${DRM_CURSOR}" == "true" || "${DRM_CURSOR}" == "on" ]]; then
+    params+=",cursor=true"
+  else
+    params+=",cursor=false"
+  fi
+  echo "${params}"
+}
+
+DRM_PLATFORM_PARAMS="$(build_drm_platform_params)"
+COG_CONFIG_FILE="${XDG_RUNTIME_DIR}/printer-ui-cog.ini"
+
+cat >"${COG_CONFIG_FILE}" <<EOF
+[drm]
+renderer=${DRM_RENDERER}
+disable-atomic-modesetting=$( [[ "${DRM_DISABLE_ATOMIC}" == "1" || "${DRM_DISABLE_ATOMIC}" == "true" || "${DRM_DISABLE_ATOMIC}" == "on" ]] && echo true || echo false )
+pointer=$( [[ "${DRM_POINTER}" == "1" || "${DRM_POINTER}" == "true" || "${DRM_POINTER}" == "on" ]] && echo true || echo false )
+cursor=$( [[ "${DRM_CURSOR}" == "1" || "${DRM_CURSOR}" == "true" || "${DRM_CURSOR}" == "on" ]] && echo true || echo false )
+EOF
+
 if [[ "${COG_PLATFORM}" != "x11" ]]; then
+  if [[ "${COG_PLATFORM}" == "drm" ]]; then
+    exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+      "${COG_BIN}" -C "${COG_CONFIG_FILE}" --platform="${COG_PLATFORM}" --platform-params="${DRM_PLATFORM_PARAMS}" "${APP_URL}"
+  fi
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
     "${COG_BIN}" --platform="${COG_PLATFORM}" "${APP_URL}"
 fi
@@ -174,8 +218,8 @@ fi
 
 if command -v dbus-run-session >/dev/null 2>&1; then
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
-    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" --platform=x11 -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" x11 --platform=x11 -- :0 vt1 -nocursor
 else
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
-    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" --platform=x11 -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" x11 --platform=x11 -- :0 vt1 -nocursor
 fi
