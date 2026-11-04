@@ -217,8 +217,20 @@ fi
 
 if [[ "${COG_PLATFORM}" == "fdo" || "${COG_PLATFORM}" == "wl" || "${COG_PLATFORM}" == "wayland" ]]; then
   if ! has_wayland_display; then
-    echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland, but no Wayland display is available; falling back to x11 startup path"
-    COG_PLATFORM="x11"
+    fallback_platform=""
+    if has_cog_platform_module drm; then
+      fallback_platform="drm"
+    elif has_cog_platform_module x11; then
+      fallback_platform="x11"
+    fi
+
+    if [[ -n "${fallback_platform}" ]]; then
+      echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland, but no Wayland display is available; falling back to '${fallback_platform}'"
+      COG_PLATFORM="${fallback_platform}"
+    else
+      echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland, but no non-Wayland Cog platform module was detected; letting Cog choose defaults"
+      COG_PLATFORM=""
+    fi
   fi
 fi
 
