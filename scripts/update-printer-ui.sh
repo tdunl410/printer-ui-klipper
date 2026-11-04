@@ -10,6 +10,13 @@ DEFAULT_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_DIR="${PRINTER_UI_SOURCE_DIR:-${DEFAULT_REPO_DIR}}"
 INSTALL_DIR="/opt/printer-ui"
 
+deploy_runtime_scripts() {
+  sudo mkdir -p "${INSTALL_DIR}/server"
+  sudo cp server/kiosk-launch.sh "${INSTALL_DIR}/server/kiosk-launch.sh"
+  sudo chmod +x "${INSTALL_DIR}/server/kiosk-launch.sh"
+  sudo cp server/static-server.mjs "${INSTALL_DIR}/server/static-server.mjs"
+}
+
 npm_is_healthy() {
   command -v npm >/dev/null 2>&1 && npm --version >/dev/null 2>&1
 }
@@ -214,15 +221,13 @@ if ! npm_is_healthy; then
   exit 0
 fi
 
+deploy_runtime_scripts
 ensure_kiosk_runtime
 install_dependencies
 npm run build
 sudo mkdir -p "${INSTALL_DIR}/dist"
 sudo cp -r dist/* "${INSTALL_DIR}/dist/"
-sudo mkdir -p "${INSTALL_DIR}/server"
-sudo cp server/static-server.mjs "${INSTALL_DIR}/server/static-server.mjs"
-sudo cp server/kiosk-launch.sh "${INSTALL_DIR}/server/kiosk-launch.sh"
-sudo chmod +x "${INSTALL_DIR}/server/kiosk-launch.sh"
+deploy_runtime_scripts
 nohup bash -lc 'sleep 2; sudo systemctl restart printer-ui.service; sudo systemctl try-restart printer-ui-kiosk.service 2>/dev/null || true' >/dev/null 2>&1 &
 echo "Update complete."
 popd >/dev/null

@@ -105,6 +105,7 @@ LOG_FILE=/tmp/printer-ui-kiosk.log
 exec >>"${LOG_FILE}" 2>&1
 
 echo "[$(date -Iseconds)] Starting printer-ui kiosk launcher"
+echo "Launcher mode: strict-cog-only"
 
 COG_BIN=$(command -v cog || true)
 if [[ -z "${COG_BIN}" ]]; then
