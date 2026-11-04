@@ -15,7 +15,15 @@ import type {
   SystemVersions,
 } from '../domain/models';
 import { CommandService } from '../services/commands';
-import { defaultTempPresets, getUiConfig, patchUiConfig, type TempPreset } from '../services/userConfig';
+import {
+  defaultBottomBarItems,
+  defaultTempPresets,
+  getUiConfig,
+  normalizeBottomBarItems,
+  patchUiConfig,
+  type BottomBarItemKey,
+  type TempPreset,
+} from '../services/userConfig';
 import { computeJobState, deriveTemperatures, normalizeKlipperState, toPercent } from './printerStateUtils';
 import { MoonrakerHttpClient } from '../transport/moonrakerHttp';
 import { MoonrakerSocket } from '../transport/moonrakerSocket';
@@ -54,6 +62,7 @@ interface PrinterStore {
   commandQueue: CommandStatus[];
   theme: ThemeKey;
   printerRender: string;
+  bottomBarItems: BottomBarItemKey[];
   tempPresets: TempPreset[];
   fanPartPercent: number;
   outputPins: OutputPinState[];
@@ -67,6 +76,7 @@ interface PrinterStore {
   setTheme: (theme: ThemeKey) => void;
   setPrinterName: (name: string) => void;
   setPrinterRender: (render: string) => void;
+  setBottomBarItems: (items: BottomBarItemKey[]) => void;
   setConnectionUrls: (baseUrl: string, wsUrl: string) => void;
   setTempPresets: (presets: TempPreset[]) => void;
   setCustomization: (key: string, value: unknown) => void;
@@ -655,6 +665,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     commandQueue: [],
     theme: initialTheme,
     printerRender: initialPrinterRender,
+    bottomBarItems: [...defaultBottomBarItems],
     tempPresets: defaultTempPresets,
     fanPartPercent: 0,
     outputPins: [],
@@ -691,6 +702,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
             theme: configuredTheme,
             profileName: String(config.appearance.printerName || state.profileName || 'Printer').trim() || 'Printer',
             printerRender: configuredRender,
+            bottomBarItems: normalizeBottomBarItems(config.appearance.bottomBarItems),
             tempPresets: Array.isArray(config.presets.temperature) && config.presets.temperature.length > 0
               ? config.presets.temperature
               : defaultTempPresets,
@@ -874,6 +886,13 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       set({ printerRender: render });
       persistConfigPatch({
         appearance: { printerRender: render },
+      });
+    },
+    setBottomBarItems: (items: BottomBarItemKey[]) => {
+      const bottomBarItems = normalizeBottomBarItems(items);
+      set({ bottomBarItems });
+      persistConfigPatch({
+        appearance: { bottomBarItems },
       });
     },
     setConnectionUrls: (baseUrl: string, wsUrl: string) => {

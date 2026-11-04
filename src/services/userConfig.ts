@@ -7,11 +7,29 @@ export interface TempPreset {
   fan: number;
 }
 
+export type BottomBarItemKey = 'home' | 'print' | 'control' | 'preheat' | 'extrude' | 'settings';
+
+export const defaultBottomBarItems: BottomBarItemKey[] = ['home', 'print', 'control', 'settings'];
+const requiredBottomBarItems: BottomBarItemKey[] = ['home', 'settings'];
+const validBottomBarItems: BottomBarItemKey[] = ['home', 'print', 'control', 'preheat', 'extrude', 'settings'];
+
+export function normalizeBottomBarItems(value: unknown): BottomBarItemKey[] {
+  if (!Array.isArray(value)) return [...defaultBottomBarItems];
+
+  const selected = value.filter((item): item is BottomBarItemKey =>
+    typeof item === 'string' && validBottomBarItems.includes(item as BottomBarItemKey),
+  );
+  const unique = Array.from(new Set([...requiredBottomBarItems, ...selected]));
+  const limited = unique.slice(0, 5);
+  return validBottomBarItems.filter((item) => limited.includes(item));
+}
+
 export interface UiConfig {
   appearance: {
     theme: string;
     printerName: string;
     printerRender: string;
+    bottomBarItems: BottomBarItemKey[];
   };
   connection: {
     moonrakerBaseUrl?: string;
@@ -41,6 +59,7 @@ export const defaultUiConfig: UiConfig = {
     theme: 'purple',
     printerName: 'Printer',
     printerRender: '',
+    bottomBarItems: defaultBottomBarItems,
   },
   connection: {},
   presets: {
@@ -56,6 +75,7 @@ const mergeUiConfig = (base: UiConfig, incoming: UiConfigPatch | undefined): UiC
     appearance: {
       ...base.appearance,
       ...(incoming.appearance ?? {}),
+      bottomBarItems: normalizeBottomBarItems(incoming.appearance?.bottomBarItems ?? base.appearance.bottomBarItems),
     },
     connection: {
       ...base.connection,

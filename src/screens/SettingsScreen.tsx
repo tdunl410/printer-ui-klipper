@@ -33,7 +33,7 @@ export function SettingsScreen() {
 
       <section className="card">
         <div className="card-label">System Actions</div>
-        <div className="btn-row">
+        <div className="settings-nav">
           <button
             type="button"
             className="btn"

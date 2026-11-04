@@ -28,6 +28,7 @@ const defaultUiConfig = {
     theme: 'purple',
     printerName: 'Printer',
     printerRender: '',
+    bottomBarItems: ['home', 'print', 'control', 'settings'],
   },
   connection: {},
   presets: {

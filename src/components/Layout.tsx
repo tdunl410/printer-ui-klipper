@@ -1,12 +1,15 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import emergencyIcon from '../../assets/emergency.svg';
+import extrudeIcon from '../../assets/extrude.svg';
+import heaterIcon from '../../assets/heater.svg';
 import homeIcon from '../../assets/home.svg';
 import moveIcon from '../../assets/move.svg';
 import printerIcon from '../../assets/printer.svg';
 import settingsIcon from '../../assets/settings.svg';
 import { Dialog } from './Dialog';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
+import { type BottomBarItemKey } from '../services/userConfig';
 
 interface LayoutProps {
   title: string;
@@ -15,14 +18,19 @@ interface LayoutProps {
   homeAction?: boolean;
 }
 
-const dockItems = [
-  { to: '/control', label: 'Control', icon: moveIcon },
-  { to: '/settings', label: 'Settings', icon: settingsIcon },
-];
+const dockItems: Record<BottomBarItemKey, { to: string; label: string; icon: string }> = {
+  home: { to: '/', label: 'Home', icon: homeIcon },
+  print: { to: '/files', label: 'Print', icon: printerIcon },
+  control: { to: '/control', label: 'Control', icon: moveIcon },
+  preheat: { to: '/preheat', label: 'Preheat', icon: heaterIcon },
+  extrude: { to: '/extrude', label: 'Extrude', icon: extrudeIcon },
+  settings: { to: '/settings', label: 'Settings', icon: settingsIcon },
+};
 
 export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
   const commands = useCommands();
   const runAction = usePrinterStore((state) => state.runAction);
+  const bottomBarItems = usePrinterStore((state) => state.bottomBarItems);
   const [confirmEmergency, setConfirmEmergency] = useState(false);
   const jobState = usePrinterStore((state: { job: { state: string } }) => state.job.state);
   const printRoute = jobState === 'printing' || jobState === 'paused' ? '/print' : '/files';
@@ -49,26 +57,22 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
 
       {children}
 
-      <nav className="dock">
-        <NavLink to="/" className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')} end>
-          <img className="dock-icon" src={homeIcon} alt="" aria-hidden="true" />
-          <span className="dock-label">Home</span>
-        </NavLink>
-        <NavLink to={printRoute} className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}>
-          <img className="dock-icon" src={printerIcon} alt="" aria-hidden="true" />
-          <span className="dock-label">Print</span>
-        </NavLink>
-        {dockItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}
-            end={item.to === '/'}
-          >
-            <img className="dock-icon" src={item.icon} alt="" aria-hidden="true" />
-            <span className="dock-label">{item.label}</span>
-          </NavLink>
-        ))}
+      <nav className="dock" style={{ '--dock-item-count': bottomBarItems.length } as CSSProperties}>
+        {bottomBarItems.map((key) => {
+          const item = dockItems[key];
+          const to = key === 'print' ? printRoute : item.to;
+          return (
+            <NavLink
+              key={key}
+              to={to}
+              className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}
+              end
+            >
+              <img className="dock-icon" src={item.icon} alt="" aria-hidden="true" />
+              <span className="dock-label">{item.label}</span>
+            </NavLink>
+          );
+        })}
       </nav>
 
       {confirmEmergency ? (
