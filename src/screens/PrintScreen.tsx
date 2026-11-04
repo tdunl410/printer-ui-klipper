@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import arrowDownIcon from '../../assets/arrow-down.svg';
 import arrowUpIcon from '../../assets/arrow-up.svg';
@@ -100,6 +100,8 @@ export function PrintScreen() {
   const [showExcludeDialog, setShowExcludeDialog] = useState(false);
   const [selectedExcludeObjects, setSelectedExcludeObjects] = useState<string[]>([]);
   const [fanSliderValue, setFanSliderValue] = useState(() => Math.round(fanPartPercent));
+  const fanSliderTrackRef = useRef<HTMLDivElement | null>(null);
+  const fanSliderValueRef = useRef(Math.round(fanPartPercent));
   const fanLastCommittedRef = useRef(Math.round(fanPartPercent));
   const fanDraggingRef = useRef(false);
   const isPaused = job.state === 'paused';
@@ -141,6 +143,7 @@ export function PrintScreen() {
   useEffect(() => {
     const roundedPercent = Math.round(fanPartPercent);
     if (fanDraggingRef.current) return;
+    fanSliderValueRef.current = roundedPercent;
     setFanSliderValue(roundedPercent);
     fanLastCommittedRef.current = roundedPercent;
   }, [fanPartPercent]);
@@ -168,22 +171,102 @@ export function PrintScreen() {
     void runAction(`Set fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
   };
 
-  const fanPercentFromClientX = (element: HTMLInputElement, clientX: number) => {
-    const rect = element.getBoundingClientRect();
-    if (rect.width <= 0) return fanSliderValue;
+  const setFanSliderLocal = (value: number) => {
+    const nextValue = Math.max(0, Math.min(100, Math.round(value)));
+    fanSliderValueRef.current = nextValue;
+    setFanSliderValue(nextValue);
+  };
+
+  const fanPercentFromClientX = (clientX: number) => {
+    const track = fanSliderTrackRef.current;
+    if (!track) return fanSliderValueRef.current;
+    const rect = track.getBoundingClientRect();
+    if (rect.width <= 0) return fanSliderValueRef.current;
     const ratio = (clientX - rect.left) / rect.width;
     const boundedRatio = Math.max(0, Math.min(1, ratio));
     return Math.round(boundedRatio * 100);
   };
 
-  const beginFanDrag = () => {
-    fanDraggingRef.current = true;
+  const updateFanDragFromClientX = (clientX: number) => {
+    setFanSliderLocal(fanPercentFromClientX(clientX));
   };
 
-  const endFanDrag = (value: number) => {
-    fanDraggingRef.current = false;
-    commitFanValue(value);
+  const beginFanDrag = (clientX: number) => {
+    fanDraggingRef.current = true;
+    updateFanDragFromClientX(clientX);
   };
+
+  const endFanDrag = () => {
+    fanDraggingRef.current = false;
+    commitFanValue(fanSliderValueRef.current);
+  };
+
+  const onFanSliderKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      const next = fanSliderValueRef.current - 1;
+      setFanSliderLocal(next);
+      commitFanValue(next);
+      return;
+    }
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const next = fanSliderValueRef.current + 1;
+      setFanSliderLocal(next);
+      commitFanValue(next);
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      setFanSliderLocal(0);
+      commitFanValue(0);
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      setFanSliderLocal(100);
+      commitFanValue(100);
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!fanDraggingRef.current) return;
+      updateFanDragFromClientX(event.clientX);
+    };
+
+    const handleMouseUp = () => {
+      if (!fanDraggingRef.current) return;
+      endFanDrag();
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!fanDraggingRef.current) return;
+      const touch = event.touches[0];
+      if (!touch) return;
+      event.preventDefault();
+      updateFanDragFromClientX(touch.clientX);
+    };
+
+    const handleTouchEnd = () => {
+      if (!fanDraggingRef.current) return;
+      endFanDrag();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, []);
 
   return (
     <Layout title="Active Print" subtitle={`Part: ${job.filename}`}>
@@ -324,56 +407,27 @@ export function PrintScreen() {
 
             <div className="kv top-gap"><span>Part Fan</span><strong>{fanPartPercent}%</strong></div>
             <div className="fan-slider-row">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                className="fan-slider"
+              <div
+                ref={fanSliderTrackRef}
+                className="fan-slider-track"
+                role="slider"
+                tabIndex={0}
                 aria-label="Part fan speed"
-                value={fanSliderValue}
-                style={{ '--slider-fill': `${fanSliderValue}%` } as CSSProperties}
-                onPointerDown={(event) => {
-                  beginFanDrag();
-                  try {
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                  } catch {}
-                  setFanSliderValue(fanPercentFromClientX(event.currentTarget, event.clientX));
-                }}
-                onTouchStart={() => beginFanDrag()}
-                onMouseDown={() => beginFanDrag()}
-                onPointerMove={(event) => {
-                  if (!fanDraggingRef.current) return;
-                  setFanSliderValue(fanPercentFromClientX(event.currentTarget, event.clientX));
-                }}
-                onTouchMove={(event) => {
-                  if (!fanDraggingRef.current) return;
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={fanSliderValue}
+                onKeyDown={onFanSliderKeyDown}
+                onMouseDown={(event) => beginFanDrag(event.clientX)}
+                onTouchStart={(event) => {
                   const touch = event.touches[0];
                   if (!touch) return;
-                  setFanSliderValue(fanPercentFromClientX(event.currentTarget, touch.clientX));
+                  event.preventDefault();
+                  beginFanDrag(touch.clientX);
                 }}
-                onMouseMove={(event) => {
-                  if (!fanDraggingRef.current || event.buttons !== 1) return;
-                  setFanSliderValue(fanPercentFromClientX(event.currentTarget, event.clientX));
-                }}
-                onInput={(event) => {
-                  setFanSliderValue(Number(event.currentTarget.value));
-                }}
-                onChange={(event) => {
-                  const nextPercent = Number(event.currentTarget.value);
-                  setFanSliderValue(nextPercent);
-                  commitFanValue(nextPercent);
-                }}
-                onPointerUp={(event) => {
-                  try {
-                    event.currentTarget.releasePointerCapture(event.pointerId);
-                  } catch {}
-                  endFanDrag(Number(event.currentTarget.value));
-                }}
-                onTouchEnd={(event) => endFanDrag(Number(event.currentTarget.value))}
-                onMouseUp={(event) => endFanDrag(Number(event.currentTarget.value))}
-                onBlur={(event) => endFanDrag(Number(event.currentTarget.value))}
-              />
+              >
+                <div className="fan-slider-fill" style={{ width: `${fanSliderValue}%` }} />
+                <div className="fan-slider-thumb" style={{ left: `${fanSliderValue}%` }} />
+              </div>
               <button
                 type="button"
                 className="btn"
