@@ -169,6 +169,7 @@ DRM_RENDERER="${PRINTER_UI_COG_DRM_RENDERER:-gles}"
 DRM_DISABLE_ATOMIC="${PRINTER_UI_COG_DRM_DISABLE_ATOMIC:-1}"
 DRM_POINTER="${PRINTER_UI_COG_DRM_POINTER:-0}"
 DRM_CURSOR="${PRINTER_UI_COG_DRM_CURSOR:-0}"
+DRM_PLATFORM_PARAMS="${PRINTER_UI_COG_DRM_PLATFORM_PARAMS:-renderer=${DRM_RENDERER}}"
 COG_CONFIG_FILE="${XDG_RUNTIME_DIR}/printer-ui-cog.ini"
 
 cat >"${COG_CONFIG_FILE}" <<EOF
@@ -182,7 +183,7 @@ EOF
 if [[ "${COG_PLATFORM}" != "x11" ]]; then
   if [[ "${COG_PLATFORM}" == "drm" ]]; then
     exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
-      "${COG_BIN}" -C "${COG_CONFIG_FILE}" --platform="${COG_PLATFORM}" "${APP_URL}"
+      "${COG_BIN}" -C "${COG_CONFIG_FILE}" --platform="${COG_PLATFORM}" --platform-params="${DRM_PLATFORM_PARAMS}" "${APP_URL}"
   fi
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
     "${COG_BIN}" --platform="${COG_PLATFORM}" "${APP_URL}"

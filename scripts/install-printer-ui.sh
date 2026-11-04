@@ -274,6 +274,15 @@ ensure_kiosk_runtime() {
       echo "Warning: could not install libwpebackend-fdo-1.0-1"
   fi
 
+  local mesa_pkgs=()
+  package_available libegl-mesa0 && mesa_pkgs+=(libegl-mesa0)
+  package_available libgles2-mesa && mesa_pkgs+=(libgles2-mesa)
+  package_available libgbm1 && mesa_pkgs+=(libgbm1)
+  if [[ ${#mesa_pkgs[@]} -gt 0 ]]; then
+    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends "${mesa_pkgs[@]}" || \
+      echo "Warning: could not install some Mesa runtime packages (${mesa_pkgs[*]})"
+  fi
+
   cog_bin="$(command -v cog || true)"
   if [[ -z "${cog_bin}" ]]; then
     echo "Cog install did not provide a runnable binary." >&2
