@@ -94,7 +94,7 @@ unset DBUS_SESSION_BUS_ADDRESS
 unset DBUS_SYSTEM_BUS_ADDRESS
 
 APP_URL="http://${HOST}:${PORT}"
-COG_PLATFORM="${PRINTER_UI_COG_PLATFORM:-x11}"
+COG_PLATFORM="${PRINTER_UI_COG_PLATFORM:-auto}"
 
 SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 
@@ -125,6 +125,17 @@ if [[ -z "${WPE_BACKEND:-}" ]]; then
   elif ldconfig -p 2>/dev/null | grep -q "libWPEBackend-fdo"; then
     export WPE_BACKEND=fdo
     echo "WPE_BACKEND not set; using fdo backend"
+  fi
+fi
+
+if [[ "${COG_PLATFORM}" == "auto" ]]; then
+  if has_cog_platform_module x11; then
+    COG_PLATFORM="x11"
+  elif has_cog_platform_module drm; then
+    COG_PLATFORM="drm"
+  else
+    echo "No usable Cog platform modules detected (x11/drm). Install cog platform packages."
+    exit 1
   fi
 fi
 

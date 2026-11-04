@@ -56,8 +56,9 @@ The kiosk launcher always sizes the Cog window to the exact X screen resolution
 `xdpyinfo`/`xrandr` and keeps the window pinned to it with `xdotool`. To force a size, set
 `PRINTER_UI_WINDOW_SIZE=400,1280` in `/etc/default/printer-ui`.
 
-By default the launcher runs `cog` with `PRINTER_UI_COG_PLATFORM=x11`. If your image lacks
-Cog X11 support, set `PRINTER_UI_COG_PLATFORM=drm` in `/etc/default/printer-ui`.
+By default the launcher auto-selects a Cog platform (`x11` when available, otherwise `drm`).
+You can override with `PRINTER_UI_COG_PLATFORM=x11` or `PRINTER_UI_COG_PLATFORM=drm` in
+`/etc/default/printer-ui`.
 
 ## Update After Changes
 ```bash
