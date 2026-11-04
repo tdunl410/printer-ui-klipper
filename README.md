@@ -64,7 +64,7 @@ When using `PRINTER_UI_COG_PLATFORM=drm`, the launcher defaults to Cog's `gles` 
 disables atomic modesetting for broader Raspberry Pi compatibility. You can override with:
 - `PRINTER_UI_COG_DRM_RENDERER=modeset|gles`
 - `PRINTER_UI_COG_DRM_DISABLE_ATOMIC=1|0`
-- `PRINTER_UI_COG_DRM_POINTER=1|0`
+- `PRINTER_UI_COG_DRM_POINTER=1|0` (default `1`)
 - `PRINTER_UI_COG_DRM_CURSOR=1|0`
 
 ## Update After Changes
