@@ -38,8 +38,8 @@ export const defaultConnection = (): ConnectionDetails => {
   const host = window.location.hostname || 'printer.local';
   const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
   const wsProtocol = protocol === 'https' ? 'wss' : 'ws';
-  const moonrakerBaseUrl = localStorage.getItem('moonraker-base-url') || `${protocol}://${host}`;
-  const websocketUrl = localStorage.getItem('moonraker-websocket-url') || `${wsProtocol}://${host}/websocket`;
+  const moonrakerBaseUrl = `${protocol}://${host}`;
+  const websocketUrl = `${wsProtocol}://${host}/websocket`;
 
   return {
     moonrakerBaseUrl,

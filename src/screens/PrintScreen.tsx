@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import arrowDownIcon from '../../assets/arrow-down.svg';
 import arrowUpIcon from '../../assets/arrow-up.svg';
@@ -298,6 +298,7 @@ export function PrintScreen() {
                 className="fan-slider"
                 aria-label="Part fan speed"
                 value={Math.round(fanPartPercent)}
+                style={{ '--slider-fill': `${Math.round(fanPartPercent)}%` } as CSSProperties}
                 onChange={(event) => {
                   const nextPercent = Number(event.currentTarget.value);
                   void runAction(`Set fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));

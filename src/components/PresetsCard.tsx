@@ -1,36 +1,8 @@
 import { useState } from 'react';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
+import { type TempPreset as Preset } from '../services/userConfig';
 import { Dialog } from './Dialog';
 import { KeyboardInput } from './OnScreenKeyboard';
-
-export interface Preset {
-  id: string;
-  name: string;
-  nozzle: number;
-  bed: number;
-  chamber: number;
-  fan: number;
-}
-
-const STORAGE_KEY = 'printer-ui-presets';
-
-const defaultPresets: Preset[] = [
-  { id: 'pla', name: 'PLA', nozzle: 210, bed: 60, chamber: 0, fan: 50 },
-  { id: 'abs', name: 'ABS', nozzle: 280, bed: 100, chamber: 80, fan: 30 },
-  { id: 'cooldown', name: 'COOLDOWN', nozzle: 0, bed: 0, chamber: 1, fan: 0 },
-];
-
-function loadPresets(): Preset[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
-    if (Array.isArray(parsed) && parsed.every((entry) => entry && typeof entry.id === 'string' && typeof entry.name === 'string')) {
-      return parsed as Preset[];
-    }
-  } catch {
-    // fall through to defaults
-  }
-  return defaultPresets;
-}
 
 const clamp = (value: number, max: number) => Math.max(0, Math.min(max, value));
 
@@ -57,13 +29,13 @@ function Stepper({ label, value, step, max, unit, onChange }: {
 export function PresetsCard() {
   const commands = useCommands();
   const runAction = usePrinterStore((state) => state.runAction);
-  const [presets, setPresets] = useState<Preset[]>(loadPresets);
+  const presets = usePrinterStore((state) => state.tempPresets);
+  const setTempPresets = usePrinterStore((state) => state.setTempPresets);
   const [editing, setEditing] = useState<Preset | null>(null);
   const [isNew, setIsNew] = useState(false);
 
   const persist = (next: Preset[]) => {
-    setPresets(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setTempPresets(next);
   };
 
   const apply = (preset: Preset) => {

@@ -1,5 +1,5 @@
 import { constants as fsConstants, createReadStream } from 'node:fs';
-import { access, stat } from 'node:fs/promises';
+import { access, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -15,7 +15,25 @@ const loopbackAddresses = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const serverDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(serverDir, '..');
 const updateScript = process.env.PRINTER_UI_UPDATE_SCRIPT ?? join(projectRoot, 'scripts', 'update-printer-ui.sh');
+const configPath = process.env.PRINTER_UI_CONFIG_PATH ?? join(projectRoot, 'data', 'user-config.json');
 const MAX_UPDATE_LOG_LINES = 80;
+
+const defaultUiConfig = {
+  appearance: {
+    theme: 'purple',
+    printerName: 'Printer',
+    printerRender: '',
+  },
+  connection: {},
+  presets: {
+    temperature: [
+      { id: 'pla', name: 'PLA', nozzle: 210, bed: 60, chamber: 0, fan: 50 },
+      { id: 'abs', name: 'ABS', nozzle: 280, bed: 100, chamber: 80, fan: 30 },
+      { id: 'cooldown', name: 'COOLDOWN', nozzle: 0, bed: 0, chamber: 1, fan: 0 },
+    ],
+  },
+  customizations: {},
+};
 
 const uiUpdateState = {
   status: 'idle',
@@ -201,12 +219,12 @@ async function listWifiNetworks(rescan) {
   return [...bySsid.values()].sort((a, b) => Number(b.connected) - Number(a.connected) || b.signal - a.signal);
 }
 
-function readBody(req) {
+function readBody(req, maxSize = 4096) {
   return new Promise((resolve, reject) => {
     let data = '';
     req.on('data', (chunk) => {
       data += chunk;
-      if (data.length > 4096) {
+      if (data.length > maxSize) {
         reject(new Error('Body too large'));
         req.destroy();
       }
@@ -219,6 +237,55 @@ function readBody(req) {
 function sendJson(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(body));
+}
+
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function deepMerge(base, patch) {
+  if (!isPlainObject(base)) {
+    return patch;
+  }
+
+  const output = { ...base };
+  if (!isPlainObject(patch)) {
+    return output;
+  }
+
+  Object.entries(patch).forEach(([key, value]) => {
+    if (isPlainObject(value) && isPlainObject(output[key])) {
+      output[key] = deepMerge(output[key], value);
+      return;
+    }
+    output[key] = value;
+  });
+
+  return output;
+}
+
+async function ensureUiConfig() {
+  const directory = dirname(configPath);
+  await mkdir(directory, { recursive: true });
+
+  try {
+    const raw = await readFile(configPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!isPlainObject(parsed)) {
+      throw new Error('Invalid config root');
+    }
+    const merged = deepMerge(defaultUiConfig, parsed);
+    return merged;
+  } catch {
+    await writeFile(configPath, `${JSON.stringify(defaultUiConfig, null, 2)}\n`, 'utf8');
+    return structuredClone(defaultUiConfig);
+  }
+}
+
+async function saveUiConfig(config) {
+  const directory = dirname(configPath);
+  await mkdir(directory, { recursive: true });
+  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
 }
 
 // Wi-Fi control is limited to the local kiosk browser
@@ -268,6 +335,26 @@ async function handleUi(req, res, path) {
   try {
     if (req.method === 'GET' && path === '/api/ui/update-screen') {
       sendJson(res, 200, { update: snapshotUiUpdateState() });
+      return;
+    }
+
+    if (req.method === 'GET' && path === '/api/ui/config') {
+      const config = await ensureUiConfig();
+      sendJson(res, 200, { config });
+      return;
+    }
+
+    if (req.method === 'PATCH' && path === '/api/ui/config') {
+      const body = JSON.parse(await readBody(req, 256000));
+      if (!isPlainObject(body)) {
+        sendJson(res, 400, { error: 'Config patch must be an object' });
+        return;
+      }
+
+      const current = await ensureUiConfig();
+      const next = deepMerge(current, body);
+      await saveUiConfig(next);
+      sendJson(res, 200, { config: next });
       return;
     }
 

@@ -15,6 +15,7 @@ import type {
   SystemVersions,
 } from '../domain/models';
 import { CommandService } from '../services/commands';
+import { defaultTempPresets, getUiConfig, patchUiConfig, type TempPreset } from '../services/userConfig';
 import { computeJobState, deriveTemperatures, normalizeKlipperState, toPercent } from './printerStateUtils';
 import { MoonrakerHttpClient } from '../transport/moonrakerHttp';
 import { MoonrakerSocket } from '../transport/moonrakerSocket';
@@ -53,6 +54,7 @@ interface PrinterStore {
   commandQueue: CommandStatus[];
   theme: ThemeKey;
   printerRender: string;
+  tempPresets: TempPreset[];
   fanPartPercent: number;
   outputPins: OutputPinState[];
   printerSpeedMmS: number;
@@ -66,6 +68,8 @@ interface PrinterStore {
   setPrinterName: (name: string) => void;
   setPrinterRender: (render: string) => void;
   setConnectionUrls: (baseUrl: string, wsUrl: string) => void;
+  setTempPresets: (presets: TempPreset[]) => void;
+  setCustomization: (key: string, value: unknown) => void;
   runAction: (label: string, action: () => Promise<unknown>) => Promise<void>;
   setSelectedFile: (path: string) => void;
   klipperState: KlipperState;
@@ -331,10 +335,9 @@ const parseNetworkInterfaces = (networkResult: Record<string, unknown>) => {
 };
 
 export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: PrinterGetState) => {
-  const initialTheme = (localStorage.getItem('printer-ui-theme') as ThemeKey | null) ?? 'purple';
-  const initialPrinterName = localStorage.getItem('printer-ui-name')?.trim() || 'Printer';
-  const savedPrinterRender = localStorage.getItem('printer-ui-render');
-  const initialPrinterRender = printerRenders.find((render) => render.name === savedPrinterRender)?.name
+  const initialTheme: ThemeKey = 'purple';
+  const initialPrinterName = 'Printer';
+  const initialPrinterRender = printerRenders.find((render) => render.name === defaultPrinterRender?.name)?.name
     ?? defaultPrinterRender?.name
     ?? '';
 
@@ -345,6 +348,12 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
   };
 
   const httpClient = new MoonrakerHttpClient(defaultConnection().moonrakerBaseUrl);
+  const persistConfigPatch = (patch: Parameters<typeof patchUiConfig>[0]) => {
+    void patchUiConfig(patch).catch(() => {
+      // Keep runtime state even if config persistence fails temporarily.
+    });
+  };
+
   const fetchSnapshot = async () => {
     if (snapshotInFlight) return;
     snapshotInFlight = true;
@@ -576,10 +585,10 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     ].map((entry) => entry.trim()).filter(Boolean);
 
     const preferredHostName = candidateHostNames.find((entry) => !isIpOrLocalHost(entry)) ?? '';
-    const existingName = get().profileName;
+    const existingName = String(get().profileName ?? '').trim();
     const nextRawName = configuredPrinterName || preferredHostName || (isIpOrLocalHost(existingName) ? 'Printer' : existingName);
-    const savedPrinterName = localStorage.getItem('printer-ui-name')?.trim();
-    set({ profileName: savedPrinterName || normalizeProfileName(nextRawName) });
+    const autoName = normalizeProfileName(nextRawName);
+    set({ profileName: existingName && existingName !== 'Printer' ? existingName : autoName });
 
     if (networkRes.status === 'fulfilled') {
       const interfaces = parseNetworkInterfaces(networkRes.value);
@@ -646,6 +655,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     commandQueue: [],
     theme: initialTheme,
     printerRender: initialPrinterRender,
+    tempPresets: defaultTempPresets,
     fanPartPercent: 0,
     outputPins: [],
     printerSpeedMmS: 0,
@@ -653,31 +663,61 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     flowPercent: 100,
     zOffset: 0,
     boot: () => {
-      slowCache.clear();
-      snapshotCount = 0;
-      const existing = socketClient;
-      if (existing) {
-        existing.close();
-      }
+      const start = async () => {
+        slowCache.clear();
+        snapshotCount = 0;
+        const existing = socketClient;
+        if (existing) {
+          existing.close();
+        }
 
-      if (pollTimer) {
-        window.clearInterval(pollTimer);
-        pollTimer = undefined;
-      }
+        if (pollTimer) {
+          window.clearInterval(pollTimer);
+          pollTimer = undefined;
+        }
 
-      set({ connectionState: 'connecting' });
-      fetchSnapshot()
-        .then(() => set({ connectionState: 'online' }))
-        .catch(() => set({ connectionState: 'offline' }));
+        set({ connectionState: 'connecting' });
 
-      const { connection } = get();
+        try {
+          const config = await getUiConfig();
+          const configuredTheme = (['purple', 'blue', 'green', 'rose', 'red', 'orange'] as const).includes(config.appearance.theme as ThemeKey)
+            ? (config.appearance.theme as ThemeKey)
+            : 'purple';
+          const configuredRender = printerRenders.find((render) => render.name === config.appearance.printerRender)?.name
+            ?? defaultPrinterRender?.name
+            ?? '';
 
-      socketClient = new MoonrakerSocket(
-        connection.websocketUrl,
-        ['toolhead', 'extruder', 'heater_bed', 'print_stats', 'display_status', 'fan', 'idle_timeout', 'gcode_move', 'heaters', 'webhooks', 'exclude_object'],
-        () => set({ connectionState: 'online' }),
-        () => set({ connectionState: 'offline' }),
-        (payload) => {
+          set((state) => ({
+            theme: configuredTheme,
+            profileName: String(config.appearance.printerName || state.profileName || 'Printer').trim() || 'Printer',
+            printerRender: configuredRender,
+            tempPresets: Array.isArray(config.presets.temperature) && config.presets.temperature.length > 0
+              ? config.presets.temperature
+              : defaultTempPresets,
+            connection: {
+              ...state.connection,
+              moonrakerBaseUrl: String(config.connection.moonrakerBaseUrl || state.connection.moonrakerBaseUrl),
+              websocketUrl: String(config.connection.websocketUrl || state.connection.websocketUrl),
+            },
+          }));
+
+          document.body.dataset.theme = configuredTheme;
+        } catch {
+          document.body.dataset.theme = get().theme;
+        }
+
+        fetchSnapshot()
+          .then(() => set({ connectionState: 'online' }))
+          .catch(() => set({ connectionState: 'offline' }));
+
+        const { connection } = get();
+
+        socketClient = new MoonrakerSocket(
+          connection.websocketUrl,
+          ['toolhead', 'extruder', 'heater_bed', 'print_stats', 'display_status', 'fan', 'idle_timeout', 'gcode_move', 'heaters', 'webhooks', 'exclude_object'],
+          () => set({ connectionState: 'online' }),
+          () => set({ connectionState: 'offline' }),
+          (payload) => {
           const method = (payload as { method?: string } | null)?.method;
           if (method === 'notify_klippy_ready') {
             socketClient?.resubscribe();
@@ -779,25 +819,27 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
             return next;
           });
-        },
-      );
+          },
+        );
 
-      socketClient.connect();
-      pollTimer = window.setInterval(() => {
-        void fetchSnapshot();
-      }, 2500);
-      document.body.dataset.theme = get().theme;
+        socketClient.connect();
+        pollTimer = window.setInterval(() => {
+          void fetchSnapshot();
+        }, 2500);
 
-      const scopedHttp = httpClient.withBaseUrl(connection.moonrakerBaseUrl);
-      void scopedHttp.listObjects().then((result) => {
-        const objectList = ((((result.result as any) || {}).objects as string[] | undefined) ?? [])
-          .filter((name) => name.startsWith('gcode_macro '))
-          .map((name) => name.slice('gcode_macro '.length));
+        const scopedHttp = httpClient.withBaseUrl(connection.moonrakerBaseUrl);
+        void scopedHttp.listObjects().then((result) => {
+          const objectList = ((((result.result as any) || {}).objects as string[] | undefined) ?? [])
+            .filter((name) => name.startsWith('gcode_macro '))
+            .map((name) => name.slice('gcode_macro '.length));
 
-        set({ macros: objectList });
-      }).catch(() => {
-        set({ macros: [] });
-      });
+          set({ macros: objectList });
+        }).catch(() => {
+          set({ macros: [] });
+        });
+      };
+
+      void start();
     },
     disconnect: () => {
       socketClient?.close();
@@ -807,9 +849,11 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       }
     },
     setTheme: (theme: ThemeKey) => {
-      localStorage.setItem('printer-ui-theme', theme);
       document.body.dataset.theme = theme;
       set({ theme });
+      persistConfigPatch({
+        appearance: { theme },
+      });
     },
     setPrinterName: (name: string) => {
       const trimmedName = name.trim();
@@ -817,20 +861,22 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         throw new Error('Printer name cannot be empty');
       }
 
-      localStorage.setItem('printer-ui-name', trimmedName);
       set({ profileName: trimmedName });
+      persistConfigPatch({
+        appearance: { printerName: trimmedName },
+      });
     },
     setPrinterRender: (render: string) => {
       if (!printerRenders.some((option) => option.name === render)) {
         throw new Error(`Unknown printer render: ${render}`);
       }
 
-      localStorage.setItem('printer-ui-render', render);
       set({ printerRender: render });
+      persistConfigPatch({
+        appearance: { printerRender: render },
+      });
     },
     setConnectionUrls: (baseUrl: string, wsUrl: string) => {
-      localStorage.setItem('moonraker-base-url', baseUrl);
-      localStorage.setItem('moonraker-websocket-url', wsUrl);
       set((state) => ({
         connection: {
           ...state.connection,
@@ -838,6 +884,30 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           websocketUrl: wsUrl,
         },
       }));
+      persistConfigPatch({
+        connection: {
+          moonrakerBaseUrl: baseUrl,
+          websocketUrl: wsUrl,
+        },
+      });
+    },
+    setTempPresets: (presets: TempPreset[]) => {
+      const nextPresets = Array.isArray(presets) && presets.length > 0 ? presets : defaultTempPresets;
+      set({ tempPresets: nextPresets });
+      persistConfigPatch({
+        presets: {
+          temperature: nextPresets,
+        },
+      });
+    },
+    setCustomization: (key: string, value: unknown) => {
+      const trimmed = key.trim();
+      if (!trimmed) return;
+      persistConfigPatch({
+        customizations: {
+          [trimmed]: value,
+        },
+      });
     },
     runAction: async (label: string, action: () => Promise<unknown>) => {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

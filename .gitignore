@@ -8,3 +8,4 @@ tsinfo.tsbuildinfo
 .vite/
 vite.config.js
 vite.config.d.ts
+data/user-config.json

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import arrowDown from '../../assets/arrow-down.svg';
 import arrowLeft from '../../assets/arrow-left.svg';
 import arrowRight from '../../assets/arrow-right.svg';
@@ -129,6 +129,7 @@ export function MoveControls() {
             className="fan-slider"
             aria-label="Part fan speed"
             value={Math.round(fanPartPercent)}
+            style={{ '--slider-fill': `${Math.round(fanPartPercent)}%` } as CSSProperties}
             onChange={(event) => {
               const nextPercent = Number(event.currentTarget.value);
               void runAction(`Set part fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
@@ -149,6 +150,7 @@ export function MoveControls() {
                 className="fan-slider"
                 aria-label={`${pin.label} speed`}
                 value={Math.round(pin.percent)}
+                style={{ '--slider-fill': `${Math.round(pin.percent)}%` } as CSSProperties}
                 onChange={(event) => {
                   const nextPercent = Number(event.currentTarget.value);
                   void runAction(`Set ${pin.label} ${nextPercent}%`, () => commands.setOutputPin(nextPercent, pin.name));
