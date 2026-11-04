@@ -54,6 +54,7 @@ interface PrinterStore {
   printerRender: string;
   fanPartPercent: number;
   fanChamberPercent: number;
+  printerSpeedMmS: number;
   speedPercent: number;
   flowPercent: number;
   zOffset: number;
@@ -323,7 +324,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     const [objectsRes, filesRes, systemRes, networkRes, objectListRes, updateRes, historyRes, mainsailGeneralRes, serverInfoRes] = await Promise.allSettled([
       scopedHttp.queryObjects({
         toolhead: ['position'],
-        gcode_move: ['speed_factor', 'extrude_factor', 'homing_origin'],
+        gcode_move: ['speed', 'speed_factor', 'extrude_factor', 'homing_origin'],
         extruder: ['temperature', 'target'],
         heater_bed: ['temperature', 'target'],
         heaters: ['available_heaters', 'available_sensors', 'available_monitors'],
@@ -432,6 +433,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               (auxFanEntry as any)?.value ?? (auxFanEntry as any)?.speed ?? (chamberFanEntry?.[1] as any)?.speed,
               state.fanChamberPercent,
             ),
+        printerSpeedMmS: Number(status.gcode_move?.speed ?? state.printerSpeedMmS),
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
         zOffset: Number(status.gcode_move?.homing_origin?.[2] ?? state.zOffset),
@@ -609,6 +611,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     printerRender: initialPrinterRender,
     fanPartPercent: 0,
     fanChamberPercent: 0,
+    printerSpeedMmS: 0,
     speedPercent: 100,
     flowPercent: 100,
     zOffset: 0,
@@ -690,6 +693,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
             if (status.gcode_move) {
               const move = status.gcode_move;
+              if (move.speed !== undefined) next.printerSpeedMmS = Number(move.speed);
               if (move.speed_factor !== undefined) next.speedPercent = Math.round(Number(move.speed_factor) * 100);
               if (move.extrude_factor !== undefined) next.flowPercent = Math.round(Number(move.extrude_factor) * 100);
               if (move.homing_origin?.[2] !== undefined) next.zOffset = Number(move.homing_origin[2]);

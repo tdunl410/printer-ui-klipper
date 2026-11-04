@@ -85,6 +85,7 @@ export function PrintScreen() {
   const commands = useCommands();
   const job = usePrinterStore((state) => state.job);
   const temperatures = usePrinterStore((state) => state.temperatures);
+  const printerSpeedMmS = usePrinterStore((state) => state.printerSpeedMmS);
   const speedPercent = usePrinterStore((state) => state.speedPercent);
   const flowPercent = usePrinterStore((state) => state.flowPercent);
   const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
@@ -139,6 +140,7 @@ export function PrintScreen() {
   }
 
   const remainingLabel = job.remaining || job.eta || '00:00';
+  const currentSpeedLabel = Number.isFinite(printerSpeedMmS) ? `${printerSpeedMmS.toFixed(1)} mm/s` : '-- mm/s';
 
   const toggleExcludeObject = (name: string, disabled: boolean) => {
     if (disabled) return;
@@ -151,11 +153,11 @@ export function PrintScreen() {
 
   return (
     <Layout title="Active Print" subtitle={`Part: ${job.filename}`}>
-      <section className="card">
+      <section className="card print-time-card">
         <div className="card-label">Time Remaining</div>
         <div className="card-title">{remainingLabel}</div>
         <div
-          className="progress-bar"
+          className="progress-bar print-time-progress"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -166,7 +168,7 @@ export function PrintScreen() {
         <div className="kv"><span>{pct(job.progress)} complete</span><strong>ETA {job.eta}</strong></div>
       </section>
 
-      <section className="card">
+      <section className="card print-thumb-card">
         <div className="card-label">Current Job</div>
         <div className="media-thumb print-media-thumb">
           {thumbnailUrl ? (
@@ -177,15 +179,15 @@ export function PrintScreen() {
         </div>
       </section>
 
-      <section className="card">
+      <section className="card print-progress-card">
         <div className="card-label">Progress</div>
         <div className="kv"><span>Time Elapsed</span><strong>{job.elapsed}</strong></div>
         <div className="kv"><span>Time Remaining</span><strong>{remainingLabel}</strong></div>
-        <div className="kv"><span>Speed</span><strong>{speedPercent}%</strong></div>
+        <div className="kv"><span>Speed</span><strong>{currentSpeedLabel}</strong></div>
         <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
       </section>
 
-      <article className="card">
+      <article className="card print-temps-card">
         <div className="card-label">Temperatures</div>
         <div className="kv"><span>Hotend</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></div>
         <div className="kv"><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></div>
