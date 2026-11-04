@@ -33,53 +33,6 @@ package_available() {
   apt-cache show "${pkg}" >/dev/null 2>&1
 }
 
-has_supported_cog_platform_module() {
-  local search_roots=(
-    /usr/lib
-    /usr/lib64
-    /usr/local/lib
-    /usr/lib/aarch64-linux-gnu
-    /usr/lib/arm-linux-gnueabihf
-    /usr/lib/x86_64-linux-gnu
-  )
-  local root
-  for root in "${search_roots[@]}"; do
-    [[ -d "${root}" ]] || continue
-    if find "${root}" -maxdepth 10 -type f \( \
-      -name 'libcogplatform-drm.so*' -o \
-      -name 'libcogplatform-x11.so*' -o \
-      -name 'libcogplatform-gtk4.so*' -o \
-      -name 'libcogplatform-gtk.so*' \
-    \) 2>/dev/null | head -n1 | grep -q .; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-has_wayland_cog_platform_module() {
-  local search_roots=(
-    /usr/lib
-    /usr/lib64
-    /usr/local/lib
-    /usr/lib/aarch64-linux-gnu
-    /usr/lib/arm-linux-gnueabihf
-    /usr/lib/x86_64-linux-gnu
-  )
-  local root
-  for root in "${search_roots[@]}"; do
-    [[ -d "${root}" ]] || continue
-    if find "${root}" -maxdepth 10 -type f \( \
-      -name 'libcogplatform-fdo.so*' -o \
-      -name 'libcogplatform-wl.so*' -o \
-      -name 'libcogplatform-wayland.so*' \
-    \) 2>/dev/null | head -n1 | grep -q .; then
-      return 0
-    fi
-  done
-  return 1
-}
-
 apt_install_if_available() {
   local -a apt_opts=()
   while [[ "$#" -gt 0 ]]; do
@@ -375,7 +328,20 @@ ensure_kiosk_runtime() {
     cog-platform-wl \
     cog-platform-wayland
 
-  apt_install_if_available "${apt_opts[@]}" -- cage
+  local -a discovered_platform_pkgs=()
+  mapfile -t discovered_platform_pkgs < <(
+    apt-cache pkgnames 2>/dev/null | grep -E '^cog-platform-[[:alnum:]-]+$' | sort -u
+  )
+  if [[ ${#discovered_platform_pkgs[@]} -gt 0 ]]; then
+    echo "Installing Cog platform packages from apt: ${discovered_platform_pkgs[*]}"
+    apt_install_with_recovery "${apt_opts[@]}" -- "${discovered_platform_pkgs[@]}"
+  else
+    echo "No separate cog-platform-* packages are listed; checking platform packages bundled by cog."
+  fi
+
+  if package_available cage; then
+    apt_install_with_recovery "${apt_opts[@]}" -- cage
+  fi
 
   apt_install_if_available "${apt_opts[@]}" -- \
     wpebackend-fdo \
@@ -409,16 +375,10 @@ ensure_kiosk_runtime() {
     exit 1
   fi
 
-  if ! has_supported_cog_platform_module; then
-    if has_wayland_cog_platform_module; then
-      if ! command -v cage >/dev/null 2>&1; then
-        echo "Only Wayland Cog platform libraries were found after install; install package 'cage' to run Cog on a local Wayland compositor." >&2
-        exit 1
-      fi
-    else
-      echo "No usable Cog platform library found after install (expected drm/x11/gtk4/gtk or wayland platforms)." >&2
-      exit 1
-    fi
+  echo "Cog runtime installed. Installed Cog platform packages:"
+  dpkg-query -W -f='${binary:Package} ${Version}\n' 'cog-platform-*' 2>/dev/null || true
+  if command -v cage >/dev/null 2>&1; then
+    echo "Wayland compositor available: $(command -v cage)"
   fi
 }
 
