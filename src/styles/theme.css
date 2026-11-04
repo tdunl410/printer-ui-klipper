@@ -441,6 +441,19 @@ body {
   min-width: 0;
 }
 
+.preheat-columns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.preheat-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+}
+
 .bottom-bar-options {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -1528,6 +1541,14 @@ body {
     gap: var(--gap);
   }
 
+  .screen:has(.temp-graph-wrap) > .preheat-columns {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--gap);
+  }
+
   /* Home: hero fills the left column, everything else stacks on the right */
   .screen > .hero {
     grid-column: 1;
@@ -1549,6 +1570,27 @@ body {
 
   .screen:has(> .axis-card) > .card:not(.axis-card) {
     grid-column: 2;
+  }
+
+  .screen:has(> .axis-card) > .status-row .status-chip {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .screen:has(> .axis-card) > .status-row .status-chip .k,
+  .screen:has(> .axis-card) > .status-row .status-chip .v {
+    font-size: 14px;
+  }
+
+  .screen:has(> .axis-card) > .status-row .status-chip .v {
+    margin-top: 0;
+  }
+
+  .screen:has(> .axis-card) > .status-row .status-chip .k::after {
+    content: ':';
   }
 
   /* Print: independent stacked columns to avoid mirrored grid-row spacing */
@@ -1615,16 +1657,6 @@ body {
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
-
-  /* Preheat: keep cards in explicit rows so they don't drop into the flexible row */
-  .screen:has(.temp-graph-wrap) {
-    grid-template-rows: auto auto min-content min-content 1fr;
-  }
-
-  .screen:has(.temp-graph-wrap) > .card:nth-of-type(2) { grid-column: 1; grid-row: 3; }
-  .screen:has(.temp-graph-wrap) > .card:nth-of-type(3) { grid-column: 2; grid-row: 3; }
-  .screen:has(.temp-graph-wrap) > .card:nth-of-type(4) { grid-column: 2; grid-row: 4; }
-  .screen:has(.temp-graph-wrap) > .card:nth-of-type(5) { grid-column: 1; grid-row: 4; }
 
   .screen:has(.temp-graph-wrap) .temp-graph {
     height: 120px;
@@ -1727,13 +1759,77 @@ body {
   .ex-label { margin: 8px 0 4px; }
   .ex-seg button { min-height: 40px; }
 
+  .screen:has(> .axis-card) > .card:not(.axis-card) {
+    padding: 8px 10px;
+  }
+
+  .screen:has(> .axis-card) .card-title {
+    margin-bottom: 5px;
+  }
+
+  .screen:has(> .axis-card) .status-row {
+    gap: 6px;
+  }
+
+  .screen:has(> .axis-card) .status-row .status-chip {
+    padding: 4px 6px;
+  }
+
+  .screen:has(> .axis-card) .btn-row .btn,
+  .screen:has(> .axis-card) .axis-card > .btn {
+    min-height: 38px;
+    padding: 6px 8px;
+  }
+
+  .screen:has(> .axis-card) .axis-card {
+    padding: 8px 10px;
+  }
+
+  .screen:has(> .axis-card) .axis-card .spacer {
+    height: 3px;
+  }
+
+  .screen:has(> .axis-card) .move-controls {
+    grid-template-columns: minmax(0, 1fr) 68px;
+    gap: 8px;
+  }
+
+  .screen:has(> .axis-card) .jog-ring {
+    max-width: 180px;
+  }
+
+  .screen:has(> .axis-card) .z-controls {
+    gap: 6px;
+  }
+
+  .screen:has(> .axis-card) .z-controls .btn {
+    min-height: 72px;
+    border-radius: 16px;
+  }
+
 }
 
 @media (min-aspect-ratio: 5/4) and (max-height: 640px) {
-  /* Preheat: temperature controls on the left, graph and presets stacked on the right */
-  .screen:has(.temp-graph-wrap) > .card:nth-of-type(2) { grid-column: 1; grid-row: 3 / span 2; }
-  .screen:has(.temp-graph-wrap) > .card:nth-of-type(3) { grid-column: 2; grid-row: 3; }
-  .screen:has(.temp-graph-wrap) > .card:nth-of-type(4) { grid-column: 2; grid-row: 4 / span 2; }
-  .screen:has(.temp-graph-wrap) > .card:nth-of-type(5) { grid-column: 1; grid-row: 5; }
+  .screen:has(.temp-graph-wrap) .preheat-column {
+    gap: 8px;
+  }
+
+  .screen:has(.temp-graph-wrap) > .preheat-columns {
+    align-items: start;
+    align-content: start;
+  }
+
+  .screen:has(.temp-graph-wrap) .preheat-column > .card {
+    padding: 8px 10px;
+  }
+
+  .screen:has(.temp-graph-wrap) .preheat-column .card-title {
+    margin-bottom: 5px;
+  }
+
+  .screen:has(.temp-graph-wrap) .preheat-column .spacer {
+    height: 3px;
+  }
+
   .temp-graph { height: 96px; }
 }

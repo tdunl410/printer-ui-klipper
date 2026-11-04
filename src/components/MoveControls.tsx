@@ -49,8 +49,8 @@ export function MoveControls() {
   return (
     <>
       <section className="status-row">
-        <article className="status-chip"><div className="k">Position X</div><div className="v">{position.x.toFixed(1)}</div></article>
-        <article className="status-chip"><div className="k">Position Y</div><div className="v">{position.y.toFixed(1)}</div></article>
+        <article className="status-chip"><div className="k">Position X</div><div className="v">{position.x.toFixed(2)}</div></article>
+        <article className="status-chip"><div className="k">Position Y</div><div className="v">{position.y.toFixed(2)}</div></article>
         <article className="status-chip"><div className="k">Position Z</div><div className="v">{position.z.toFixed(2)}</div></article>
       </section>
 

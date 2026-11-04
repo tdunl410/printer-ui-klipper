@@ -6,20 +6,12 @@ import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 export function SettingsScreen() {
   const commands = useCommands();
-  const profileName = usePrinterStore((state) => state.profileName);
-  const connectionState = usePrinterStore((state) => state.connectionState);
   const runAction = usePrinterStore((state) => state.runAction);
-  const theme = usePrinterStore((state) => state.theme);
   const [confirmAction, setConfirmAction] = useState<'restart-klipper' | 'restart-host' | 'shutdown' | null>(null);
 
 
   return (
     <Layout title="Settings" subtitle=" " homeAction>
-      <section className="status-row">
-        <article className="status-chip"><div className="k">Profile</div><div className="v">{profileName}</div></article>
-        <article className="status-chip"><div className="k">Firmware</div><div className="v">{connectionState === 'online' ? 'Online' : 'Offline'}</div></article>
-        <article className="status-chip"><div className="k">Theme</div><div className="v">{theme}</div></article>
-      </section>
 
       <section className="card">
         <div className="card-label">Navigation</div>

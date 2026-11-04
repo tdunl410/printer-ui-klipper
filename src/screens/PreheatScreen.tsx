@@ -92,94 +92,92 @@ export function PreheatScreen() {
 
   return (
     <Layout title="Preheat" subtitle=" ">
-      <section className="status-row">
-        <article className="status-chip"><div className="k">Nozzle</div><div className="v">{Math.round(temperatures.nozzle.current)}/{Math.round(temperatures.nozzle.target)}</div></article>
-        <article className="status-chip"><div className="k">Bed</div><div className="v">{Math.round(temperatures.bed.current)}/{Math.round(temperatures.bed.target)}</div></article>
-        <article className="status-chip"><div className="k">Chamber</div><div className="v">{Math.round(temperatures.chamber.current)}/{Math.round(temperatures.chamber.target)}</div></article>
-      </section>
+      <div className="preheat-columns">
+        <div className="preheat-column">
+          <section className="card">
+            <div className="card-title">Set Temperature</div>
 
-      <section className="card">
-  
-        <div className="card-title">Set Temperature<br></br></div>
+            <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('extruder')}><span>Nozzle</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></button>
+            <div className="btn-row">
+              <button type="button" className="btn" onClick={() => adjust('extruder', -5)}>-5°C</button>
+              <button type="button" className="btn" onClick={() => adjust('extruder', -targetMap.extruder)}>Off</button>
+              <button type="button" className="btn" onClick={() => adjust('extruder', 5)}>+5°C</button>
+            </div>
 
-        <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('extruder')}><span>Nozzle</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></button>
-        <div className="btn-row">
-          <button type="button" className="btn" onClick={() => adjust('extruder', -5)}>-5°C</button>
-          <button type="button" className="btn" onClick={() => adjust('extruder', -targetMap.extruder)}>Off</button>
-          <button type="button" className="btn" onClick={() => adjust('extruder', 5)}>+5°C</button>
-        </div>
+            <div className="spacer" />
+            <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('heater_bed')}><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></button>
+            <div className="btn-row">
+              <button type="button" className="btn" onClick={() => adjust('heater_bed', -5)}>-5°C</button>
+              <button type="button" className="btn" onClick={() => adjust('heater_bed', -targetMap.heater_bed)}>Off</button>
+              <button type="button" className="btn" onClick={() => adjust('heater_bed', 5)}>+5°C</button>
+            </div>
 
-        <div className="spacer" />
-        <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('heater_bed')}><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></button>
-        <div className="btn-row">
-          <button type="button" className="btn" onClick={() => adjust('heater_bed', -5)}>-5°C</button>
-          <button type="button" className="btn" onClick={() => adjust('heater_bed', -targetMap.heater_bed)}>Off</button>
-          <button type="button" className="btn" onClick={() => adjust('heater_bed', 5)}>+5°C</button>
-        </div>
+            <div className="spacer" />
+            <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('chamber')}><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></button>
+            <div className="btn-row">
+              <button type="button" className="btn" onClick={() => adjust('chamber', -5)}>-5°C</button>
+              <button type="button" className="btn" onClick={() => adjust('chamber', -targetMap.chamber)}>Off</button>
+              <button type="button" className="btn" onClick={() => adjust('chamber', 5)}>+5°C</button>
+            </div>
+          </section>
 
-        <div className="spacer" />
-        <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('chamber')}><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></button>
-        <div className="btn-row">
-          <button type="button" className="btn" onClick={() => adjust('chamber', -5)}>-5°C</button>
-          <button type="button" className="btn" onClick={() => adjust('chamber', -targetMap.chamber)}>Off</button>
-          <button type="button" className="btn" onClick={() => adjust('chamber', 5)}>+5°C</button>
-        </div>
-      </section>
-
-      <section className="card">
- 
-        <div className="card-title">Temp Graph</div>
-
-        <div className="temp-legend">
-          <span><i className="dot nozzle"></i>Nozzle</span>
-          <span><i className="dot bed"></i>Bed</span>
-          <span><i className="dot chamber"></i>Chamber</span>
-          <span><i className="dot ambient"></i>Ambient</span>
-          <span><i className="dot pi"></i>Raspberry Pi</span>
-          {sensorEntries.map(([name]) => (
-            <span key={name}><i className="dot" style={{ background: 'var(--text-muted)' }}></i>{name}</span>
-          ))}
-        </div>
-
-        <div className="temp-graph-wrap">
-          <svg className="temp-graph" viewBox="0 0 320 150" preserveAspectRatio="none" aria-label="Temperature graph">
-            <g className="grid">
-              {graphScale.ticks.map((tick) => (
-                <line key={`grid-${tick.y}`} x1={GRAPH_LEFT} y1={tick.y} x2={GRAPH_RIGHT} y2={tick.y}></line>
-              ))}
-            </g>
-            <g>
-              {graphScale.ticks.map((tick) => (
-                <text key={`label-${tick.y}`} x={2} y={tick.y + 3} fill="var(--text-muted)" fontSize="9">
-                  {tick.value}°
-                </text>
-              ))}
-            </g>
-            <polyline className="line nozzle" points={line(temperatureHistory.nozzle ?? [temperatures.nozzle.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
-            <polyline className="line bed" points={line(temperatureHistory.bed ?? [temperatures.bed.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
-            <polyline className="line chamber" points={line(temperatureHistory.chamber ?? [temperatures.chamber.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
-            <polyline className="line ambient" points={line(temperatureHistory.ambient ?? [temperatures.ambient], graphScale.minTemp, graphScale.maxTemp)}></polyline>
-            <polyline className="line pi" points={line(temperatureHistory.raspberryPi ?? [temperatures.raspberryPi], graphScale.minTemp, graphScale.maxTemp)}></polyline>
-            {sensorEntries.map(([name]) => (
-              <polyline
-                key={name}
-                className="line"
-                points={line(temperatureHistory[name] ?? [temperatures.sensors[name].current], graphScale.minTemp, graphScale.maxTemp)}
-                style={{ stroke: 'var(--text-muted)' }}
-              ></polyline>
+          <section className="card">
+            <div className="card-title">Sensors</div>
+            {sensorEntries.map(([name, values]) => (
+              <div className="kv" key={name}><span>{name}</span><strong>{Math.round(values.current)} / {Math.round(values.target)}°C</strong></div>
             ))}
-          </svg>
+          </section>
         </div>
-      </section>
 
-      <PresetsCard />
+        <div className="preheat-column">
+          <section className="card">
+            <div className="card-title">Temp Graph</div>
 
-      <section className="card">
-        <div className="card-title">Sensors</div>
-        {sensorEntries.map(([name, values]) => (
-          <div className="kv" key={name}><span>{name}</span><strong>{Math.round(values.current)} / {Math.round(values.target)}°C</strong></div>
-        ))}
-      </section>
+            <div className="temp-legend">
+              <span><i className="dot nozzle"></i>Nozzle</span>
+              <span><i className="dot bed"></i>Bed</span>
+              <span><i className="dot chamber"></i>Chamber</span>
+              <span><i className="dot ambient"></i>Ambient</span>
+              <span><i className="dot pi"></i>Raspberry Pi</span>
+              {sensorEntries.map(([name]) => (
+                <span key={name}><i className="dot" style={{ background: 'var(--text-muted)' }}></i>{name}</span>
+              ))}
+            </div>
+
+            <div className="temp-graph-wrap">
+              <svg className="temp-graph" viewBox="0 0 320 150" preserveAspectRatio="none" aria-label="Temperature graph">
+                <g className="grid">
+                  {graphScale.ticks.map((tick) => (
+                    <line key={`grid-${tick.y}`} x1={GRAPH_LEFT} y1={tick.y} x2={GRAPH_RIGHT} y2={tick.y}></line>
+                  ))}
+                </g>
+                <g>
+                  {graphScale.ticks.map((tick) => (
+                    <text key={`label-${tick.y}`} x={2} y={tick.y + 3} fill="var(--text-muted)" fontSize="9">
+                      {tick.value}°
+                    </text>
+                  ))}
+                </g>
+                <polyline className="line nozzle" points={line(temperatureHistory.nozzle ?? [temperatures.nozzle.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+                <polyline className="line bed" points={line(temperatureHistory.bed ?? [temperatures.bed.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+                <polyline className="line chamber" points={line(temperatureHistory.chamber ?? [temperatures.chamber.current], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+                <polyline className="line ambient" points={line(temperatureHistory.ambient ?? [temperatures.ambient], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+                <polyline className="line pi" points={line(temperatureHistory.raspberryPi ?? [temperatures.raspberryPi], graphScale.minTemp, graphScale.maxTemp)}></polyline>
+                {sensorEntries.map(([name]) => (
+                  <polyline
+                    key={name}
+                    className="line"
+                    points={line(temperatureHistory[name] ?? [temperatures.sensors[name].current], graphScale.minTemp, graphScale.maxTemp)}
+                    style={{ stroke: 'var(--text-muted)' }}
+                  ></polyline>
+                ))}
+              </svg>
+            </div>
+          </section>
+
+          <PresetsCard />
+        </div>
+      </div>
 
       <HeaterKeypad keypad={keypad} />
     </Layout>

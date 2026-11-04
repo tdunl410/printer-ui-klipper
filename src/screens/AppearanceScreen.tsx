@@ -32,6 +32,13 @@ export function AppearanceScreen() {
   const setBottomBarItems = usePrinterStore((state) => state.setBottomBarItems);
   const [printerName, setPrinterNameDraft] = useState(profileName);
 
+  const savePrinterName = (value: string) => {
+    const trimmedName = value.trim();
+    if (!trimmedName) return;
+    setPrinterName(trimmedName);
+    setPrinterNameDraft(trimmedName);
+  };
+
   useEffect(() => {
     setPrinterNameDraft(profileName);
   }, [profileName]);
@@ -42,18 +49,13 @@ export function AppearanceScreen() {
         <div className="appearance-column">
           <section className="card appearance-name-card">
             <div className="card-title">Printer Name</div>
-            <form
-              className="btn-row"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (printerName.trim()) setPrinterName(printerName);
-              }}
-            >
-              <KeyboardInput label="Printer name" value={printerName} onChange={setPrinterNameDraft} placeholder="Printer name" />
-              <button className="btn accent" type="submit" disabled={!printerName.trim() || printerName.trim() === profileName}>
-                Save Name
-              </button>
-            </form>
+            <KeyboardInput
+              label="Printer name"
+              value={printerName}
+              onChange={setPrinterNameDraft}
+              onDone={savePrinterName}
+              placeholder="Printer name"
+            />
           </section>
           <section className="card appearance-bottom-bar-card">
             <div className="card-title">Bottom Bar</div>

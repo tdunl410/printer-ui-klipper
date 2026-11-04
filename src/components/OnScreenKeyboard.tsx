@@ -30,10 +30,11 @@ interface OnScreenKeyboardProps {
   value: string;
   onChange: (value: string) => void;
   onClose: () => void;
+  onDone?: (value: string) => void;
   secret?: boolean;
 }
 
-export function OnScreenKeyboard({ label, value, onChange, onClose, secret = false }: OnScreenKeyboardProps) {
+export function OnScreenKeyboard({ label, value, onChange, onClose, onDone, secret = false }: OnScreenKeyboardProps) {
   const [layer, setLayer] = useState<Layer>('lower');
   const [reveal, setReveal] = useState(false);
   const isLetters = layer === 'lower' || layer === 'upper';
@@ -83,7 +84,16 @@ export function OnScreenKeyboard({ label, value, onChange, onClose, secret = fal
               {isLetters ? '123' : 'ABC'}
             </button>
             <button type="button" className="key key-space" onClick={() => type(' ')}>space</button>
-            <button type="button" className="key key-done" onClick={onClose}>Done</button>
+            <button
+              type="button"
+              className="key key-done"
+              onClick={() => {
+                onDone?.(value);
+                onClose();
+              }}
+            >
+              Done
+            </button>
           </div>
         </div>
       </section>
@@ -95,12 +105,13 @@ interface KeyboardInputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onDone?: (value: string) => void;
   secret?: boolean;
   placeholder?: string;
 }
 
 // Tap-to-edit field that opens the on-screen keyboard instead of the system one
-export function KeyboardInput({ label, value, onChange, secret = false, placeholder }: KeyboardInputProps) {
+export function KeyboardInput({ label, value, onChange, onDone, secret = false, placeholder }: KeyboardInputProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -109,7 +120,14 @@ export function KeyboardInput({ label, value, onChange, secret = false, placehol
         {value ? (secret ? '•'.repeat(value.length) : value) : <span className="input-placeholder">{placeholder ?? 'Tap to edit'}</span>}
       </button>
       {open ? (
-        <OnScreenKeyboard label={label} value={value} onChange={onChange} onClose={() => setOpen(false)} secret={secret} />
+        <OnScreenKeyboard
+          label={label}
+          value={value}
+          onChange={onChange}
+          onDone={onDone}
+          onClose={() => setOpen(false)}
+          secret={secret}
+        />
       ) : null}
     </>
   );
