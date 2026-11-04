@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import arrowDownIcon from '../../assets/arrow-down.svg';
 import arrowUpIcon from '../../assets/arrow-up.svg';
@@ -99,6 +99,8 @@ export function PrintScreen() {
   const [thumbnailUrl, setThumbnailUrl] = useState<string>();
   const [showExcludeDialog, setShowExcludeDialog] = useState(false);
   const [selectedExcludeObjects, setSelectedExcludeObjects] = useState<string[]>([]);
+  const [fanSliderValue, setFanSliderValue] = useState(() => Math.round(fanPartPercent));
+  const fanLastCommittedRef = useRef(Math.round(fanPartPercent));
   const isPaused = job.state === 'paused';
   const plateBounds = useMemo(() => computePlateBounds(excludeObjects.objects), [excludeObjects.objects]);
   const availableObjects = useMemo(
@@ -135,6 +137,12 @@ export function PrintScreen() {
     });
   }, [availableObjectNames]);
 
+  useEffect(() => {
+    const roundedPercent = Math.round(fanPartPercent);
+    setFanSliderValue(roundedPercent);
+    fanLastCommittedRef.current = roundedPercent;
+  }, [fanPartPercent]);
+
   if (job.state !== 'printing' && job.state !== 'paused') {
     return <Navigate to="/files" replace />;
   }
@@ -149,6 +157,13 @@ export function PrintScreen() {
         ? current.filter((entry) => entry !== name)
         : [...current, name]
     ));
+  };
+
+  const commitFanValue = (value: number) => {
+    const nextPercent = Math.max(0, Math.min(100, Math.round(value)));
+    if (nextPercent === fanLastCommittedRef.current) return;
+    fanLastCommittedRef.current = nextPercent;
+    void runAction(`Set fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
   };
 
   return (
@@ -297,12 +312,19 @@ export function PrintScreen() {
                 step={1}
                 className="fan-slider"
                 aria-label="Part fan speed"
-                value={Math.round(fanPartPercent)}
-                style={{ '--slider-fill': `${Math.round(fanPartPercent)}%` } as CSSProperties}
+                value={fanSliderValue}
+                style={{ '--slider-fill': `${fanSliderValue}%` } as CSSProperties}
+                onInput={(event) => {
+                  setFanSliderValue(Number(event.currentTarget.value));
+                }}
                 onChange={(event) => {
                   const nextPercent = Number(event.currentTarget.value);
-                  void runAction(`Set fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
+                  setFanSliderValue(nextPercent);
+                  commitFanValue(nextPercent);
                 }}
+                onPointerUp={() => commitFanValue(fanSliderValue)}
+                onTouchEnd={() => commitFanValue(fanSliderValue)}
+                onMouseUp={() => commitFanValue(fanSliderValue)}
               />
               <button
                 type="button"

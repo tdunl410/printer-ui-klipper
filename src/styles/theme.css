@@ -1371,6 +1371,7 @@ body {
   appearance: none;
   height: 28px;
   background: transparent;
+  touch-action: pan-x;
 }
 
 .fan-slider::-webkit-slider-runnable-track {
