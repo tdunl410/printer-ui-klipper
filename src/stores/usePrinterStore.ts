@@ -159,6 +159,12 @@ const mapOutputPins = (
   });
 };
 
+const toMmPerSecond = (raw: unknown, fallback: number) => {
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric)) return fallback;
+  return numeric / 60;
+};
+
 const pushHistory = (history: Record<string, number[]>, key: string, value: number, max = 64) => {
   const current = history[key] ?? [];
   const next = [...current, value];
@@ -464,7 +470,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
             },
         fanPartPercent: live ? state.fanPartPercent : toPercent(status.fan?.speed, state.fanPartPercent),
         outputPins: mapOutputPins(dynamicStatus, outputPinNames, state.outputPins),
-        printerSpeedMmS: Number((status.gcode_move?.speed ?? state.printerSpeedMmS) / 60),
+        printerSpeedMmS: toMmPerSecond(status.gcode_move?.speed, state.printerSpeedMmS),
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
         zOffset: Number(status.gcode_move?.homing_origin?.[2] ?? state.zOffset),
@@ -729,7 +735,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
             if (status.gcode_move) {
               const move = status.gcode_move;
-              if (move.speed !== undefined) next.printerSpeedMmS = Number(move.speed);
+              if (move.speed !== undefined) next.printerSpeedMmS = toMmPerSecond(move.speed, next.printerSpeedMmS);
               if (move.speed_factor !== undefined) next.speedPercent = Math.round(Number(move.speed_factor) * 100);
               if (move.extrude_factor !== undefined) next.flowPercent = Math.round(Number(move.extrude_factor) * 100);
               if (move.homing_origin?.[2] !== undefined) next.zOffset = Number(move.homing_origin[2]);
