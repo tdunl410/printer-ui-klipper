@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { KeyboardInput } from '../components/OnScreenKeyboard';
 import { WifiNetworks } from '../components/WifiNetworks';
 import { usePrinterStore } from '../stores/usePrinterStore';
 
@@ -9,19 +8,26 @@ interface WifiApiNetwork {
   signal: number;
   secured: boolean;
   connected: boolean;
+  ipAddress?: string;
+  ipAddresses?: string[];
 }
 
 export function ConnectivityScreen() {
   const connection = usePrinterStore((state) => state.connection);
   const connectionState = usePrinterStore((state) => state.connectionState);
   const boot = usePrinterStore((state) => state.boot);
-  const [baseUrl, setBaseUrl] = useState(connection.moonrakerBaseUrl);
-  const [wsUrl, setWsUrl] = useState(connection.websocketUrl);
   const [apiConnectedWifi, setApiConnectedWifi] = useState<WifiApiNetwork | null>(null);
 
   const wifi = connection.networkInterfaces.find((entry) => entry.type === 'wifi');
   const ethernet = connection.networkInterfaces.find((entry) => entry.type === 'ethernet');
   const wifiConnected = Boolean(wifi?.isUp || apiConnectedWifi);
+  const wifiIp = wifi?.ipAddresses.find(Boolean);
+  const apiWifiIp = apiConnectedWifi?.ipAddresses?.find(Boolean) || apiConnectedWifi?.ipAddress;
+  const ethernetIp = ethernet?.ipAddresses.find(Boolean);
+  const activeInterfaceIp = connection.networkInterfaces
+    .find((entry) => entry.isUp && entry.ipAddresses.length > 0)
+    ?.ipAddresses.find(Boolean);
+  const displayedIpAddress = wifiIp || apiWifiIp || ethernetIp || activeInterfaceIp || '-';
 
   const refreshConnectedWifi = useCallback(async () => {
     try {
@@ -48,22 +54,12 @@ export function ConnectivityScreen() {
         <article className="status-chip"><div className="k">Ethernet</div><div className={`v ${ethernet?.isUp ? 'status-ok' : ''}`}>{ethernet?.isUp ? 'Connected' : 'Inactive'}</div></article>
       </section>
 
-      <section className="card">
-        <div className="card-label">Connection</div>
-        <div className="card-title">Moonraker</div>
-        <label className="field-label">Base URL</label>
-        <KeyboardInput label="Base URL" value={baseUrl} onChange={setBaseUrl} />
-        <label className="field-label">WebSocket URL</label>
-        <KeyboardInput label="WebSocket URL" value={wsUrl} onChange={setWsUrl} />
-
-      </section>
 
       <section className="card">
         <div className="card-title">Wi-Fi</div>
         <div className="kv"><span>SSID</span><strong>{wifi?.ssid || apiConnectedWifi?.ssid || '-'}</strong></div>
         <div className="kv"><span>Signal</span><strong>{typeof wifi?.signalDbm === 'number' ? `${wifi.signalDbm} dBm` : typeof apiConnectedWifi?.signal === 'number' ? `${apiConnectedWifi.signal}%` : '-'}</strong></div>
-        <div className="kv"><span>IP Address</span><strong>{wifi?.ipAddresses[0] || '-'}</strong></div>
-        <div className="kv"><span>Gateway</span><strong>{wifi?.gateway || '-'}</strong></div>
+        <div className="kv"><span>IP Address</span><strong>{displayedIpAddress}</strong></div>
       </section>
 
       <WifiNetworks onConnected={() => {
