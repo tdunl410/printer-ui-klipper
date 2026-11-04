@@ -31,6 +31,7 @@ import { hhmmFromSeconds } from '../utils/format';
 import { defaultPrinterRender, printerRenders } from '../utils/printerRenders';
 
 type ThemeKey = 'purple' | 'blue' | 'green' | 'rose' | 'red' | 'orange';
+type ZLevelingCommand = 'z_tilt' | 'quad_gantry_level';
 
 type DetectedUpdate = {
   name: string;
@@ -63,6 +64,7 @@ interface PrinterStore {
   theme: ThemeKey;
   printerRender: string;
   bottomBarItems: BottomBarItemKey[];
+  zLevelingCommand?: ZLevelingCommand;
   tempPresets: TempPreset[];
   fanPartPercent: number;
   outputPins: OutputPinState[];
@@ -423,6 +425,15 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       ? ((((objectListRes.value.result as any) || {}).objects as string[] | undefined) ?? [])
       : [];
 
+    if (objectListRes.status === 'fulfilled') {
+      const zLevelingCommand: ZLevelingCommand | undefined = objectNames.includes('quad_gantry_level')
+        ? 'quad_gantry_level'
+        : objectNames.includes('z_tilt')
+          ? 'z_tilt'
+          : undefined;
+      set({ zLevelingCommand });
+    }
+
     if (objectsRes.status === 'fulfilled') {
       const status = (((objectsRes.value.result as any) || {}).status || {}) as Record<string, any>;
       statusCache = { webhooks: status.webhooks ?? {}, print_stats: status.print_stats ?? {} };
@@ -666,6 +677,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     theme: initialTheme,
     printerRender: initialPrinterRender,
     bottomBarItems: [...defaultBottomBarItems],
+    zLevelingCommand: undefined,
     tempPresets: defaultTempPresets,
     fanPartPercent: 0,
     outputPins: [],

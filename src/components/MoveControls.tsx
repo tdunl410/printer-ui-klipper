@@ -43,6 +43,7 @@ export function MoveControls() {
   const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
   const outputPins = usePrinterStore((state) => state.outputPins);
   const runAction = usePrinterStore((state) => state.runAction);
+  const zLevelingCommand = usePrinterStore((state) => state.zLevelingCommand);
   const [moveDistance, setMoveDistance] = useState(10);
   const distanceOptions = [5, 10, 25, 50];
 
@@ -114,7 +115,21 @@ export function MoveControls() {
           </div>
         </div>
         <div className="spacer" />
-        <button type="button" className="btn" onClick={() => runAction('Disable Motors', () => commands.disableMotors())}>Disable Motors</button>
+        <div className={zLevelingCommand ? 'btn-row two' : undefined}>
+          <button type="button" className="btn" onClick={() => runAction('Disable Motors', () => commands.disableMotors())}>Disable Motors</button>
+          {zLevelingCommand && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => runAction(
+                zLevelingCommand === 'z_tilt' ? 'Z Tilt' : 'Quad Gantry Level',
+                () => commands.runMacro(zLevelingCommand === 'z_tilt' ? 'Z_TILT_ADJUST' : 'QUAD_GANTRY_LEVEL'),
+              )}
+            >
+              {zLevelingCommand === 'z_tilt' ? 'Z Tilt' : 'Quad Gantry Level'}
+            </button>
+          )}
+        </div>
       </section>
 
       <section className="card">
