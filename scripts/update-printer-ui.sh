@@ -126,12 +126,25 @@ ensure_kiosk_runtime() {
       echo "Warning: could not install cog-platform-drm"
   fi
 
+  if package_available cog-platform-fdo; then
+    apt_install_with_recovery "${apt_opts[@]}" -- cog-platform-fdo || \
+      echo "Warning: could not install cog-platform-fdo"
+  fi
+
   if package_available wpebackend-fdo; then
     apt_install_with_recovery "${apt_opts[@]}" -- wpebackend-fdo || \
       echo "Warning: could not install wpebackend-fdo"
   elif package_available libwpebackend-fdo-1.0-1; then
     apt_install_with_recovery "${apt_opts[@]}" -- libwpebackend-fdo-1.0-1 || \
       echo "Warning: could not install libwpebackend-fdo-1.0-1"
+  fi
+
+  if package_available wpebackend-default; then
+    apt_install_with_recovery "${apt_opts[@]}" -- wpebackend-default || \
+      echo "Warning: could not install wpebackend-default"
+  elif package_available libwpebackend-default-1.0-1; then
+    apt_install_with_recovery "${apt_opts[@]}" -- libwpebackend-default-1.0-1 || \
+      echo "Warning: could not install libwpebackend-default-1.0-1"
   fi
 
   local mesa_pkgs=()

@@ -1,6 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ensure_runtime_dir() {
+  local runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+  if [[ ! -d "${runtime_dir}" ]]; then
+    runtime_dir="/tmp/printer-ui-runtime-$(id -u)"
+    mkdir -p "${runtime_dir}"
+    chmod 700 "${runtime_dir}"
+  fi
+  export XDG_RUNTIME_DIR="${runtime_dir}"
+}
+
+resolve_wpe_backend() {
+  if [[ -z "${WPE_BACKEND:-}" ]]; then
+    if ldconfig -p 2>/dev/null | grep -q "libWPEBackend-default\.so"; then
+      :
+    elif ldconfig -p 2>/dev/null | grep -q "libWPEBackend-fdo"; then
+      export WPE_BACKEND=fdo
+      echo "WPE_BACKEND not set; using fdo backend"
+    fi
+  fi
+
+  if ! ldconfig -p 2>/dev/null | grep -q "libWPEBackend-default\.so"; then
+    local fdo_backend
+    fdo_backend="$(ldconfig -p 2>/dev/null | awk '/libWPEBackend-fdo/ {print $NF; exit}')"
+    if [[ -n "${fdo_backend}" && -r "${fdo_backend}" ]]; then
+      local shim_path="${XDG_RUNTIME_DIR}/libWPEBackend-default.so"
+      ln -sfn "${fdo_backend}" "${shim_path}"
+      export LD_LIBRARY_PATH="${XDG_RUNTIME_DIR}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+      echo "libWPEBackend-default.so not found; using runtime shim to ${fdo_backend}"
+    fi
+  fi
+}
+
 # Session mode: runs inside the X server started by xinit.
 # There is no window manager, so Cog keeps its default window size unless we
 # resize it ourselves. Keep it pinned to the exact current screen resolution.
@@ -16,6 +48,9 @@ if [[ "${1:-}" == "--session" ]]; then
   else
     SESSION_PLATFORM=""
   fi
+
+  ensure_runtime_dir
+  resolve_wpe_backend
 
   screen_size() {
     local size=""
@@ -97,6 +132,8 @@ fi
 export HOME=${HOME:-/home/$(id -un)}
 export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
 
+resolve_wpe_backend
+
 unset DBUS_STARTER_ADDRESS
 unset DBUS_STARTER_BUS_TYPE
 unset DBUS_SESSION_BUS_ADDRESS
@@ -158,15 +195,6 @@ has_wayland_display() {
 
   return 1
 }
-
-if [[ -z "${WPE_BACKEND:-}" ]]; then
-  if ldconfig -p 2>/dev/null | grep -q "libWPEBackend-default\.so"; then
-    :
-  elif ldconfig -p 2>/dev/null | grep -q "libWPEBackend-fdo"; then
-    export WPE_BACKEND=fdo
-    echo "WPE_BACKEND not set; using fdo backend"
-  fi
-fi
 
 if [[ "${COG_PLATFORM}" == "auto" ]]; then
   detected_platform="$(detect_cog_platform || true)"
