@@ -107,8 +107,15 @@ CHROME_FLAGS=(
   --overscroll-history-navigation=0
   --noerrdialogs
   --disable-infobars
+  --disable-extensions
+  --disable-sync
+  --disable-background-networking
+  --disable-component-update
+  --disable-default-apps
   --no-first-run
   --disable-session-crashed-bubble
+  --disable-features=BackForwardCache
+  --disable-site-isolation-trials
   --disable-gpu
   --disable-dev-shm-usage
   --start-fullscreen

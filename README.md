@@ -56,6 +56,9 @@ The kiosk launcher always sizes the Chromium window to the exact X screen resolu
 `xdpyinfo`/`xrandr` and keeps the window pinned to it with `xdotool`. To force a size, set
 `PRINTER_UI_WINDOW_SIZE=400,1280` in `/etc/default/printer-ui`.
 
+The kiosk launch defaults also disable non-kiosk Chromium features and disable
+BackForwardCache/site isolation trials to reduce memory usage on low-resource systems.
+
 ## Update After Changes
 ```bash
 cd ~/printer_ui
