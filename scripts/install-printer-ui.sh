@@ -33,6 +33,51 @@ package_available() {
   apt-cache show "${pkg}" >/dev/null 2>&1
 }
 
+apt_update_with_recovery() {
+  local -a apt_opts=("$@")
+
+  if sudo apt-get "${apt_opts[@]}" update; then
+    return 0
+  fi
+
+  echo "Initial apt update failed. Resetting apt metadata and retrying..."
+  sudo apt-get clean
+  sudo rm -rf /var/lib/apt/lists/*
+  sudo apt-get "${apt_opts[@]}" update
+}
+
+apt_install_with_recovery() {
+  local -a apt_opts=("$1" "$2" "$3" "$4")
+  shift 4
+  local -a packages=("$@")
+
+  if sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends "${packages[@]}"; then
+    return 0
+  fi
+
+  echo "Install failed, refreshing apt metadata and retrying..."
+  sudo apt-get clean
+  sudo rm -rf /var/lib/apt/lists/*
+  sudo apt-get "${apt_opts[@]}" update
+
+  if sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends "${packages[@]}"; then
+    return 0
+  fi
+
+  local base_suite=""
+  if [[ -r /etc/os-release ]]; then
+    base_suite="$(. /etc/os-release && echo "${VERSION_CODENAME:-}")"
+  fi
+
+  if [[ -n "${base_suite}" ]]; then
+    echo "Install still failing; retrying against base suite '${base_suite}' to bypass stale security package refs..."
+    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends -t "${base_suite}" "${packages[@]}"
+    return $?
+  fi
+
+  return 1
+}
+
 install_node_20_debian() {
   echo "Installing Node.js 20.x via NodeSource apt repository..."
   sudo apt-get clean
@@ -193,7 +238,7 @@ ensure_display_tools() {
   command -v xrandr >/dev/null 2>&1 || missing+=(x11-xserver-utils)
   if [[ ${#missing[@]} -gt 0 ]] && command -v apt-get >/dev/null 2>&1; then
     echo "Installing display tools: ${missing[*]}"
-    sudo apt-get install -y --no-install-recommends "${missing[@]}" || echo "Warning: could not install ${missing[*]}"
+    apt_install_with_recovery -o Acquire::Retries=5 -o Acquire::ForceIPv4=true "${missing[@]}" || echo "Warning: could not install ${missing[*]}"
   fi
 }
 
@@ -229,27 +274,16 @@ ensure_kiosk_runtime() {
 
   echo "Installing kiosk runtime dependencies (xinit + cog)..."
 
-  if ! sudo apt-get "${apt_opts[@]}" update; then
-    echo "Initial apt update failed. Resetting apt metadata and retrying..."
-    sudo apt-get clean
-    sudo rm -rf /var/lib/apt/lists/*
-    sudo apt-get "${apt_opts[@]}" update
-  fi
+  apt_update_with_recovery "${apt_opts[@]}"
 
   if ! command -v xinit >/dev/null 2>&1; then
-    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends xinit xserver-xorg
+    apt_install_with_recovery "${apt_opts[@]}" xinit xserver-xorg
   fi
 
   cog_bin="$(command -v cog || true)"
   if [[ -z "${cog_bin}" ]]; then
     if package_available cog; then
-      if ! sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog; then
-        echo "cog install failed, refreshing apt metadata and retrying once..."
-        sudo apt-get clean
-        sudo rm -rf /var/lib/apt/lists/*
-        sudo apt-get "${apt_opts[@]}" update
-        sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog
-      fi
+      apt_install_with_recovery "${apt_opts[@]}" cog
     else
       echo "No cog package found in apt repositories." >&2
       exit 1
@@ -257,20 +291,20 @@ ensure_kiosk_runtime() {
   fi
 
   if package_available cog-platform-x11; then
-    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog-platform-x11 || \
+    apt_install_with_recovery "${apt_opts[@]}" cog-platform-x11 || \
       echo "Warning: could not install cog-platform-x11; set PRINTER_UI_COG_PLATFORM=drm if x11 is unavailable"
   fi
 
   if package_available cog-platform-drm; then
-    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog-platform-drm || \
+    apt_install_with_recovery "${apt_opts[@]}" cog-platform-drm || \
       echo "Warning: could not install cog-platform-drm"
   fi
 
   if package_available wpebackend-fdo; then
-    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends wpebackend-fdo || \
+    apt_install_with_recovery "${apt_opts[@]}" wpebackend-fdo || \
       echo "Warning: could not install wpebackend-fdo"
   elif package_available libwpebackend-fdo-1.0-1; then
-    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends libwpebackend-fdo-1.0-1 || \
+    apt_install_with_recovery "${apt_opts[@]}" libwpebackend-fdo-1.0-1 || \
       echo "Warning: could not install libwpebackend-fdo-1.0-1"
   fi
 
@@ -279,7 +313,7 @@ ensure_kiosk_runtime() {
   package_available libgles2-mesa && mesa_pkgs+=(libgles2-mesa)
   package_available libgbm1 && mesa_pkgs+=(libgbm1)
   if [[ ${#mesa_pkgs[@]} -gt 0 ]]; then
-    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends "${mesa_pkgs[@]}" || \
+    apt_install_with_recovery "${apt_opts[@]}" "${mesa_pkgs[@]}" || \
       echo "Warning: could not install some Mesa runtime packages (${mesa_pkgs[*]})"
   fi
 
