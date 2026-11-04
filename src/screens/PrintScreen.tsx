@@ -327,8 +327,8 @@ export function PrintScreen() {
 
       {showExcludeDialog ? (
         <Dialog
-          subtitle="Print Objects"
-          title="Exclude object"
+          subtitle="Exclude Object"
+          title=""
           actions={[
             {
               label: 'Exclude',
@@ -388,24 +388,6 @@ export function PrintScreen() {
               )}
             </div>
 
-            <div className="exclude-object-list" role="list">
-              {excludeObjects.objects.map((item) => {
-                const isSelected = selectedExcludeObjects.includes(item.name);
-                const isCurrent = excludeObjects.currentObject === item.name;
-                return (
-                  <button
-                    key={item.name}
-                    type="button"
-                    className={`exclude-object-chip ${isSelected ? 'selected' : ''} ${isCurrent ? 'current' : ''}`}
-                    onClick={() => toggleExcludeObject(item.name, item.isExcluded)}
-                    disabled={item.isExcluded}
-                  >
-                    <span>{item.name}</span>
-                    {item.isExcluded ? <strong>Excluded</strong> : isCurrent ? <strong>Printing</strong> : null}
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </Dialog>
       ) : null}
