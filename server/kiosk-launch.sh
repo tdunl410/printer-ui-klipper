@@ -146,6 +146,19 @@ detect_cog_platform() {
   return 1
 }
 
+has_wayland_display() {
+  if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+    return 0
+  fi
+
+  local runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+  if [[ -S "${runtime_dir}/wayland-0" || -S "${runtime_dir}/wayland-1" ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
 if [[ -z "${WPE_BACKEND:-}" ]]; then
   if ldconfig -p 2>/dev/null | grep -q "libWPEBackend-default\.so"; then
     :
@@ -171,6 +184,13 @@ elif ! has_cog_platform_module "${COG_PLATFORM}"; then
   else
     echo "Requested Cog platform '${COG_PLATFORM}' not found and no known platform modules detected; letting Cog choose defaults"
     COG_PLATFORM=""
+  fi
+fi
+
+if [[ "${COG_PLATFORM}" == "fdo" || "${COG_PLATFORM}" == "wl" || "${COG_PLATFORM}" == "wayland" ]]; then
+  if ! has_wayland_display; then
+    echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland, but no Wayland display is available; falling back to x11 startup path"
+    COG_PLATFORM="x11"
   fi
 fi
 
