@@ -1366,6 +1366,43 @@ body {
 .fan-slider {
   width: 100%;
   accent-color: var(--accent);
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+}
+
+.fan-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+}
+
+.fan-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;
+  height: 22px;
+  margin-top: -8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--accent);
+}
+
+.fan-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+}
+
+.fan-slider::-moz-range-thumb {
+  width: 30px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--accent);
 }
 
 .fan-slider:disabled {

@@ -464,7 +464,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
             },
         fanPartPercent: live ? state.fanPartPercent : toPercent(status.fan?.speed, state.fanPartPercent),
         outputPins: mapOutputPins(dynamicStatus, outputPinNames, state.outputPins),
-        printerSpeedMmS: Number(status.gcode_move?.speed ?? state.printerSpeedMmS),
+        printerSpeedMmS: Number((status.gcode_move?.speed ?? state.printerSpeedMmS) / 60),
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
         zOffset: Number(status.gcode_move?.homing_origin?.[2] ?? state.zOffset),

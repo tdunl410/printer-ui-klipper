@@ -124,7 +124,7 @@ export class CommandService {
 
   async setOutputPin(percent: number, pin: string) {
     const bounded = Math.max(0, Math.min(percent, 100));
-    return this.gcode(`SET_PIN PIN=${pin} VALUE=${(bounded / 100).toFixed(2)}`);
+    return this.gcode(`SET_PIN PIN=${pin} VALUE=${bounded.toFixed(2)}`);
   }
 
   async extrude(mm: number, speed = 180) {
