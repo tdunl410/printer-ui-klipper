@@ -63,6 +63,11 @@ ensure_kiosk_runtime() {
       sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog
     fi
   fi
+
+  if package_available cog-platform-x11; then
+    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog-platform-x11 || \
+      echo "Warning: could not install cog-platform-x11; set PRINTER_UI_COG_PLATFORM=drm if x11 is unavailable"
+  fi
 }
 
 install_dependencies() {

@@ -256,6 +256,11 @@ ensure_kiosk_runtime() {
     fi
   fi
 
+  if package_available cog-platform-x11; then
+    sudo apt-get "${apt_opts[@]}" install -y --no-install-recommends cog-platform-x11 || \
+      echo "Warning: could not install cog-platform-x11; set PRINTER_UI_COG_PLATFORM=drm if x11 is unavailable"
+  fi
+
   cog_bin="$(command -v cog || true)"
   if [[ -z "${cog_bin}" ]]; then
     echo "Cog install did not provide a runnable binary." >&2

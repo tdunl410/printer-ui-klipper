@@ -32,7 +32,7 @@ if [[ "${1:-}" == "--session" ]]; then
     echo "Could not detect screen size; relying on Cog defaults"
   fi
 
-  "${COG_BIN}" "${APP_URL}" "$@" &
+  "${COG_BIN}" "$@" "${APP_URL}" &
   COG_PID=$!
 
   if command -v xdotool >/dev/null 2>&1; then
@@ -69,11 +69,6 @@ exec >>"${LOG_FILE}" 2>&1
 
 echo "[$(date -Iseconds)] Starting printer-ui kiosk launcher"
 
-if ! command -v xinit >/dev/null 2>&1; then
-  echo "xinit not found. Install it with: sudo apt-get install -y xinit xserver-xorg"
-  exit 1
-fi
-
 COG_BIN=$(command -v cog || true)
 if [[ -z "${COG_BIN}" ]]; then
   echo "Cog not found. Install it with: sudo apt-get install -y cog"
@@ -99,14 +94,32 @@ unset DBUS_SESSION_BUS_ADDRESS
 unset DBUS_SYSTEM_BUS_ADDRESS
 
 APP_URL="http://${HOST}:${PORT}"
+COG_PLATFORM="${PRINTER_UI_COG_PLATFORM:-x11}"
 
 SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 
-echo "Launching ${COG_BIN} at ${APP_URL}"
+echo "Launching ${COG_BIN} at ${APP_URL} (platform=${COG_PLATFORM})"
+
+if [[ "${COG_PLATFORM}" != "x11" ]]; then
+  exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+    "${COG_BIN}" --platform="${COG_PLATFORM}" "${APP_URL}"
+fi
+
+if command -v xdpyinfo >/dev/null 2>&1 && xdpyinfo -display :0 >/dev/null 2>&1; then
+  echo "Detected active X display :0; starting Cog on existing server"
+  exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" DISPLAY=:0 \
+    "${COG_BIN}" --platform=x11 "${APP_URL}"
+fi
+
+if ! command -v xinit >/dev/null 2>&1; then
+  echo "xinit not found and no active X display. Install it with: sudo apt-get install -y xinit xserver-xorg"
+  exit 1
+fi
+
 if command -v dbus-run-session >/dev/null 2>&1; then
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" dbus-run-session -- \
-    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" --platform=x11 -- :0 vt1 -nocursor
 else
   exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
-    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" -- :0 vt1 -nocursor
+    xinit "${SELF}" --session "${COG_BIN}" "${APP_URL}" --platform=x11 -- :0 vt1 -nocursor
 fi
