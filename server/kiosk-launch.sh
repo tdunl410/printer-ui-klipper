@@ -165,7 +165,7 @@ has_cog_platform_module() {
 }
 
 detect_cog_platform() {
-  local candidates=(drm x11 gtk4 gtk)
+  local candidates=(drm x11 gtk4 gtk fdo wl wayland)
   local candidate
   for candidate in "${candidates[@]}"; do
     if has_cog_platform_module "${candidate}"; then
@@ -205,7 +205,12 @@ fi
 
 if [[ "${COG_PLATFORM}" == "fdo" || "${COG_PLATFORM}" == "wl" || "${COG_PLATFORM}" == "wayland" ]]; then
   if ! has_wayland_display; then
-    echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland, but no Wayland display is available." >&2
+    if command -v cage >/dev/null 2>&1; then
+      echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland; starting cage compositor"
+      exec env HOME="${HOME}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+        cage -s -- "${COG_BIN}" --platform="${COG_PLATFORM}" "${APP_URL}"
+    fi
+    echo "Selected Cog platform '${COG_PLATFORM}' requires Wayland, but no Wayland display is available and cage is not installed." >&2
     exit 1
   fi
 fi
