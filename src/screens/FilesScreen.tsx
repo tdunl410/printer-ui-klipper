@@ -33,6 +33,7 @@ export function FilesScreen() {
   const activeJob = usePrinterStore((state) => state.job);
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [renameFilePath, setRenameFilePath] = useState<string | null>(null);
+  const [deleteFilePath, setDeleteFilePath] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('modified');
   const [search, setSearch] = useState('');
@@ -75,6 +76,7 @@ export function FilesScreen() {
   const popupPreview = popupFile?.path ? previews[popupFile.path] : undefined;
   const popupModified = popupFile?.modified ? new Date(popupFile.modified * 1000).toLocaleString() : '-';
   const renameTarget = renameFilePath ? files.find((entry) => entry.path === renameFilePath) : undefined;
+  const deleteTarget = deleteFilePath ? files.find((entry) => entry.path === deleteFilePath) : undefined;
 
   useEffect(() => {
     const root = fileListRef.current;
@@ -194,6 +196,13 @@ export function FilesScreen() {
                 setOpenFile(null);
               },
             },
+            {
+              label: 'Delete',
+              onClick: () => {
+                setDeleteFilePath(popupFile.path);
+                setOpenFile(null);
+              },
+            },
             { label: 'Close', onClick: () => setOpenFile(null) },
           ]}
         >
@@ -207,6 +216,30 @@ export function FilesScreen() {
           <div className="kv"><span>Name</span><strong>{popupFile.path}</strong></div>
           <div className="kv"><span>Size</span><strong>{bytesToSize(popupFile.size)}</strong></div>
           <div className="kv"><span>Modified</span><strong>{popupModified}</strong></div>
+        </Dialog>
+      ) : null}
+
+      {deleteTarget ? (
+        <Dialog
+          subtitle="Delete File"
+          title={`Delete ${deleteTarget.path}?`}
+          actions={[
+            {
+              label: 'Delete',
+              variant: 'accent',
+              onClick: () => {
+                const path = deleteTarget.path;
+                setDeleteFilePath(null);
+                void runAction('Delete File', () => commands.deleteFile(path));
+              },
+            },
+            {
+              label: 'Cancel',
+              onClick: () => setDeleteFilePath(null),
+            },
+          ]}
+        >
+          <div className="card-hint">This action cannot be undone.</div>
         </Dialog>
       ) : null}
 
