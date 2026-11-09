@@ -119,6 +119,10 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+.screen.menu-hidden {
+  padding-bottom: 16px;
+}
+
 .screen,
 .file-list {
   overflow-y: auto;

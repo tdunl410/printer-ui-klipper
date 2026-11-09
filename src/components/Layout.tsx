@@ -16,6 +16,7 @@ interface LayoutProps {
   subtitle: string;
   children: ReactNode;
   homeAction?: boolean;
+  hideMenuBar?: boolean;
 }
 
 const dockItems: Record<BottomBarItemKey, { to: string; label: string; icon: string }> = {
@@ -27,7 +28,7 @@ const dockItems: Record<BottomBarItemKey, { to: string; label: string; icon: str
   settings: { to: '/settings', label: 'Settings', icon: settingsIcon },
 };
 
-export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
+export function Layout({ title, subtitle, children, homeAction, hideMenuBar = false }: LayoutProps) {
   const commands = useCommands();
   const runAction = usePrinterStore((state) => state.runAction);
   const bottomBarItems = usePrinterStore((state) => state.bottomBarItems);
@@ -36,7 +37,7 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
   const printRoute = jobState === 'printing' || jobState === 'paused' ? '/print' : '/files';
 
   return (
-    <section className="screen">
+    <section className={`screen${hideMenuBar ? ' menu-hidden' : ''}`}>
       <header className="header">
         <div>
           <div className="printer-title">{title}</div>
@@ -57,23 +58,25 @@ export function Layout({ title, subtitle, children, homeAction }: LayoutProps) {
 
       {children}
 
-      <nav className="dock" style={{ '--dock-item-count': bottomBarItems.length } as CSSProperties}>
-        {bottomBarItems.map((key) => {
-          const item = dockItems[key];
-          const to = key === 'print' ? printRoute : item.to;
-          return (
-            <NavLink
-              key={key}
-              to={to}
-              className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}
-              end
-            >
-              <img className="dock-icon" src={item.icon} alt="" aria-hidden="true" />
-              <span className="dock-label">{item.label}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
+      {!hideMenuBar ? (
+        <nav className="dock" style={{ '--dock-item-count': bottomBarItems.length } as CSSProperties}>
+          {bottomBarItems.map((key) => {
+            const item = dockItems[key];
+            const to = key === 'print' ? printRoute : item.to;
+            return (
+              <NavLink
+                key={key}
+                to={to}
+                className={({ isActive }: { isActive: boolean }) => (isActive ? 'active' : '')}
+                end
+              >
+                <img className="dock-icon" src={item.icon} alt="" aria-hidden="true" />
+                <span className="dock-label">{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+      ) : null}
 
       {confirmEmergency ? (
         <Dialog

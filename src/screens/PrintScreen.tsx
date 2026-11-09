@@ -100,6 +100,7 @@ export function PrintScreen() {
   const [showExcludeDialog, setShowExcludeDialog] = useState(false);
   const [selectedExcludeObjects, setSelectedExcludeObjects] = useState<string[]>([]);
   const isPaused = job.state === 'paused';
+  const isPrintActive = job.state === 'printing' || isPaused;
   const plateBounds = useMemo(() => computePlateBounds(excludeObjects.objects), [excludeObjects.objects]);
   const availableObjects = useMemo(
     () => excludeObjects.objects.filter((item) => !item.isExcluded),
@@ -152,7 +153,7 @@ export function PrintScreen() {
   };
 
   return (
-    <Layout title="Active Print" subtitle={`Part: ${job.filename}`}>
+    <Layout title="Active Print" subtitle={`Part: ${job.filename}`} hideMenuBar={isPrintActive}>
       <div className="print-columns">
         <div className="print-column print-column-left">
           <section className="card print-time-card">
