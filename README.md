@@ -1,13 +1,15 @@
-# Klipper Modern UI
+# TigerScreen
 This project started because I didn't like the look of KlipperScreen, and since I'm running a somewhat nonstandard VERRRRYYY tall 7.9" screen on one of my printers, the other user interfaces just didn't look right. 
 Originally it was designed with the express purpose of being for portrait layout, but with some css trickery I have managed to make it look not bad in landscape as well. 
-This is still very much a work in progress. 
+This is still very much a work in progress, a lot of the UI may change in the future. 
 
-Plz support me I dont want to maintain this. 
+Some features arent implemented yet, some lowkey I just forgot existed so when i remember about them ill implement them. 
+
+Plz support me I dont want to maintain this but i will if u donate:))))
 https://buymeacoffee.com/tiger3dprinting
 
 ## Screenshots
-Captured at the native `400x1280` portrait size (no printer connected, so values are empty).
+### Captured at  `400x1280` portrait:
 
 | Home | Files | Preheat | Extrude |
 |---|---|---|---|
@@ -22,6 +24,8 @@ Print screen (shown while Klipper is printing or paused; this capture uses sampl
 <img src="docs/screenshots/print.png" alt="Print" width="200" />
 
 ### Current Horizontal Screen Layout
+Still wip
+
 | Home | Files | Control |
 |---|---|---|
 | ![Home](docs/screenshots/Home-Horizontal.png) | ![Files](docs/screenshots/Files-Horizontal.png) | ![Preheat](docs/screenshots/Control-Horizontal.png) |
