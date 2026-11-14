@@ -21,6 +21,10 @@ Print screen (shown while Klipper is printing or paused; this capture uses sampl
 
 <img src="docs/screenshots/print.png" alt="Print" width="200" />
 
+### Current Horizontal Screen Layout
+| Home | Files | Control |
+|---|---|---|---|
+| ![Home](docs/screenshots/Home-Horizontal.png) | ![Files](docs/screenshots/Files-Horizontal.png) | ![Preheat](docs/screenshots/Control-Horizontal.png) |
 
 ## Main Installation (Recommended)
 Run on your printer host user (non-root, must have `sudo`):
