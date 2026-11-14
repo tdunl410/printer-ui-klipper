@@ -57,7 +57,7 @@ export function HeaterKeypad({ keypad }: { keypad: Keypad }) {
       <section className="modal-card">
         <div className="card-label">Set Target</div>
         <div className="card-title">{heaterLabels[active]} Temperature</div>
-        <div className="temp-input-display">{'0'}°C</div>
+        <div className="temp-input-display">{input}°C</div>
         <div className="numpad-grid">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((value) => (
             <button key={value} type="button" className="btn" onClick={() => append(value)}>
