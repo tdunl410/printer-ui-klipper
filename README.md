@@ -154,7 +154,7 @@ npm install
 npm run dev
 ```
 
-Regenerate all README screenshots using built-in sample printer data; no printer connection is needed. This requires Node.js 22+ and Chrome/Chromium (`CHROME_BIN` can select a non-default browser path):
+Regenerate all README screenshots using built-in sample printer data and the extracted [sample G-code thumbnail](assets/readme-print-thumbnail.png); no printer connection is needed. This requires Node.js 22+ and Chrome/Chromium (`CHROME_BIN` can select a non-default browser path):
 
 ```bash
 npm run screenshots

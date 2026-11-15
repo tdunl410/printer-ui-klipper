@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const viteBin = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 const screenshotsDir = path.join(root, 'docs', 'screenshots');
+const printThumbnail = fs.readFileSync(path.join(root, 'assets', 'readme-print-thumbnail.png'));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const captures = [
@@ -298,22 +299,47 @@ async function main() {
       patterns: [
         { urlPattern: `${baseUrl}/api/ui/config*`, requestStage: 'Request' },
         { urlPattern: `${baseUrl}/api/wifi/networks*`, requestStage: 'Request' },
+        { urlPattern: '*/server/files/metadata*', requestStage: 'Request' },
+        { urlPattern: '*/server/files/gcodes/readme-print-thumbnail.png*', requestStage: 'Request' },
       ],
     });
     cdp.socket.addEventListener('message', (event) => {
       const message = JSON.parse(event.data);
       if (message.method !== 'Fetch.requestPaused') return;
-      const payload = message.params.request.url.includes('/api/ui/config')
+      const requestUrl = message.params.request.url;
+      if (requestUrl.includes('/server/files/gcodes/readme-print-thumbnail.png')) {
+        void send('Fetch.fulfillRequest', {
+          requestId: message.params.requestId,
+          responseCode: 200,
+          responseHeaders: [
+            { name: 'Content-Type', value: 'image/png' },
+            { name: 'Access-Control-Allow-Origin', value: '*' },
+          ],
+          body: printThumbnail.toString('base64'),
+        });
+        return;
+      }
+
+      const payload = requestUrl.includes('/api/ui/config')
         ? { config: {} }
-        : {
+        : requestUrl.includes('/api/wifi/networks')
+          ? {
             networks: [{ ssid: 'Workshop Wi-Fi', signal: 92, secured: true, connected: true }],
             primaryIp: '192.168.1.42',
+          }
+          : {
+            result: {
+              thumbnails: [{ relative_path: 'readme-print-thumbnail.png', width: 640, height: 480 }],
+            },
           };
       const body = Buffer.from(JSON.stringify(payload)).toString('base64');
       void send('Fetch.fulfillRequest', {
         requestId: message.params.requestId,
         responseCode: 200,
-        responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+        responseHeaders: [
+          { name: 'Content-Type', value: 'application/json' },
+          { name: 'Access-Control-Allow-Origin', value: '*' },
+        ],
         body,
       });
     });
@@ -367,6 +393,20 @@ async function main() {
         await evaluate(send, expression);
         await sleep(300);
         await evaluate(send, 'Promise.all(Array.from(document.images, image => image.decode().catch(() => undefined)))');
+
+        if (route === '/print') {
+          const thumbnailLoaded = await evaluate(send, `new Promise(resolve => {
+            const deadline = Date.now() + 5000;
+            const check = () => {
+              const image = document.querySelector('.print-media-thumb img');
+              if (image?.complete) return resolve(image.naturalWidth > 0);
+              if (Date.now() >= deadline) return resolve(false);
+              setTimeout(check, 50);
+            };
+            check();
+          })`);
+          if (!thumbnailLoaded) throw new Error('The active print screenshot thumbnail did not load');
+        }
 
         const screenshot = await send('Page.captureScreenshot', {
           format: 'png',
