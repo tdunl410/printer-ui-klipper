@@ -1,10 +1,11 @@
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import arrowDown from '../../assets/arrow-down.svg';
 import arrowLeft from '../../assets/arrow-left.svg';
 import arrowRight from '../../assets/arrow-right.svg';
 import arrowUp from '../../assets/arrow-up.svg';
 import homeIcon from '../../assets/home.svg';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
+import { CoolingControls } from './CoolingControls';
 
 const RING_OUTER = 96;
 const RING_INNER = 54;
@@ -40,8 +41,6 @@ const jogSegments = [
 export function MoveControls() {
   const commands = useCommands();
   const position = usePrinterStore((state) => state.position);
-  const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
-  const outputPins = usePrinterStore((state) => state.outputPins);
   const runAction = usePrinterStore((state) => state.runAction);
   const zLevelingCommand = usePrinterStore((state) => state.zLevelingCommand);
   const [moveDistance, setMoveDistance] = useState(10);
@@ -132,50 +131,7 @@ export function MoveControls() {
         </div>
       </section>
 
-      <section className="card">
-        <div className="card-title">Cooling</div>
-        <div className="kv"><span>Part Fan</span><strong>{fanPartPercent}%</strong></div>
-        <div className="fan-slider-row">
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            className="fan-slider"
-            aria-label="Part fan speed"
-            value={Math.round(fanPartPercent)}
-            style={{ '--slider-fill': `${Math.round(fanPartPercent)}%` } as CSSProperties}
-            onChange={(event) => {
-              const nextPercent = Number(event.currentTarget.value);
-              void runAction(`Set part fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
-            }}
-          />
-          <button type="button" className="btn" onClick={() => runAction('Part fan off', () => commands.setFan(0, 'fan'))}>OFF</button>
-        </div>
-        {outputPins.map((pin) => (
-          <div key={pin.name}>
-            <div className="spacer" />
-            <div className="kv"><span>{pin.label}</span><strong>{pin.percent}%</strong></div>
-            <div className="fan-slider-row">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                className="fan-slider"
-                aria-label={`${pin.label} speed`}
-                value={Math.round(pin.percent)}
-                style={{ '--slider-fill': `${Math.round(pin.percent)}%` } as CSSProperties}
-                onChange={(event) => {
-                  const nextPercent = Number(event.currentTarget.value);
-                  void runAction(`Set ${pin.label} ${nextPercent}%`, () => commands.setOutputPin(nextPercent, pin.name));
-                }}
-              />
-              <button type="button" className="btn" onClick={() => runAction(`${pin.label} off`, () => commands.setOutputPin(0, pin.name))}>OFF</button>
-            </div>
-          </div>
-        ))}
-      </section>
+      <CoolingControls />
     </>
   );
 }

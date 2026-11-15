@@ -13,6 +13,7 @@ import { KlipperStateScreen } from './screens/KlipperStateScreen';
 import { PreheatScreen } from './screens/PreheatScreen';
 import { PrintScreen } from './screens/PrintScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { TuneScreen } from './screens/TuneScreen';
 import { UpdatesScreen } from './screens/UpdatesScreen';
 import { useCommands, usePrinterStore } from './stores/usePrinterStore';
 import { durationLabel, filamentLabel } from './utils/format';
@@ -70,10 +71,11 @@ export default function App() {
     <DeviceFrame>
       {klipperDown ? <KlipperStateScreen /> : (
         <>
-      {activePrint && location.pathname !== '/print' ? <Navigate to="/print" replace /> : null}
+      {activePrint && location.pathname !== '/print' && location.pathname !== '/print/tune' ? <Navigate to="/print" replace /> : null}
       <Routes>
         <Route path="/" element={<HomeScreen />} />
         <Route path="/print" element={<PrintScreen />} />
+        <Route path="/print/tune" element={<TuneScreen />} />
         <Route path="/files" element={<FilesScreen />} />
         <Route path="/move" element={<Navigate to="/control" replace />} />
         <Route path="/preheat" element={<PreheatScreen />} />

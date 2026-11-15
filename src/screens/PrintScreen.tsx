@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { Navigate } from 'react-router-dom';
-import arrowDownIcon from '../../assets/arrow-down.svg';
-import arrowUpIcon from '../../assets/arrow-up.svg';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
 import pauseIcon from '../../assets/pause.svg';
 import resumeIcon from '../../assets/resume.svg';
 import stopSquareIcon from '../../assets/stop-square.svg';
@@ -11,8 +9,6 @@ import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 import { pct } from '../utils/format';
 import { fetchThumbnailUrl } from '../utils/thumbnail';
 
-const Z_STEPS = [0.01, 0.05, 0.1] as const;
-const PCT_STEPS = [1, 5, 10, 25] as const;
 const EXCLUDE_VIEW_WIDTH = 320;
 const EXCLUDE_VIEW_HEIGHT = 220;
 const EXCLUDE_VIEW_PADDING = 12;
@@ -86,13 +82,8 @@ export function PrintScreen() {
   const job = usePrinterStore((state) => state.job);
   const temperatures = usePrinterStore((state) => state.temperatures);
   const printerSpeedMmS = usePrinterStore((state) => state.printerSpeedMmS);
-  const speedPercent = usePrinterStore((state) => state.speedPercent);
   const flowPercent = usePrinterStore((state) => state.flowPercent);
-  const fanPartPercent = usePrinterStore((state) => state.fanPartPercent);
   const runAction = usePrinterStore((state) => state.runAction);
-  const [zStep, setZStep] = useState<(typeof Z_STEPS)[number]>(0.01);
-  const [pctStep, setPctStep] = useState<(typeof PCT_STEPS)[number]>(5);
-  const zOffset = usePrinterStore((state) => state.zOffset);
   const [confirmAction, setConfirmAction] = useState<'stop' | 'emergency' | null>(null);
   const connection = usePrinterStore((state) => state.connection);
   const excludeObjects = usePrinterStore((state) => state.excludeObjects);
@@ -201,7 +192,7 @@ export function PrintScreen() {
 
           <section className="card print-actions-card">
             <div className="card-label">Actions</div>
-            <div className="btn-row">
+            <div className="btn-row two">
               <button
                 type="button"
                 className="btn accent with-icon"
@@ -229,89 +220,7 @@ export function PrintScreen() {
               >
                 Exclude Object
               </button>
-            </div>
-          </section>
-
-          <section className="card print-finetune-card">
-            <div className="card-label">Fine Tune</div>
-            <div className="card-title">Live Adjust</div>
-            <div className="tune-grid">
-              <button type="button" className="tune-btn tune-reset" onClick={() => runAction('Reset Z offset', () => commands.resetZOffset())}>
-                <span className="tune-value">{zOffset.toFixed(2)}mm</span>
-                <span className="tune-sub">Z Offset · reset</span>
-              </button>
-              <button type="button" className="tune-btn tune-reset" onClick={() => runAction('Reset speed', () => commands.setPrintSpeed(100))}>
-                <span className="tune-value">{speedPercent}%</span>
-                <span className="tune-sub">Speed · reset</span>
-              </button>
-              <button type="button" className="tune-btn tune-reset" onClick={() => runAction('Reset flow', () => commands.setFlow(100))}>
-                <span className="tune-value">{flowPercent}%</span>
-                <span className="tune-sub">Flow · reset</span>
-              </button>
-
-              <button type="button" className="tune-btn" onClick={() => runAction('Z offset up', () => commands.adjustZOffset(zStep))}>
-                <img className="tune-icon" src={arrowUpIcon} alt="" aria-hidden="true" />
-                <span>Z+</span>
-              </button>
-              <button type="button" className="tune-btn" onClick={() => runAction('Speed up', () => commands.setPrintSpeed(speedPercent + pctStep))}>
-                <img className="tune-icon" src={arrowUpIcon} alt="" aria-hidden="true" />
-                <span>Speed +</span>
-              </button>
-              <button type="button" className="tune-btn" onClick={() => runAction('Flow up', () => commands.setFlow(flowPercent + pctStep))}>
-                <img className="tune-icon" src={arrowUpIcon} alt="" aria-hidden="true" />
-                <span>Flow +</span>
-              </button>
-
-              <button type="button" className="tune-btn" onClick={() => runAction('Z offset down', () => commands.adjustZOffset(-zStep))}>
-                <img className="tune-icon" src={arrowDownIcon} alt="" aria-hidden="true" />
-                <span>Z-</span>
-              </button>
-              <button type="button" className="tune-btn" onClick={() => runAction('Speed down', () => commands.setPrintSpeed(speedPercent - pctStep))}>
-                <img className="tune-icon" src={arrowDownIcon} alt="" aria-hidden="true" />
-                <span>Speed -</span>
-              </button>
-              <button type="button" className="tune-btn" onClick={() => runAction('Flow down', () => commands.setFlow(flowPercent - pctStep))}>
-                <img className="tune-icon" src={arrowDownIcon} alt="" aria-hidden="true" />
-                <span>Flow -</span>
-              </button>
-            </div>
-
-            <div className="tune-steps">
-              <div className="tune-step-group">
-                {Z_STEPS.map((step) => (
-                  <button type="button" key={step} className={`tune-step ${zStep === step ? 'active' : ''}`} onClick={() => setZStep(step)}>{step}</button>
-                ))}
-              </div>
-              <div className="tune-step-group">
-                {PCT_STEPS.map((step) => (
-                  <button type="button" key={step} className={`tune-step ${pctStep === step ? 'active' : ''}`} onClick={() => setPctStep(step)}>{step}%</button>
-                ))}
-              </div>
-            </div>
-
-            <div className="kv top-gap"><span>Part Fan</span><strong>{fanPartPercent}%</strong></div>
-            <div className="fan-slider-row">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                className="fan-slider"
-                aria-label="Part fan speed"
-                value={Math.round(fanPartPercent)}
-                style={{ '--slider-fill': `${Math.round(fanPartPercent)}%` } as CSSProperties}
-                onChange={(event) => {
-                  const nextPercent = Number(event.currentTarget.value);
-                  void runAction(`Set fan ${nextPercent}%`, () => commands.setFan(nextPercent, 'fan'));
-                }}
-              />
-              <button
-                type="button"
-                className="btn"
-                onClick={() => runAction('Fan off', () => commands.setFan(0, 'fan'))}
-              >
-                OFF
-              </button>
+              <Link className="btn button-link" to="/print/tune">Live Tune</Link>
             </div>
           </section>
         </div>

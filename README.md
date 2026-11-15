@@ -19,9 +19,9 @@ https://buymeacoffee.com/tiger3dprinting
 |---|---|---|---|
 | ![Control](docs/screenshots/control.png) | ![Settings](docs/screenshots/settings.png) | ![Connectivity](docs/screenshots/connectivity.png) | ![Updates](docs/screenshots/updates.png) |
 
-Print screen (shown while Klipper is printing or paused; this capture uses sample data):
+Print and Live Tune screens (shown while Klipper is printing or paused; these captures use sample data). Open Live Tune from the print actions to adjust Z offset, speed, flow, the part fan, and discovered output pins; use Back to Print to return.
 
-<img src="docs/screenshots/print.png" alt="Print" width="200" />
+<img src="docs/screenshots/print.png" alt="Print" width="200" /> <img src="docs/screenshots/live-tune.png" alt="Live Tune" width="200" />
 
 ### Current Horizontal Screen Layout
 Still wip

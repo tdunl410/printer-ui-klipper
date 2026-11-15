@@ -385,6 +385,13 @@ body {
   gap: 6px;
 }
 
+.button-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .btn:disabled {
   opacity: 0.5;
 }
@@ -1312,6 +1319,13 @@ body {
   font-weight: 600;
 }
 
+.live-tune-columns,
+.live-tune-side {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
 .tune-btn:active {
   background: color-mix(in srgb, var(--accent) 38%, var(--surface-strong));
 }
@@ -1338,7 +1352,7 @@ body {
 
 .tune-steps {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 3fr 4fr;
   gap: 8px;
   margin-top: 8px;
 }
@@ -1352,10 +1366,12 @@ body {
 
 .tune-step {
   flex: 1;
+  min-width: 0;
   min-height: 48px;
   border: 0;
   background: var(--surface-strong);
   color: var(--text);
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -1532,6 +1548,12 @@ body {
     row-gap: 10px;
     align-items: start;
     align-self: start;
+  }
+
+  .screen > .live-tune-columns {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
   }
 
   .hero img { max-height: 260px; }
