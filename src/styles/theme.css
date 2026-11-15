@@ -1771,6 +1771,10 @@ body[data-theme='white'] .exclude-grid-line {
     padding: 10px 16px 10px 100px;
   }
 
+  .screen.menu-hidden {
+    padding-left: 16px;
+  }
+
   .screen > .header,
   .screen > .status-row,
   .screen > .progress-bar {
