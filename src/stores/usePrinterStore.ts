@@ -30,7 +30,7 @@ import { MoonrakerSocket } from '../transport/moonrakerSocket';
 import { hhmmFromSeconds } from '../utils/format';
 import { defaultPrinterRender, printerRenders } from '../utils/printerRenders';
 
-type ThemeKey = 'purple' | 'blue' | 'green' | 'rose' | 'red' | 'orange';
+type ThemeKey = 'purple' | 'blue' | 'green' | 'rose' | 'red' | 'orange' | 'white' | 'custom';
 type ZLevelingCommand = 'z_tilt' | 'quad_gantry_level';
 
 type DetectedUpdate = {
@@ -62,6 +62,8 @@ interface PrinterStore {
   detectedUpdates: DetectedUpdate[];
   commandQueue: CommandStatus[];
   theme: ThemeKey;
+  customAccentColor: string;
+  textScale: number;
   printerRender: string;
   bottomBarItems: BottomBarItemKey[];
   zLevelingCommand?: ZLevelingCommand;
@@ -77,6 +79,8 @@ interface PrinterStore {
   boot: () => void;
   disconnect: () => void;
   setTheme: (theme: ThemeKey) => void;
+  setAccentColor: (color: string) => void;
+  setTextScale: (scale: number) => void;
   setPrinterName: (name: string) => void;
   setPrinterRender: (render: string) => void;
   setBottomBarItems: (items: BottomBarItemKey[]) => void;
@@ -110,6 +114,25 @@ const slowCache = new Map<string, unknown>();
 const SLOW_POLL_EVERY = 12;
 let snapshotInFlight = false;
 const socketIsLive = () => Date.now() - lastSocketUpdate < 5000;
+
+const isHexColor = (value: string) => /^#[\da-f]{6}$/i.test(value);
+
+const applyCustomAccentColor = (color: string) => {
+  const rgb = color.slice(1).match(/.{2}/g)?.map((channel) => Number.parseInt(channel, 16));
+  if (!rgb || rgb.length !== 3) return;
+
+  document.documentElement.style.setProperty('--accent', color);
+  document.documentElement.style.setProperty('--accent-2', `color-mix(in srgb, ${color} 72%, white)`);
+  document.documentElement.style.setProperty('--accent-rgb', rgb.join(', '));
+  document.documentElement.style.setProperty('--accent-2-rgb', rgb.map((channel) => Math.round(channel * 0.72 + 255 * 0.28)).join(', '));
+  document.documentElement.style.setProperty('--accent-text', `color-mix(in srgb, ${color} 28%, white)`);
+};
+
+const clearCustomAccentColor = () => {
+  for (const property of ['--accent', '--accent-2', '--accent-rgb', '--accent-2-rgb', '--accent-text']) {
+    document.documentElement.style.removeProperty(property);
+  }
+};
 
 function parseStatusPayload(payload: unknown) {
   if (typeof payload !== 'object' || payload === null) return undefined;
@@ -683,6 +706,8 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     detectedUpdates: [],
     commandQueue: [],
     theme: initialTheme,
+    customAccentColor: '#7b4dff',
+    textScale: 1,
     printerRender: initialPrinterRender,
     bottomBarItems: [...defaultBottomBarItems],
     zLevelingCommand: undefined,
@@ -712,15 +737,23 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
         try {
           const config = await getUiConfig();
-          const configuredTheme = (['purple', 'blue', 'green', 'rose', 'red', 'orange'] as const).includes(config.appearance.theme as ThemeKey)
+          const configuredTheme = (['purple', 'blue', 'green', 'rose', 'red', 'orange', 'white', 'custom'] as const).includes(config.appearance.theme as ThemeKey)
             ? (config.appearance.theme as ThemeKey)
             : 'purple';
+          const configuredAccentColor = isHexColor(config.appearance.customAccentColor)
+            ? config.appearance.customAccentColor
+            : '#7b4dff';
+          const configuredTextScale = Number.isFinite(config.appearance.textScale)
+            ? Math.min(1.3, Math.max(0.8, config.appearance.textScale))
+            : 1;
           const configuredRender = printerRenders.find((render) => render.name === config.appearance.printerRender)?.name
             ?? defaultPrinterRender?.name
             ?? '';
 
           set((state) => ({
             theme: configuredTheme,
+            customAccentColor: configuredAccentColor,
+            textScale: configuredTextScale,
             profileName: String(config.appearance.printerName || state.profileName || 'Printer').trim() || 'Printer',
             printerRender: configuredRender,
             bottomBarItems: normalizeBottomBarItems(config.appearance.bottomBarItems),
@@ -735,6 +768,9 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
           }));
 
           document.body.dataset.theme = configuredTheme;
+          document.documentElement.style.setProperty('--text-scale', String(configuredTextScale));
+          if (configuredTheme === 'custom') applyCustomAccentColor(configuredAccentColor);
+          else clearCustomAccentColor();
         } catch {
           document.body.dataset.theme = get().theme;
         }
@@ -884,9 +920,35 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     },
     setTheme: (theme: ThemeKey) => {
       document.body.dataset.theme = theme;
+      if (theme === 'custom') applyCustomAccentColor(get().customAccentColor);
+      else clearCustomAccentColor();
       set({ theme });
       persistConfigPatch({
         appearance: { theme },
+      });
+    },
+    setAccentColor: (color: string) => {
+      if (!isHexColor(color)) {
+        throw new Error(`Invalid accent color: ${color}`);
+      }
+
+      document.body.dataset.theme = 'custom';
+      applyCustomAccentColor(color);
+      set({ theme: 'custom', customAccentColor: color });
+      persistConfigPatch({
+        appearance: { theme: 'custom', customAccentColor: color },
+      });
+    },
+    setTextScale: (scale: number) => {
+      if (!Number.isFinite(scale)) {
+        throw new Error(`Invalid text scale: ${scale}`);
+      }
+
+      const textScale = Math.min(1.3, Math.max(0.8, scale));
+      document.documentElement.style.setProperty('--text-scale', String(textScale));
+      set({ textScale });
+      persistConfigPatch({
+        appearance: { textScale },
       });
     },
     setPrinterName: (name: string) => {

@@ -27,6 +27,8 @@ export function normalizeBottomBarItems(value: unknown): BottomBarItemKey[] {
 export interface UiConfig {
   appearance: {
     theme: string;
+    customAccentColor: string;
+    textScale: number;
     printerName: string;
     printerRender: string;
     bottomBarItems: BottomBarItemKey[];
@@ -57,6 +59,8 @@ export const defaultTempPresets: TempPreset[] = [
 export const defaultUiConfig: UiConfig = {
   appearance: {
     theme: 'purple',
+    customAccentColor: '#7b4dff',
+    textScale: 1,
     printerName: 'Printer',
     printerRender: '',
     bottomBarItems: defaultBottomBarItems,

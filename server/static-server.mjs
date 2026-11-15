@@ -26,6 +26,8 @@ const MAX_UPDATE_LOG_LINES = 80;
 const defaultUiConfig = {
   appearance: {
     theme: 'purple',
+    customAccentColor: '#7b4dff',
+    textScale: 1,
     printerName: 'Printer',
     printerRender: '',
     bottomBarItems: ['home', 'print', 'control', 'settings'],
