@@ -9,26 +9,43 @@ Plz support me I dont want to maintain this but i will if u donate:))))
 https://buymeacoffee.com/tiger3dprinting
 
 ## Screenshots
-### Captured at  `400x1280` portrait:
+### Portrait layout (400x1280)
+These screenshots use the default accent and `printer-render`.
 
 | Home | Files | Preheat | Extrude |
 |---|---|---|---|
 | ![Home](docs/screenshots/home.png) | ![Files](docs/screenshots/files.png) | ![Preheat](docs/screenshots/preheat.png) | ![Extrude](docs/screenshots/extrude.png) |
 
-| Control | Settings | Connectivity | Updates |
+| Control | Settings | Appearance | Connectivity |
 |---|---|---|---|
-| ![Control](docs/screenshots/control.png) | ![Settings](docs/screenshots/settings.png) | ![Connectivity](docs/screenshots/connectivity.png) | ![Updates](docs/screenshots/updates.png) |
+| ![Control](docs/screenshots/control.png) | ![Settings](docs/screenshots/settings.png) | ![Appearance](docs/screenshots/appearance.png) | ![Connectivity](docs/screenshots/connectivity.png) |
+
+| Updates |
+|---|
+| ![Updates](docs/screenshots/updates.png) |
 
 Print and Live Tune screens (shown while Klipper is printing or paused; these captures use sample data). Open Live Tune from the print actions to adjust Z offset, speed, flow, pressure advance and smooth time for the active extruder, square corner velocity, the part fan, and discovered output pins; use Back to Print to return. These adjustments are live and do not save changes to the printer configuration. Pressure advance controls are unavailable when the active extruder does not report those values.
 
 <img src="docs/screenshots/print.png" alt="Print" width="200" /> <img src="docs/screenshots/live-tune.png" alt="Live Tune" width="200" />
 
-### Current Horizontal Screen Layout
-Still wip
+### Landscape layout (800x480 for a 480x800 display rotated horizontally)
+These screenshots use the red accent and `printer-render2`.
 
 | Home | Files | Control |
 |---|---|---|
-| ![Home](docs/screenshots/Home-Horizontal.png) | ![Files](docs/screenshots/Files-Horizontal.png) | ![Preheat](docs/screenshots/Control-Horizontal.png) |
+| ![Home](docs/screenshots/Home-Horizontal.png) | ![Files](docs/screenshots/Files-Horizontal.png) | ![Control](docs/screenshots/Control-Horizontal.png) |
+
+| Preheat | Extrude | Settings |
+|---|---|---|
+| ![Preheat](docs/screenshots/Preheat-Horizontal.png) | ![Extrude](docs/screenshots/Extrude-Horizontal.png) | ![Settings](docs/screenshots/Settings-Horizontal.png) |
+
+| Appearance | Connectivity | Updates |
+|---|---|---|
+| ![Appearance](docs/screenshots/Appearance-Horizontal.png) | ![Connectivity](docs/screenshots/Connectivity-Horizontal.png) | ![Updates](docs/screenshots/Updates-Horizontal.png) |
+
+| Print | Live Tune |
+|---|---|
+| ![Print](docs/screenshots/Print-Horizontal.png) | ![Live Tune](docs/screenshots/Live-Tune-Horizontal.png) |
 
 ## Main Installation (Recommended)
 Run on your printer host user (non-root, must have `sudo`):
