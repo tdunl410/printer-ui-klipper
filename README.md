@@ -10,7 +10,7 @@ https://buymeacoffee.com/tiger3dprinting
 
 ## Screenshots
 ### Portrait layout (400x1280)
-These screenshots use the default accent and `printer-render`.
+These screenshots use the default purple accent and `printer-render`.
 
 | Home | Files | Preheat | Extrude |
 |---|---|---|---|
@@ -20,13 +20,15 @@ These screenshots use the default accent and `printer-render`.
 |---|---|---|---|
 | ![Control](docs/screenshots/control.png) | ![Settings](docs/screenshots/settings.png) | ![Appearance](docs/screenshots/appearance.png) | ![Connectivity](docs/screenshots/connectivity.png) |
 
-| Updates |
-|---|
-| ![Updates](docs/screenshots/updates.png) |
 
-Print and Live Tune screens (shown while Klipper is printing or paused; these captures use sample data). Open Live Tune from the print actions to adjust Z offset, speed, flow, pressure advance and smooth time for the active extruder, square corner velocity, the part fan, and discovered output pins; use Back to Print to return. These adjustments are live and do not save changes to the printer configuration. Pressure advance controls are unavailable when the active extruder does not report those values.
+
+Print and Live Tune screens (shown while Klipper is printing or paused; these captures use sample data). 
 
 <img src="docs/screenshots/print.png" alt="Print" width="200" /> <img src="docs/screenshots/live-tune.png" alt="Live Tune" width="200" />
+
+Updates screen
+
+<img src="docs/screenshots/updates.png" alt="Updates" width="200" />
 
 ### Landscape layout (800x480 for a 480x800 display rotated horizontally)
 These screenshots use the red accent and `printer-render2`.
@@ -153,6 +155,12 @@ It does **not** remove Node.js, Chromium, or display tools.
 ```bash
 npm install
 npm run dev
+```
+
+Regenerate all README screenshots using built-in sample printer data; no printer connection is needed. This requires Node.js 22+ and Chrome/Chromium (`CHROME_BIN` can select a non-default browser path):
+
+```bash
+npm run screenshots
 ```
 
 ## Build
