@@ -71,7 +71,7 @@ export function Layout({ title, subtitle, children, homeAction, hideMenuBar = fa
                 end
               >
                 <img className="dock-icon" src={item.icon} alt="" aria-hidden="true" />
-                <span className="dock-label">{item.label}</span>
+                
               </NavLink>
             );
           })}

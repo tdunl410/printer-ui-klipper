@@ -96,28 +96,22 @@ export function PreheatScreen() {
         <div className="preheat-column">
           <section className="card">
             <div className="card-title">Set Temperature</div>
-
-            <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('extruder')}><span>Nozzle</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></button>
-            <div className="btn-row">
-              <button type="button" className="btn" onClick={() => adjust('extruder', -5)}>-5°C</button>
-              <button type="button" className="btn" onClick={() => adjust('extruder', -targetMap.extruder)}>Off</button>
-              <button type="button" className="btn" onClick={() => adjust('extruder', 5)}>+5°C</button>
+            
+            <div className="temp-row">
+              <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('extruder')}><span>Nozzle</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></button>
+              <button type="button" className="btn" onClick={() => adjust('extruder', -targetMap.extruder)}>Off</button> 
             </div>
 
             <div className="spacer" />
+            <div className="temp-row">
             <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('heater_bed')}><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></button>
-            <div className="btn-row">
-              <button type="button" className="btn" onClick={() => adjust('heater_bed', -5)}>-5°C</button>
               <button type="button" className="btn" onClick={() => adjust('heater_bed', -targetMap.heater_bed)}>Off</button>
-              <button type="button" className="btn" onClick={() => adjust('heater_bed', 5)}>+5°C</button>
             </div>
 
             <div className="spacer" />
+            <div className="temp-row">
             <button type="button" className="kv temp-target-row button-reset" onClick={() => keypad.open('chamber')}><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></button>
-            <div className="btn-row">
-              <button type="button" className="btn" onClick={() => adjust('chamber', -5)}>-5°C</button>
-              <button type="button" className="btn" onClick={() => adjust('chamber', -targetMap.chamber)}>Off</button>
-              <button type="button" className="btn" onClick={() => adjust('chamber', 5)}>+5°C</button>
+            <button type="button" className="btn" onClick={() => adjust('chamber', -targetMap.chamber)}>Off</button>
             </div>
           </section>
 
