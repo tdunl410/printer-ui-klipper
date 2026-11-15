@@ -141,6 +141,27 @@ export class CommandService {
     return this.gcode(`M221 S${Math.round(bounded)}`);
   }
 
+  async setPressureAdvance(extruder: string, value: number) {
+    if (!/^extruder\d*$/.test(extruder) || !Number.isFinite(value) || value < 0) {
+      throw new Error('Invalid extruder or pressure advance value');
+    }
+    return this.gcode(`SET_PRESSURE_ADVANCE EXTRUDER=${extruder} ADVANCE=${value}`);
+  }
+
+  async setPressureAdvanceSmoothTime(extruder: string, value: number) {
+    if (!/^extruder\d*$/.test(extruder) || !Number.isFinite(value) || value < 0 || value > 0.2) {
+      throw new Error('Smooth time must be between 0 and 0.2 seconds');
+    }
+    return this.gcode(`SET_PRESSURE_ADVANCE EXTRUDER=${extruder} SMOOTH_TIME=${value}`);
+  }
+
+  async setSquareCornerVelocity(value: number) {
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error('Square corner velocity must be non-negative');
+    }
+    return this.gcode(`SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=${value}`);
+  }
+
   async adjustZOffset(delta: number) {
     return this.gcode(`SET_GCODE_OFFSET Z_ADJUST=${delta.toFixed(3)} MOVE=1`);
   }

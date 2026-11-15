@@ -19,7 +19,7 @@ https://buymeacoffee.com/tiger3dprinting
 |---|---|---|---|
 | ![Control](docs/screenshots/control.png) | ![Settings](docs/screenshots/settings.png) | ![Connectivity](docs/screenshots/connectivity.png) | ![Updates](docs/screenshots/updates.png) |
 
-Print and Live Tune screens (shown while Klipper is printing or paused; these captures use sample data). Open Live Tune from the print actions to adjust Z offset, speed, flow, the part fan, and discovered output pins; use Back to Print to return.
+Print and Live Tune screens (shown while Klipper is printing or paused; these captures use sample data). Open Live Tune from the print actions to adjust Z offset, speed, flow, pressure advance and smooth time for the active extruder, square corner velocity, the part fan, and discovered output pins; use Back to Print to return. These adjustments are live and do not save changes to the printer configuration. Pressure advance controls are unavailable when the active extruder does not report those values.
 
 <img src="docs/screenshots/print.png" alt="Print" width="200" /> <img src="docs/screenshots/live-tune.png" alt="Live Tune" width="200" />
 

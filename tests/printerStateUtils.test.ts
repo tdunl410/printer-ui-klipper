@@ -3,6 +3,8 @@ import { defaultTemperatures } from '../src/domain/defaults';
 import {
   computeJobState,
   deriveTemperatures,
+  fillMissingMotionTuning,
+  mergeMotionTuning,
   normalizeKlipperState,
   toPercent,
 } from '../src/stores/printerStateUtils';
@@ -77,5 +79,39 @@ describe('printerStateUtils', () => {
     expect(derived.sensors.ambient_probe.current).toBe(23);
     expect(derived.sensors.ambient_probe.target).toBe(40);
     expect(derived.ambient).toBe(23);
+  });
+
+  it('merges motion values from partial updates and tracks the active extruder', () => {
+    const initial = mergeMotionTuning({ extruders: {} }, {
+      toolhead: { extruder: 'extruder', square_corner_velocity: 5 },
+      extruder: { pressure_advance: 0.04, smooth_time: 0.04 },
+      extruder1: { pressure_advance: 0.08, smooth_time: 0.03 },
+    });
+    const next = mergeMotionTuning(initial, {
+      toolhead: { extruder: 'extruder1' },
+      extruder1: { pressure_advance: 0.09 },
+    });
+    expect(next).toEqual({
+      activeExtruder: 'extruder1',
+      squareCornerVelocity: 5,
+      extruders: {
+        extruder: { pressureAdvance: 0.04, smoothTime: 0.04 },
+        extruder1: { pressureAdvance: 0.09, smoothTime: 0.03 },
+      },
+    });
+    expect(mergeMotionTuning(next, { toolhead: { square_corner_velocity: null }, extruder1: { smooth_time: 'bad' } })).toEqual(next);
+  });
+
+  it('fills missing live motion values from a snapshot without overwriting newer values', () => {
+    const snapshot = mergeMotionTuning({ extruders: {} }, {
+      toolhead: { extruder: 'extruder', square_corner_velocity: 5 },
+      extruder: { pressure_advance: 0.04, smooth_time: 0.04 },
+    });
+    const live = mergeMotionTuning({ extruders: {} }, { extruder: { pressure_advance: 0.06 } });
+    expect(fillMissingMotionTuning(live, snapshot)).toEqual({
+      activeExtruder: 'extruder',
+      squareCornerVelocity: 5,
+      extruders: { extruder: { pressureAdvance: 0.06, smoothTime: 0.04 } },
+    });
   });
 });

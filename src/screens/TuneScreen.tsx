@@ -4,6 +4,7 @@ import arrowDownIcon from '../../assets/arrow-down.svg';
 import arrowUpIcon from '../../assets/arrow-up.svg';
 import { CoolingControls } from '../components/CoolingControls';
 import { Layout } from '../components/Layout';
+import { MotionTuneControls } from '../components/MotionTuneControls';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 
 const Z_STEPS = [0.01, 0.05, 0.1] as const;
@@ -75,6 +76,7 @@ export function TuneScreen() {
           </div>
         </section>
         <div className="live-tune-side">
+          <MotionTuneControls />
           <CoolingControls />
           <Link className="btn button-link" to="/print">Back to Print</Link>
         </div>

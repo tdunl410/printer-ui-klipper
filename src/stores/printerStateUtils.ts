@@ -1,5 +1,51 @@
 import type { JobState, KlipperState, PrinterTemperatures } from '../domain/models';
 
+export interface MotionTuning {
+  activeExtruder?: string;
+  extruders: Record<string, { pressureAdvance?: number; smoothTime?: number }>;
+  squareCornerVelocity?: number;
+}
+
+export const mergeMotionTuning = (
+  previous: MotionTuning,
+  status: Record<string, unknown>,
+): MotionTuning => {
+  const toolhead = status.toolhead;
+  const toolheadValues = typeof toolhead === 'object' && toolhead !== null
+    ? toolhead as Record<string, unknown>
+    : {};
+  const next = { ...previous, extruders: { ...previous.extruders } };
+  if (typeof toolheadValues.extruder === 'string') next.activeExtruder = toolheadValues.extruder;
+  if (typeof toolheadValues.square_corner_velocity === 'number' && Number.isFinite(toolheadValues.square_corner_velocity)) {
+    next.squareCornerVelocity = toolheadValues.square_corner_velocity;
+  }
+  for (const [name, raw] of Object.entries(status)) {
+    if (!/^extruder\d*$/.test(name) || typeof raw !== 'object' || raw === null) continue;
+    const values = raw as Record<string, unknown>;
+    const extruder = { ...next.extruders[name] };
+    if (typeof values.pressure_advance === 'number' && Number.isFinite(values.pressure_advance)) {
+      extruder.pressureAdvance = values.pressure_advance;
+    }
+    if (typeof values.smooth_time === 'number' && Number.isFinite(values.smooth_time)) {
+      extruder.smoothTime = values.smooth_time;
+    }
+    next.extruders[name] = extruder;
+  }
+  return next;
+};
+
+export const fillMissingMotionTuning = (live: MotionTuning, snapshot: MotionTuning): MotionTuning => {
+  const extruders = { ...snapshot.extruders };
+  for (const [name, values] of Object.entries(live.extruders)) {
+    extruders[name] = { ...extruders[name], ...values };
+  }
+  return {
+    activeExtruder: live.activeExtruder ?? snapshot.activeExtruder,
+    squareCornerVelocity: live.squareCornerVelocity ?? snapshot.squareCornerVelocity,
+    extruders,
+  };
+};
+
 const KLIPPER_STATES: KlipperState[] = ['ready', 'startup', 'shutdown', 'error', 'disconnected'];
 
 export const toPercent = (raw: unknown, fallback: number) => {

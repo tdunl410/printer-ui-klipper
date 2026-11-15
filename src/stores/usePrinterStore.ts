@@ -24,7 +24,7 @@ import {
   type BottomBarItemKey,
   type TempPreset,
 } from '../services/userConfig';
-import { computeJobState, deriveTemperatures, normalizeKlipperState, toPercent } from './printerStateUtils';
+import { computeJobState, deriveTemperatures, fillMissingMotionTuning, mergeMotionTuning, normalizeKlipperState, toPercent, type MotionTuning } from './printerStateUtils';
 import { MoonrakerHttpClient } from '../transport/moonrakerHttp';
 import { MoonrakerSocket } from '../transport/moonrakerSocket';
 import { hhmmFromSeconds } from '../utils/format';
@@ -72,6 +72,7 @@ interface PrinterStore {
   speedPercent: number;
   flowPercent: number;
   zOffset: number;
+  motionTuning: MotionTuning;
   excludeObjects: ExcludeObjectsState;
   boot: () => void;
   disconnect: () => void;
@@ -200,6 +201,9 @@ const readHeater = (
 });
 
 const dynamicFieldsForObject = (name: string) => {
+  if (/^extruder\d+$/.test(name)) {
+    return ['pressure_advance', 'smooth_time'];
+  }
   if (name.startsWith('output_pin ')) {
     return ['value'];
   }
@@ -256,6 +260,7 @@ const getDynamicTemperatureObjects = (status: Record<string, any>, objects: stri
       name.startsWith('fan_generic ') ||
       name.startsWith('controller_fan ') ||
       name.startsWith('heater_fan ') ||
+      /^extruder\d+$/.test(name) ||
       name.startsWith('output_pin ')
     );
   });
@@ -391,9 +396,9 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
     const [objectsRes, filesRes, systemRes, networkRes, objectListRes, updateRes, historyRes, mainsailGeneralRes, serverInfoRes] = await Promise.allSettled([
       scopedHttp.queryObjects({
-        toolhead: ['position'],
+        toolhead: ['position', 'extruder', 'square_corner_velocity'],
         gcode_move: ['speed', 'speed_factor', 'extrude_factor', 'homing_origin'],
-        extruder: ['temperature', 'target'],
+        extruder: ['temperature', 'target', 'pressure_advance', 'smooth_time'],
         heater_bed: ['temperature', 'target'],
         heaters: ['available_heaters', 'available_sensors', 'available_monitors'],
         print_stats: ['state', 'filename', 'print_duration', 'total_duration', 'filament_used', 'info', 'message'],
@@ -504,6 +509,9 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         speedPercent: Math.round(Number(status.gcode_move?.speed_factor ?? state.speedPercent / 100) * 100),
         flowPercent: Math.round(Number(status.gcode_move?.extrude_factor ?? state.flowPercent / 100) * 100),
         zOffset: Number(status.gcode_move?.homing_origin?.[2] ?? state.zOffset),
+        motionTuning: live
+          ? fillMissingMotionTuning(state.motionTuning, mergeMotionTuning({ extruders: {} }, { ...dynamicStatus, ...status }))
+          : mergeMotionTuning(state.motionTuning, { ...dynamicStatus, ...status }),
         excludeObjects,
         job: {
           ...state.job,
@@ -685,6 +693,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     speedPercent: 100,
     flowPercent: 100,
     zOffset: 0,
+    motionTuning: { extruders: {} },
     boot: () => {
       const start = async () => {
         slowCache.clear();
@@ -760,6 +769,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
           set((state) => {
             const next = { ...state };
+            next.motionTuning = mergeMotionTuning(next.motionTuning, status);
 
             if (status.extruder) {
               next.temperatures = {
