@@ -26,9 +26,6 @@ Print and Live Tune screens (shown while Klipper is printing or paused; these ca
 
 <img src="docs/screenshots/print.png" alt="Print" width="200" /> <img src="docs/screenshots/live-tune.png" alt="Live Tune" width="200" />
 
-Updates screen
-
-<img src="docs/screenshots/updates.png" alt="Updates" width="200" />
 
 ### Landscape layout (800x480 for a 480x800 display rotated horizontally)
 These screenshots use the red accent and `printer-render2`.
