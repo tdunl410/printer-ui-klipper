@@ -180,7 +180,7 @@ export function PrintScreen() {
   };
 
   return (
-    <Layout title="Active Print" subtitle={`Part: ${job.filename}`} hideMenuBar={isPrintActive}>
+    <Layout title="Active Print" subtitle=" " hideMenuBar={isPrintActive}>
       <div className="print-columns">
         <div className="print-column print-column-left">
           <section className="card print-time-card">
@@ -226,7 +226,7 @@ export function PrintScreen() {
 
         <div className="print-column print-column-right">
           <section className="card print-thumb-card">
-            <div className="card-label">Current Job</div>
+            <div className="card-label">{job.filename}</div>
             <div className="media-thumb print-media-thumb">
               {thumbnailUrl ? (
                 <img src={thumbnailUrl} alt={`${job.filename} preview`} />
