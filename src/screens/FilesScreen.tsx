@@ -148,7 +148,7 @@ export function FilesScreen() {
           <button type="button" className={`btn ${sortBy === 'name' ? 'accent' : ''}`} onClick={() => setSortBy('name')}>Name</button>
           <button type="button" className={`btn ${sortBy === 'size' ? 'accent' : ''}`} onClick={() => setSortBy('size')}>Size</button>
         </div>
-        <div className="file-list" ref={fileListRef}>
+        <div className="file-list top-gap" ref={fileListRef}>
           {visibleFiles.map((file) => (
             <button
               type="button"
