@@ -1183,6 +1183,84 @@ body {
   align-content: start;
 }
 
+@media (max-aspect-ratio: 5/4) {
+  .screen:has(> .print-columns) > .print-columns > .print-column {
+    display: contents;
+  }
+
+  .screen:has(> .print-columns) .print-time-card { order: 1; }
+  .screen:has(> .print-columns) .print-thumb-card { order: 2; }
+  .screen:has(> .print-columns) .print-progress-card { order: 3; }
+  .screen:has(> .print-columns) .print-temps-card { order: 4; }
+  .screen:has(> .print-columns) .print-actions-card { order: 5; }
+}
+
+.print-temps-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  padding: 6px 0;
+}
+
+.print-temp-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 104px;
+  padding: 4px 3px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.print-temp-button:last-child {
+  border-right: 0;
+}
+
+.print-temp-button:active {
+  background: var(--surface-strong);
+}
+
+.print-temp-current {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: clamp(18px, 4.8vw, 25px);
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.print-temp-unit {
+  font-size: 0.58em;
+}
+
+.print-temp-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.print-temp-value {
+  color: var(--text-muted);
+  font-size: calc(16px * var(--text-scale, 1));
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.print-temp-label {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--text-scale, 1));
+  line-height: 1.1;
+}
+
 .progress-fill {
   height: 100%;
   border-radius: 999px;
@@ -1840,6 +1918,10 @@ body[data-theme='white'] .exclude-grid-line {
     row-gap: 10px;
     align-items: start;
     align-self: start;
+  }
+
+  .screen:has(> .print-columns) > .print-columns > .print-column {
+    display: grid;
   }
 
   .screen > .live-tune-columns {

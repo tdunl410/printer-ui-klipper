@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import heaterIcon from '../../assets/heater.svg';
 import pauseIcon from '../../assets/pause.svg';
 import resumeIcon from '../../assets/resume.svg';
 import stopSquareIcon from '../../assets/stop-square.svg';
 import { Dialog } from '../components/Dialog';
+import { HeaterKeypad, useHeaterKeypad, type HeaterKey } from '../components/HeaterKeypad';
 import { Layout } from '../components/Layout';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 import { pct } from '../utils/format';
@@ -84,6 +86,7 @@ export function PrintScreen() {
   const printerSpeedMmS = usePrinterStore((state) => state.printerSpeedMmS);
   const flowPercent = usePrinterStore((state) => state.flowPercent);
   const runAction = usePrinterStore((state) => state.runAction);
+  const keypad = useHeaterKeypad();
   const [confirmAction, setConfirmAction] = useState<'stop' | 'emergency' | null>(null);
   const connection = usePrinterStore((state) => state.connection);
   const excludeObjects = usePrinterStore((state) => state.excludeObjects);
@@ -133,6 +136,39 @@ export function PrintScreen() {
 
   const remainingLabel = job.remaining || job.eta || '00:00';
   const currentSpeedLabel = Number.isFinite(printerSpeedMmS) ? `${printerSpeedMmS.toFixed(1)} mm/s` : '-- mm/s';
+  const temperatureTiles: {
+    heater: HeaterKey;
+    current: number;
+    target: number;
+    value: string;
+    name: string;
+    label: string;
+  }[] = [
+    {
+      heater: 'extruder',
+      current: temperatures.nozzle.current,
+      target: temperatures.nozzle.target,
+      value: `${Math.round(temperatures.nozzle.target)}°C`,
+      name: 'Nozzle',
+      label: 'Nozzle',
+    },
+    {
+      heater: 'heater_bed',
+      current: temperatures.bed.current,
+      target: temperatures.bed.target,
+      value: `${Math.round(temperatures.bed.target)}°C`,
+      name: 'Bed',
+      label: 'Bed',
+    },
+    {
+      heater: 'chamber',
+      current: temperatures.chamber.current,
+      target: temperatures.chamber.target,
+      value: 'Chamber',
+      name: 'Chamber',
+      label: 'Enclosure',
+    },
+  ];
 
   const toggleExcludeObject = (name: string, disabled: boolean) => {
     if (disabled) return;
@@ -148,8 +184,6 @@ export function PrintScreen() {
       <div className="print-columns">
         <div className="print-column print-column-left">
           <section className="card print-time-card">
-            <div className="card-label">Time Remaining</div>
-            <div className="card-title">{remainingLabel}</div>
             <div
               className="progress-bar print-time-progress"
               role="progressbar"
@@ -162,6 +196,35 @@ export function PrintScreen() {
             <div className="kv"><span>{pct(job.progress)} complete</span><strong>ETA {job.eta}</strong></div>
           </section>
 
+          <section className="card print-progress-card">
+            <div className="card-label">Progress</div>
+            <div className="kv"><span>Time Elapsed</span><strong>{job.elapsed}</strong></div>
+            <div className="kv"><span>Time Remaining</span><strong>{remainingLabel}</strong></div>
+            <div className="kv"><span>Speed</span><strong>{currentSpeedLabel}</strong></div>
+            <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
+          </section>
+
+          <section className="card print-temps-card" aria-label="Temperatures">
+            {temperatureTiles.map((tile) => (
+              <button
+                key={tile.heater}
+                type="button"
+                className="print-temp-button"
+                aria-label={`Set ${tile.name} temperature. Current ${tile.current.toFixed(1)}°C, target ${Math.round(tile.target)}°C`}
+                onClick={() => keypad.open(tile.heater)}
+              >
+                <span className="print-temp-current">
+                  {tile.current.toFixed(1)}<span className="print-temp-unit">°C</span>
+                </span>
+                <img className="print-temp-icon" src={heaterIcon} alt="" aria-hidden="true" />
+                <span className="print-temp-value">{tile.value}</span>
+                <span className="print-temp-label">{tile.label}</span>
+              </button>
+            ))}
+          </section>
+        </div>
+
+        <div className="print-column print-column-right">
           <section className="card print-thumb-card">
             <div className="card-label">Current Job</div>
             <div className="media-thumb print-media-thumb">
@@ -172,23 +235,6 @@ export function PrintScreen() {
               )}
             </div>
           </section>
-        </div>
-
-        <div className="print-column print-column-right">
-          <section className="card print-progress-card">
-            <div className="card-label">Progress</div>
-            <div className="kv"><span>Time Elapsed</span><strong>{job.elapsed}</strong></div>
-            <div className="kv"><span>Time Remaining</span><strong>{remainingLabel}</strong></div>
-            <div className="kv"><span>Speed</span><strong>{currentSpeedLabel}</strong></div>
-            <div className="kv"><span>Flow</span><strong>{flowPercent}%</strong></div>
-          </section>
-
-          <article className="card print-temps-card">
-            <div className="card-label">Temperatures</div>
-            <div className="kv"><span>Hotend</span><strong>{Math.round(temperatures.nozzle.current)} / {Math.round(temperatures.nozzle.target)}°C</strong></div>
-            <div className="kv"><span>Bed</span><strong>{Math.round(temperatures.bed.current)} / {Math.round(temperatures.bed.target)}°C</strong></div>
-            <div className="kv"><span>Chamber</span><strong>{Math.round(temperatures.chamber.current)} / {Math.round(temperatures.chamber.target)}°C</strong></div>
-          </article>
 
           <section className="card print-actions-card">
             <div className="card-label">Actions</div>
@@ -328,6 +374,7 @@ export function PrintScreen() {
           </div>
         </Dialog>
       ) : null}
+      <HeaterKeypad keypad={keypad} />
     </Layout>
   );
 }
