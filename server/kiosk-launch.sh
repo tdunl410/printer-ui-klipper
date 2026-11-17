@@ -9,6 +9,17 @@ if [[ "${1:-}" == "--session" ]]; then
   CHROME_BIN="$1"
   shift
 
+  # Prevent X11's independent idle timers from blanking/powering off the screen
+  # (commonly after 20 minutes) regardless of the UI's selected timeout. The UI
+  # controls DPMS explicitly when its own sleep timer expires.
+  if command -v xset >/dev/null 2>&1; then
+    xset -display "${DISPLAY:-:0}" s off || echo "Warning: could not disable the X11 screen saver"
+    xset -display "${DISPLAY:-:0}" s noblank || echo "Warning: could not disable X11 screen blanking"
+    xset -display "${DISPLAY:-:0}" -dpms || echo "Warning: could not disable automatic X11 DPMS"
+  else
+    echo "Warning: xset not found; X11 may blank the display using its default timeout"
+  fi
+
   screen_size() {
     local size=""
     if [[ -n "${PRINTER_UI_WINDOW_SIZE:-}" ]]; then

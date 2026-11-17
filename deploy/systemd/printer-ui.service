@@ -6,6 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/default/printer-ui
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
 ExecStart=/usr/bin/node /opt/printer-ui/server/static-server.mjs
 Restart=always
 RestartSec=2

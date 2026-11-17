@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { setHostDisplayPower } from '../services/displayPower';
 import { usePrinterStore } from '../stores/usePrinterStore';
 
 interface DeviceFrameProps {
@@ -13,6 +14,9 @@ export function DeviceFrame({ children }: DeviceFrameProps) {
   const printingSleepTimeout = usePrinterStore((state) => state.printingSleepTimeout);
   const [lastActivity, setLastActivity] = useState(() => Date.now());
   const [sleeping, setSleeping] = useState(false);
+  const dpmsPoweredOff = useRef(false);
+  const wakePending = useRef(false);
+  const sleepGeneration = useRef(0);
   const activePrint = jobState === 'printing' || jobState === 'paused';
   const sleepTimeout = activePrint ? printingSleepTimeout : idleSleepTimeout;
 
@@ -32,8 +36,25 @@ export function DeviceFrame({ children }: DeviceFrameProps) {
 
   useEffect(() => {
     const recordActivity = () => {
+      sleepGeneration.current += 1;
       setLastActivity(Date.now());
+      if (!sleeping) return;
+
       setSleeping(false);
+      if (!dpmsPoweredOff.current || wakePending.current) return;
+
+      wakePending.current = true;
+      void setHostDisplayPower('on')
+        .then((available) => {
+          if (!available) throw new Error('Display DPMS is no longer available.');
+          dpmsPoweredOff.current = false;
+        })
+        .catch((error: unknown) => {
+          console.error('Unable to wake the display with DPMS.', error);
+        })
+        .finally(() => {
+          wakePending.current = false;
+        });
     };
 
     window.addEventListener('pointerdown', recordActivity);
@@ -44,16 +65,48 @@ export function DeviceFrame({ children }: DeviceFrameProps) {
       window.removeEventListener('keydown', recordActivity);
       window.removeEventListener('wheel', recordActivity);
     };
-  }, []);
+  }, [sleeping]);
 
   useEffect(() => {
     if (sleepTimeout === 'never') {
       setSleeping(false);
+      sleepGeneration.current += 1;
+      if (dpmsPoweredOff.current && !wakePending.current) {
+        wakePending.current = true;
+        void setHostDisplayPower('on')
+          .then((available) => {
+            if (!available) throw new Error('Display DPMS is no longer available.');
+            dpmsPoweredOff.current = false;
+          })
+          .catch((error: unknown) => {
+            console.error('Unable to wake the display with DPMS.', error);
+          })
+          .finally(() => {
+            wakePending.current = false;
+          });
+      }
       return;
     }
 
     const timer = window.setTimeout(
-      () => setSleeping(true),
+      () => {
+        const generation = ++sleepGeneration.current;
+        setSleeping(true);
+        void setHostDisplayPower('off')
+          .then((available) => {
+            if (!available) return;
+            dpmsPoweredOff.current = true;
+            if (sleepGeneration.current !== generation) {
+              return setHostDisplayPower('on').then((woken) => {
+                if (!woken) throw new Error('Display DPMS is no longer available.');
+                dpmsPoweredOff.current = false;
+              });
+            }
+          })
+          .catch((error: unknown) => {
+            console.error('Unable to power off the display with DPMS.', error);
+          });
+      },
       sleepTimeout * 60_000 - (Date.now() - lastActivity),
     );
     return () => window.clearTimeout(timer);
@@ -67,11 +120,6 @@ export function DeviceFrame({ children }: DeviceFrameProps) {
           type="button"
           className="display-sleep-overlay"
           aria-label="Wake display"
-          onPointerDown={(event) => {
-            event.preventDefault();
-            setLastActivity(Date.now());
-            setSleeping(false);
-          }}
         />
       ) : null}
     </main>

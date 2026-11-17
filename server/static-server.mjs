@@ -3,6 +3,7 @@ import { access, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promis
 import { execFile } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
+import { homedir } from 'node:os';
 import { extname, join, normalize } from 'node:path';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -207,6 +208,58 @@ function nmcli(args, timeout = 30000) {
       resolve(stdout);
     });
   });
+}
+
+function runXset(display, args) {
+  return new Promise((resolve, reject) => {
+    const env = {
+      ...process.env,
+      DISPLAY: display,
+      XAUTHORITY: process.env.XAUTHORITY?.trim() || join(homedir(), '.Xauthority'),
+    };
+    execFile('xset', ['-display', display, ...args], { timeout: 5000, env }, (error, stdout, stderr) => {
+      if (error) {
+        const failure = new Error((stderr || stdout || error.message).trim());
+        failure.code = error.code;
+        reject(failure);
+        return;
+      }
+      resolve(stdout);
+    });
+  });
+}
+
+async function setHostDisplayPower(action) {
+  const display = process.env.DISPLAY?.trim() || ':0';
+  if (!/^:[0-9]+(?:\.[0-9]+)?$/.test(display)) {
+    throw new Error('Invalid X11 DISPLAY value');
+  }
+
+  let query;
+  try {
+    query = await runXset(display, ['-q']);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const missingXset = typeof error === 'object' && error !== null && error.code === 'ENOENT';
+    if (missingXset || /unable to open display|cannot open display/i.test(message)) {
+      return { available: false, reason: 'X11 display power management is unavailable' };
+    }
+    throw error;
+  }
+
+  if (!query.includes('DPMS (Energy Star)')) {
+    return { available: false, reason: 'The X11 display does not support DPMS' };
+  }
+
+  if (action === 'off') {
+    await runXset(display, ['+dpms']);
+    await runXset(display, ['dpms', '0', '0', '0']);
+    await runXset(display, ['dpms', 'force', 'off']);
+  } else {
+    await runXset(display, ['dpms', 'force', 'on']);
+  }
+
+  return { available: true };
 }
 
 // nmcli terse output separates fields with ':' and escapes literal colons as '\:'
@@ -444,6 +497,17 @@ async function handleUi(req, res, path) {
       const next = deepMerge(current, body);
       await saveUiConfig(next);
       sendJson(res, 200, { config: next });
+      return;
+    }
+
+    if (req.method === 'POST' && path === '/api/ui/display-power') {
+      const body = JSON.parse(await readBody(req, 1024));
+      if (!isPlainObject(body) || !['on', 'off'].includes(body.action)) {
+        sendJson(res, 400, { error: 'Display power action must be "on" or "off"' });
+        return;
+      }
+
+      sendJson(res, 200, await setHostDisplayPower(body.action));
       return;
     }
 
