@@ -8,10 +8,22 @@ export interface TempPreset {
 }
 
 export type BottomBarItemKey = 'home' | 'print' | 'control' | 'preheat' | 'extrude' | 'settings';
+export type SleepTimeout = 5 | 10 | 20 | 60 | 120 | 'never';
 
 export const defaultBottomBarItems: BottomBarItemKey[] = ['home', 'print', 'control', 'settings'];
 const requiredBottomBarItems: BottomBarItemKey[] = ['home', 'settings'];
 const validBottomBarItems: BottomBarItemKey[] = ['home', 'print', 'control', 'preheat', 'extrude', 'settings'];
+const validSleepTimeouts: SleepTimeout[] = [5, 10, 20, 60, 120, 'never'];
+
+export function normalizeDisplayBrightness(value: unknown): number {
+  const brightness = Number(value);
+  return Number.isFinite(brightness) ? Math.min(100, Math.max(10, brightness)) : 100;
+}
+
+export function normalizeSleepTimeout(value: unknown): SleepTimeout {
+  const timeout = value === 'never' ? value : Number(value);
+  return validSleepTimeouts.includes(timeout as SleepTimeout) ? timeout as SleepTimeout : 'never';
+}
 
 export function normalizeBottomBarItems(value: unknown): BottomBarItemKey[] {
   if (!Array.isArray(value)) return [...defaultBottomBarItems];
@@ -37,6 +49,11 @@ export interface UiConfig {
     moonrakerBaseUrl?: string;
     websocketUrl?: string;
   };
+  display: {
+    brightness: number;
+    idleSleepTimeout: SleepTimeout;
+    printingSleepTimeout: SleepTimeout;
+  };
   presets: {
     temperature: TempPreset[];
   };
@@ -46,6 +63,7 @@ export interface UiConfig {
 export interface UiConfigPatch {
   appearance?: Partial<UiConfig['appearance']>;
   connection?: Partial<UiConfig['connection']>;
+  display?: Partial<UiConfig['display']>;
   presets?: Partial<UiConfig['presets']>;
   customizations?: Record<string, unknown>;
 }
@@ -66,6 +84,11 @@ export const defaultUiConfig: UiConfig = {
     bottomBarItems: defaultBottomBarItems,
   },
   connection: {},
+  display: {
+    brightness: 100,
+    idleSleepTimeout: 'never',
+    printingSleepTimeout: 'never',
+  },
   presets: {
     temperature: defaultTempPresets,
   },
@@ -84,6 +107,11 @@ const mergeUiConfig = (base: UiConfig, incoming: UiConfigPatch | undefined): UiC
     connection: {
       ...base.connection,
       ...(incoming.connection ?? {}),
+    },
+    display: {
+      brightness: normalizeDisplayBrightness(incoming.display?.brightness ?? base.display.brightness),
+      idleSleepTimeout: normalizeSleepTimeout(incoming.display?.idleSleepTimeout ?? base.display.idleSleepTimeout),
+      printingSleepTimeout: normalizeSleepTimeout(incoming.display?.printingSleepTimeout ?? base.display.printingSleepTimeout),
     },
     presets: {
       ...base.presets,

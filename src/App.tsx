@@ -6,6 +6,7 @@ import { CommandToast } from './components/CommandToast';
 import { AppearanceScreen } from './screens/AppearanceScreen';
 import { ConnectivityScreen } from './screens/ConnectivityScreen';
 import { ControlScreen } from './screens/ControlScreen';
+import { DisplayScreen } from './screens/DisplayScreen';
 import { ExtrudeScreen } from './screens/ExtrudeScreen';
 import { FilesScreen } from './screens/FilesScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -83,6 +84,7 @@ export default function App() {
         <Route path="/control" element={<ControlScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
         <Route path="/appearance" element={<AppearanceScreen />} />
+        <Route path="/display" element={<DisplayScreen />} />
         <Route path="/connectivity" element={<ConnectivityScreen />} />
         <Route path="/updates" element={<UpdatesScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />

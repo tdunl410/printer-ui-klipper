@@ -19,9 +19,12 @@ import {
   defaultBottomBarItems,
   defaultTempPresets,
   getUiConfig,
+  normalizeDisplayBrightness,
   normalizeBottomBarItems,
+  normalizeSleepTimeout,
   patchUiConfig,
   type BottomBarItemKey,
+  type SleepTimeout,
   type TempPreset,
 } from '../services/userConfig';
 import { computeJobState, deriveTemperatures, fillMissingMotionTuning, mergeMotionTuning, normalizeKlipperState, toPercent, type MotionTuning } from './printerStateUtils';
@@ -66,6 +69,9 @@ interface PrinterStore {
   textScale: number;
   printerRender: string;
   bottomBarItems: BottomBarItemKey[];
+  displayBrightness: number;
+  idleSleepTimeout: SleepTimeout;
+  printingSleepTimeout: SleepTimeout;
   zLevelingCommand?: ZLevelingCommand;
   tempPresets: TempPreset[];
   fanPartPercent: number;
@@ -84,6 +90,9 @@ interface PrinterStore {
   setPrinterName: (name: string) => void;
   setPrinterRender: (render: string) => void;
   setBottomBarItems: (items: BottomBarItemKey[]) => void;
+  setDisplayBrightness: (brightness: number) => void;
+  setIdleSleepTimeout: (timeout: SleepTimeout) => void;
+  setPrintingSleepTimeout: (timeout: SleepTimeout) => void;
   setConnectionUrls: (baseUrl: string, wsUrl: string) => void;
   setTempPresets: (presets: TempPreset[]) => void;
   setCustomization: (key: string, value: unknown) => void;
@@ -710,6 +719,9 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     textScale: 1,
     printerRender: initialPrinterRender,
     bottomBarItems: [...defaultBottomBarItems],
+    displayBrightness: 100,
+    idleSleepTimeout: 'never',
+    printingSleepTimeout: 'never',
     zLevelingCommand: undefined,
     tempPresets: defaultTempPresets,
     fanPartPercent: 0,
@@ -757,6 +769,9 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
             profileName: String(config.appearance.printerName || state.profileName || 'Printer').trim() || 'Printer',
             printerRender: configuredRender,
             bottomBarItems: normalizeBottomBarItems(config.appearance.bottomBarItems),
+            displayBrightness: normalizeDisplayBrightness(config.display.brightness),
+            idleSleepTimeout: normalizeSleepTimeout(config.display.idleSleepTimeout),
+            printingSleepTimeout: normalizeSleepTimeout(config.display.printingSleepTimeout),
             tempPresets: Array.isArray(config.presets.temperature) && config.presets.temperature.length > 0
               ? config.presets.temperature
               : defaultTempPresets,
@@ -977,6 +992,27 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       set({ bottomBarItems });
       persistConfigPatch({
         appearance: { bottomBarItems },
+      });
+    },
+    setDisplayBrightness: (brightness: number) => {
+      const displayBrightness = normalizeDisplayBrightness(brightness);
+      set({ displayBrightness });
+      persistConfigPatch({
+        display: { brightness: displayBrightness },
+      });
+    },
+    setIdleSleepTimeout: (timeout: SleepTimeout) => {
+      const idleSleepTimeout = normalizeSleepTimeout(timeout);
+      set({ idleSleepTimeout });
+      persistConfigPatch({
+        display: { idleSleepTimeout },
+      });
+    },
+    setPrintingSleepTimeout: (timeout: SleepTimeout) => {
+      const printingSleepTimeout = normalizeSleepTimeout(timeout);
+      set({ printingSleepTimeout });
+      persistConfigPatch({
+        display: { printingSleepTimeout },
       });
     },
     setConnectionUrls: (baseUrl: string, wsUrl: string) => {

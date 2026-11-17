@@ -33,6 +33,11 @@ const defaultUiConfig = {
     bottomBarItems: ['home', 'print', 'control', 'settings'],
   },
   connection: {},
+  display: {
+    brightness: 100,
+    idleSleepTimeout: 'never',
+    printingSleepTimeout: 'never',
+  },
   presets: {
     temperature: [
       { id: 'pla', name: 'PLA', nozzle: 210, bed: 60, chamber: 0, fan: 50 },

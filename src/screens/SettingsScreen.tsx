@@ -16,8 +16,8 @@ export function SettingsScreen() {
       <section className="card">
         <div className="card-label">Navigation</div>
         <div className="settings-nav">
-          <Link className="action-link" to="/control">Control</Link>
           <Link className="action-link" to="/appearance">Appearance</Link>
+          <Link className="action-link" to="/display">Display</Link>
           <Link className="action-link" to="/connectivity">Connectivity</Link>
           <Link className="action-link" to="/updates">Updates</Link>
         </div>
