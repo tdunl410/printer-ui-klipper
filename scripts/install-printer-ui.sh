@@ -14,6 +14,7 @@ KIOSK_LAUNCHER_FILE="${INSTALL_DIR}/server/kiosk-launch.sh"
 ENV_FILE="/etc/default/printer-ui"
 PORT="${PRINTER_UI_PORT:-4409}"
 HOST="${PRINTER_UI_HOST:-127.0.0.1}"
+USER_HOME="${HOME:-/home/$(id -un)}"
 AUTO_INSTALL_NODE="${AUTO_INSTALL_NODE:-1}"
 INSTALL_NODE_METHOD="${INSTALL_NODE_METHOD:-binary}"
 AUTO_INSTALL_KIOSK_DEPS="${AUTO_INSTALL_KIOSK_DEPS:-1}"
@@ -317,6 +318,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=${ENV_FILE}
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=${USER_HOME}/.Xauthority
 ExecStart=${NODE_BIN} ${INSTALL_DIR}/server/static-server.mjs
 Restart=always
 RestartSec=2
