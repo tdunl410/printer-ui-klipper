@@ -98,6 +98,8 @@ interface PrinterStore {
   setCustomization: (key: string, value: unknown) => void;
   runAction: (label: string, action: () => Promise<unknown>) => Promise<void>;
   setSelectedFile: (path: string) => void;
+  removeFile: (path: string) => void;
+  restoreFile: (file: FileEntry) => void;
   klipperState: KlipperState;
   klipperMessage: string;
 }
@@ -120,6 +122,7 @@ let lastSocketUpdate = 0;
 let statusCache: Record<string, any> = {};
 let snapshotCount = 0;
 const slowCache = new Map<string, unknown>();
+const pendingDeletedFiles = new Set<string>();
 const SLOW_POLL_EVERY = 12;
 let snapshotInFlight = false;
 const socketIsLive = () => Date.now() - lastSocketUpdate < 5000;
@@ -577,7 +580,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
     if (filesRes.status === 'fulfilled') {
       const result = (filesRes.value.result as any) || [];
-      const files = Array.isArray(result)
+      const reportedFiles = Array.isArray(result)
         ? result
             .map((entry: any) => ({
               path: String(entry.path ?? ''),
@@ -586,6 +589,11 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
             }))
             .filter((entry: FileEntry) => Boolean(entry.path))
         : [];
+      const reportedPaths = new Set(reportedFiles.map((file: FileEntry) => file.path));
+      pendingDeletedFiles.forEach((path) => {
+        if (!reportedPaths.has(path)) pendingDeletedFiles.delete(path);
+      });
+      const files = reportedFiles.filter((file: FileEntry) => !pendingDeletedFiles.has(file.path));
 
       set((state) => ({
         files,
@@ -734,6 +742,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     boot: () => {
       const start = async () => {
         slowCache.clear();
+        pendingDeletedFiles.clear();
         snapshotCount = 0;
         const existing = socketClient;
         if (existing) {
@@ -1069,6 +1078,21 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     setSelectedFile: (path: string) => {
       set((state) => ({
         selectedFile: state.files.find((entry) => entry.path === path) ?? state.selectedFile,
+      }));
+    },
+    removeFile: (path: string) => {
+      pendingDeletedFiles.add(path);
+      slowCache.delete('files');
+      set((state) => ({
+        files: state.files.filter((entry) => entry.path !== path),
+        selectedFile: state.selectedFile?.path === path ? undefined : state.selectedFile,
+      }));
+    },
+    restoreFile: (file: FileEntry) => {
+      pendingDeletedFiles.delete(file.path);
+      slowCache.delete('files');
+      set((state) => ({
+        files: state.files.some((entry) => entry.path === file.path) ? state.files : [...state.files, file],
       }));
     },
     klipperState: 'ready',
