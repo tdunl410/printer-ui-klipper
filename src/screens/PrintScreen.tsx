@@ -164,7 +164,7 @@ export function PrintScreen() {
       heater: 'chamber',
       current: temperatures.chamber.current,
       target: temperatures.chamber.target,
-      value: 'Chamber',
+      value: `${Math.round(temperatures.chamber.target)}°C`,
       name: 'Chamber',
       label: 'Enclosure',
     },
