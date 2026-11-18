@@ -3,7 +3,7 @@ import arrowDown from '../../assets/arrow-down.svg';
 import arrowLeft from '../../assets/arrow-left.svg';
 import arrowRight from '../../assets/arrow-right.svg';
 import arrowUp from '../../assets/arrow-up.svg';
-import homeIcon from '../../assets/home.svg';
+import homeIcon from '../../assets/home.png';
 import { useCommands, usePrinterStore } from '../stores/usePrinterStore';
 import { CoolingControls } from './CoolingControls';
 
