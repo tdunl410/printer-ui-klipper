@@ -1,10 +1,10 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import emergencyIcon from '../../assets/emergency.svg';
-import extrudeIcon from '../../assets/extrude.svg';
+import extrudeIcon from '../../assets/extrude.png';
 import heaterIcon from '../../assets/heater.svg';
 import homeIcon from '../../assets/home.svg';
-import moveIcon from '../../assets/move.svg';
+import moveIcon from '../../assets/move.png';
 import printerIcon from '../../assets/printer.svg';
 import settingsIcon from '../../assets/settings.svg';
 import { Dialog } from './Dialog';

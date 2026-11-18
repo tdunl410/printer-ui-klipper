@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import extrudeIcon from '../../assets/extrude.svg';
+import extrudeIcon from '../../assets/extrude.png';
 import heaterIcon from '../../assets/heater.svg';
-import moveIcon from '../../assets/move.svg';
+import moveIcon from '../../assets/move.png';
 import networkIcon from '../../assets/network.svg';
 import { HeaterKeypad, useHeaterKeypad } from '../components/HeaterKeypad';
 import { Layout } from '../components/Layout';

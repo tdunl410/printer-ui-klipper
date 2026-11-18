@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import heaterIcon from '../../assets/heater.svg';
+import bedHeatIcon from '../../assets/heat-bed.png';
+import chamberHeatIcon from '../../assets/heat-chamber.png';
+import nozzleHeatIcon from '../../assets/heat-nozzle.png';
 import pauseIcon from '../../assets/pause.svg';
 import resumeIcon from '../../assets/resume.svg';
 import stopSquareIcon from '../../assets/stop-square.svg';
@@ -143,6 +145,7 @@ export function PrintScreen() {
     value: string;
     name: string;
     label: string;
+    icon: string;
   }[] = [
     {
       heater: 'extruder',
@@ -151,6 +154,7 @@ export function PrintScreen() {
       value: `${Math.round(temperatures.nozzle.target)}°C`,
       name: 'Nozzle',
       label: 'Nozzle',
+      icon: nozzleHeatIcon,
     },
     {
       heater: 'heater_bed',
@@ -159,6 +163,7 @@ export function PrintScreen() {
       value: `${Math.round(temperatures.bed.target)}°C`,
       name: 'Bed',
       label: 'Bed',
+      icon: bedHeatIcon,
     },
     {
       heater: 'chamber',
@@ -167,6 +172,7 @@ export function PrintScreen() {
       value: `${Math.round(temperatures.chamber.target)}°C`,
       name: 'Chamber',
       label: 'Enclosure',
+      icon: chamberHeatIcon,
     },
   ];
 
@@ -216,7 +222,7 @@ export function PrintScreen() {
                 <span className="print-temp-current">
                   {tile.current.toFixed(1)}<span className="print-temp-unit">°C</span>
                 </span>
-                <img className="print-temp-icon" src={heaterIcon} alt="" aria-hidden="true" />
+                <img className="print-temp-icon" src={tile.icon} alt="" aria-hidden="true" />
                 <span className="print-temp-value">{tile.value}</span>
                 <span className="print-temp-label">{tile.label}</span>
               </button>
