@@ -28,6 +28,7 @@ import {
   type TempPreset,
 } from '../services/userConfig';
 import { computeJobState, deriveTemperatures, fillMissingMotionTuning, mergeMotionTuning, normalizeKlipperState, toPercent, type MotionTuning } from './printerStateUtils';
+import { parseExcludeObjects } from './excludeObjectUtils';
 import { MoonrakerHttpClient } from '../transport/moonrakerHttp';
 import { MoonrakerSocket } from '../transport/moonrakerSocket';
 import { hhmmFromSeconds } from '../utils/format';
@@ -303,57 +304,6 @@ const getDynamicTemperatureObjects = (status: Record<string, any>, objects: stri
   return Array.from(new Set([...fromHeaters, ...fromObjectList])).filter((name) => name !== 'extruder' && name !== 'heater_bed');
 };
 
-const normalizePolygon = (value: unknown): [number, number][] => {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .map((point) => {
-      if (!Array.isArray(point) || point.length < 2) return undefined;
-      const x = Number(point[0]);
-      const y = Number(point[1]);
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return undefined;
-      return [x, y] as [number, number];
-    })
-    .filter((point): point is [number, number] => Boolean(point));
-};
-
-const parseExcludeObjects = (excludeObject: unknown, fallback: ExcludeObjectsState): ExcludeObjectsState => {
-  if (typeof excludeObject !== 'object' || excludeObject === null) return fallback;
-
-  const root = excludeObject as {
-    objects?: unknown;
-    excluded_objects?: unknown;
-    current_object?: unknown;
-  };
-
-  const excluded = new Set(
-    (Array.isArray(root.excluded_objects) ? root.excluded_objects : [])
-      .map((entry) => String(entry ?? '').trim())
-      .filter(Boolean),
-  );
-
-  const objects = (Array.isArray(root.objects) ? root.objects : [])
-    .map((entry) => {
-      if (typeof entry !== 'object' || entry === null) return undefined;
-      const item = entry as { name?: unknown; polygon?: unknown };
-      const name = String(item.name ?? '').trim();
-      if (!name) return undefined;
-      return {
-        name,
-        polygon: normalizePolygon(item.polygon),
-        isExcluded: excluded.has(name),
-      };
-    })
-    .filter((item): item is ExcludeObjectsState['objects'][number] => Boolean(item));
-
-  const currentObject = String(root.current_object ?? '').trim() || undefined;
-
-  return {
-    objects,
-    currentObject,
-  };
-};
-
 const parseNetworkInterfaces = (networkResult: Record<string, unknown>) => {
   const root = (networkResult.result as any) ?? {};
   const interfaces: any[] = Array.isArray(root.interfaces)
@@ -510,7 +460,19 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       const remainingSeconds = Math.max(0, estimatedTotal - printDuration);
       const currentLayer = status.print_stats?.info?.current_layer;
       const totalLayer = status.print_stats?.info?.total_layer;
-      const excludeObjects = parseExcludeObjects(status.exclude_object, currentState.excludeObjects);
+      const nextJobState = computeJobState(klipperState, status.print_stats?.state ?? currentState.job.state);
+      const nextFilename = String(status.print_stats?.filename ?? currentState.job.filename);
+      const printIsActive = nextJobState === 'printing' || nextJobState === 'paused';
+      const isNewPrint = printIsActive && (
+        (currentState.job.state !== 'printing' && currentState.job.state !== 'paused') ||
+        (nextFilename !== '' && nextFilename !== currentState.job.filename)
+      );
+      const excludeFallback = printIsActive && !isNewPrint
+        ? currentState.excludeObjects
+        : { objects: [] };
+      const excludeObjects = printIsActive
+        ? parseExcludeObjects(status.exclude_object, excludeFallback)
+        : { objects: [] };
 
       // Fresh websocket values win over a REST response that may be slightly stale
       const live = socketIsLive();
@@ -547,12 +509,12 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         motionTuning: live
           ? fillMissingMotionTuning(state.motionTuning, mergeMotionTuning({ extruders: {} }, { ...dynamicStatus, ...status }))
           : mergeMotionTuning(state.motionTuning, { ...dynamicStatus, ...status }),
-        excludeObjects,
+        excludeObjects: live ? state.excludeObjects : excludeObjects,
         job: {
           ...state.job,
           filename: String(status.print_stats?.filename || ''),
           progress,
-          state: computeJobState(klipperState, status.print_stats?.state),
+          state: nextJobState,
           printDurationSec: printDuration,
           filamentUsedMm: Number(status.print_stats?.filament_used ?? 0),
           elapsed: hhmmFromSeconds(printDuration),
@@ -879,10 +841,6 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               next.fanPartPercent = toPercent(status.fan.speed, next.fanPartPercent);
             }
 
-            if (status.exclude_object) {
-              next.excludeObjects = parseExcludeObjects(status.exclude_object, next.excludeObjects);
-            }
-
             if (status.toolhead?.position) {
               next.position = {
                 x: Number(status.toolhead.position[0] ?? next.position.x),
@@ -909,6 +867,19 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
                   ? {}
                   : { progress: 0, elapsed: '00:00', eta: '00:00', remaining: '00:00' }),
               };
+            }
+
+            const previousPrintIsActive = state.job.state === 'printing' || state.job.state === 'paused';
+            const nextPrintIsActive = next.job.state === 'printing' || next.job.state === 'paused';
+            const isNewPrint = nextPrintIsActive && (
+              !previousPrintIsActive ||
+              (next.job.filename !== '' && next.job.filename !== state.job.filename)
+            );
+            if (!nextPrintIsActive || isNewPrint) {
+              next.excludeObjects = { objects: [] };
+            }
+            if (status.exclude_object && nextPrintIsActive) {
+              next.excludeObjects = parseExcludeObjects(status.exclude_object, next.excludeObjects);
             }
 
             return next;
