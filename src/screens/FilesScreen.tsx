@@ -28,6 +28,8 @@ export function FilesScreen() {
   const files = usePrinterStore((state) => state.files);
   const selectedFile = usePrinterStore((state) => state.selectedFile);
   const setSelectedFile = usePrinterStore((state) => state.setSelectedFile);
+  const removeFile = usePrinterStore((state) => state.removeFile);
+  const restoreFile = usePrinterStore((state) => state.restoreFile);
   const connection = usePrinterStore((state) => state.connection);
   const runAction = usePrinterStore((state) => state.runAction);
   const activeJob = usePrinterStore((state) => state.job);
@@ -228,9 +230,18 @@ export function FilesScreen() {
               label: 'Delete',
               variant: 'accent',
               onClick: () => {
-                const path = deleteTarget.path;
+                const file = deleteTarget;
+                const path = file.path;
+                removeFile(path);
                 setDeleteFilePath(null);
-                void runAction('Delete File', () => commands.deleteFile(path));
+                void runAction('Delete File', async () => {
+                  try {
+                    await commands.deleteFile(path);
+                  } catch (error) {
+                    restoreFile(file);
+                    throw error;
+                  }
+                });
               },
             },
             {

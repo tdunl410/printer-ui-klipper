@@ -28,6 +28,7 @@ import {
   type TempPreset,
 } from '../services/userConfig';
 import { computeJobState, deriveTemperatures, fillMissingMotionTuning, mergeMotionTuning, normalizeKlipperState, toPercent, type MotionTuning } from './printerStateUtils';
+import { parseExcludeObjects } from './excludeObjectUtils';
 import { MoonrakerHttpClient } from '../transport/moonrakerHttp';
 import { MoonrakerSocket } from '../transport/moonrakerSocket';
 import { hhmmFromSeconds } from '../utils/format';
@@ -98,6 +99,8 @@ interface PrinterStore {
   setCustomization: (key: string, value: unknown) => void;
   runAction: (label: string, action: () => Promise<unknown>) => Promise<void>;
   setSelectedFile: (path: string) => void;
+  removeFile: (path: string) => void;
+  restoreFile: (file: FileEntry) => void;
   klipperState: KlipperState;
   klipperMessage: string;
 }
@@ -120,6 +123,7 @@ let lastSocketUpdate = 0;
 let statusCache: Record<string, any> = {};
 let snapshotCount = 0;
 const slowCache = new Map<string, unknown>();
+const pendingDeletedFiles = new Set<string>();
 const SLOW_POLL_EVERY = 12;
 let snapshotInFlight = false;
 const socketIsLive = () => Date.now() - lastSocketUpdate < 5000;
@@ -300,57 +304,6 @@ const getDynamicTemperatureObjects = (status: Record<string, any>, objects: stri
   return Array.from(new Set([...fromHeaters, ...fromObjectList])).filter((name) => name !== 'extruder' && name !== 'heater_bed');
 };
 
-const normalizePolygon = (value: unknown): [number, number][] => {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .map((point) => {
-      if (!Array.isArray(point) || point.length < 2) return undefined;
-      const x = Number(point[0]);
-      const y = Number(point[1]);
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return undefined;
-      return [x, y] as [number, number];
-    })
-    .filter((point): point is [number, number] => Boolean(point));
-};
-
-const parseExcludeObjects = (excludeObject: unknown, fallback: ExcludeObjectsState): ExcludeObjectsState => {
-  if (typeof excludeObject !== 'object' || excludeObject === null) return fallback;
-
-  const root = excludeObject as {
-    objects?: unknown;
-    excluded_objects?: unknown;
-    current_object?: unknown;
-  };
-
-  const excluded = new Set(
-    (Array.isArray(root.excluded_objects) ? root.excluded_objects : [])
-      .map((entry) => String(entry ?? '').trim())
-      .filter(Boolean),
-  );
-
-  const objects = (Array.isArray(root.objects) ? root.objects : [])
-    .map((entry) => {
-      if (typeof entry !== 'object' || entry === null) return undefined;
-      const item = entry as { name?: unknown; polygon?: unknown };
-      const name = String(item.name ?? '').trim();
-      if (!name) return undefined;
-      return {
-        name,
-        polygon: normalizePolygon(item.polygon),
-        isExcluded: excluded.has(name),
-      };
-    })
-    .filter((item): item is ExcludeObjectsState['objects'][number] => Boolean(item));
-
-  const currentObject = String(root.current_object ?? '').trim() || undefined;
-
-  return {
-    objects,
-    currentObject,
-  };
-};
-
 const parseNetworkInterfaces = (networkResult: Record<string, unknown>) => {
   const root = (networkResult.result as any) ?? {};
   const interfaces: any[] = Array.isArray(root.interfaces)
@@ -507,7 +460,19 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
       const remainingSeconds = Math.max(0, estimatedTotal - printDuration);
       const currentLayer = status.print_stats?.info?.current_layer;
       const totalLayer = status.print_stats?.info?.total_layer;
-      const excludeObjects = parseExcludeObjects(status.exclude_object, currentState.excludeObjects);
+      const nextJobState = computeJobState(klipperState, status.print_stats?.state ?? currentState.job.state);
+      const nextFilename = String(status.print_stats?.filename ?? currentState.job.filename);
+      const printIsActive = nextJobState === 'printing' || nextJobState === 'paused';
+      const isNewPrint = printIsActive && (
+        (currentState.job.state !== 'printing' && currentState.job.state !== 'paused') ||
+        (nextFilename !== '' && nextFilename !== currentState.job.filename)
+      );
+      const excludeFallback = printIsActive && !isNewPrint
+        ? currentState.excludeObjects
+        : { objects: [] };
+      const excludeObjects = printIsActive
+        ? parseExcludeObjects(status.exclude_object, excludeFallback)
+        : { objects: [] };
 
       // Fresh websocket values win over a REST response that may be slightly stale
       const live = socketIsLive();
@@ -544,12 +509,12 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
         motionTuning: live
           ? fillMissingMotionTuning(state.motionTuning, mergeMotionTuning({ extruders: {} }, { ...dynamicStatus, ...status }))
           : mergeMotionTuning(state.motionTuning, { ...dynamicStatus, ...status }),
-        excludeObjects,
+        excludeObjects: live ? state.excludeObjects : excludeObjects,
         job: {
           ...state.job,
           filename: String(status.print_stats?.filename || ''),
           progress,
-          state: computeJobState(klipperState, status.print_stats?.state),
+          state: nextJobState,
           printDurationSec: printDuration,
           filamentUsedMm: Number(status.print_stats?.filament_used ?? 0),
           elapsed: hhmmFromSeconds(printDuration),
@@ -577,7 +542,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
 
     if (filesRes.status === 'fulfilled') {
       const result = (filesRes.value.result as any) || [];
-      const files = Array.isArray(result)
+      const reportedFiles = Array.isArray(result)
         ? result
             .map((entry: any) => ({
               path: String(entry.path ?? ''),
@@ -586,6 +551,11 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
             }))
             .filter((entry: FileEntry) => Boolean(entry.path))
         : [];
+      const reportedPaths = new Set(reportedFiles.map((file: FileEntry) => file.path));
+      pendingDeletedFiles.forEach((path) => {
+        if (!reportedPaths.has(path)) pendingDeletedFiles.delete(path);
+      });
+      const files = reportedFiles.filter((file: FileEntry) => !pendingDeletedFiles.has(file.path));
 
       set((state) => ({
         files,
@@ -734,6 +704,7 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     boot: () => {
       const start = async () => {
         slowCache.clear();
+        pendingDeletedFiles.clear();
         snapshotCount = 0;
         const existing = socketClient;
         if (existing) {
@@ -870,10 +841,6 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
               next.fanPartPercent = toPercent(status.fan.speed, next.fanPartPercent);
             }
 
-            if (status.exclude_object) {
-              next.excludeObjects = parseExcludeObjects(status.exclude_object, next.excludeObjects);
-            }
-
             if (status.toolhead?.position) {
               next.position = {
                 x: Number(status.toolhead.position[0] ?? next.position.x),
@@ -900,6 +867,19 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
                   ? {}
                   : { progress: 0, elapsed: '00:00', eta: '00:00', remaining: '00:00' }),
               };
+            }
+
+            const previousPrintIsActive = state.job.state === 'printing' || state.job.state === 'paused';
+            const nextPrintIsActive = next.job.state === 'printing' || next.job.state === 'paused';
+            const isNewPrint = nextPrintIsActive && (
+              !previousPrintIsActive ||
+              (next.job.filename !== '' && next.job.filename !== state.job.filename)
+            );
+            if (!nextPrintIsActive || isNewPrint) {
+              next.excludeObjects = { objects: [] };
+            }
+            if (status.exclude_object && nextPrintIsActive) {
+              next.excludeObjects = parseExcludeObjects(status.exclude_object, next.excludeObjects);
             }
 
             return next;
@@ -1069,6 +1049,21 @@ export const usePrinterStore = create<PrinterStore>((set: PrinterSetState, get: 
     setSelectedFile: (path: string) => {
       set((state) => ({
         selectedFile: state.files.find((entry) => entry.path === path) ?? state.selectedFile,
+      }));
+    },
+    removeFile: (path: string) => {
+      pendingDeletedFiles.add(path);
+      slowCache.delete('files');
+      set((state) => ({
+        files: state.files.filter((entry) => entry.path !== path),
+        selectedFile: state.selectedFile?.path === path ? undefined : state.selectedFile,
+      }));
+    },
+    restoreFile: (file: FileEntry) => {
+      pendingDeletedFiles.delete(file.path);
+      slowCache.delete('files');
+      set((state) => ({
+        files: state.files.some((entry) => entry.path === file.path) ? state.files : [...state.files, file],
       }));
     },
     klipperState: 'ready',
