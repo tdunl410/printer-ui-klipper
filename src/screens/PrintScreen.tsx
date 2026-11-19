@@ -5,7 +5,7 @@ import chamberHeatIcon from '../../assets/heat-chamber.png';
 import nozzleHeatIcon from '../../assets/heat-nozzle.png';
 import pauseIcon from '../../assets/pause.svg';
 import resumeIcon from '../../assets/resume.svg';
-import stopSquareIcon from '../../assets/stop-square.svg';
+import stopSquareIcon from '../../assets/stop-square.png';
 import { Dialog } from '../components/Dialog';
 import { HeaterKeypad, useHeaterKeypad, type HeaterKey } from '../components/HeaterKeypad';
 import { Layout } from '../components/Layout';
