@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import arrowDownIcon from '../../assets/arrow-down.svg';
-import arrowUpIcon from '../../assets/arrow-up.svg';
+import arrowDownIcon from '../../assets/arrow-down.png';
+import arrowUpIcon from '../../assets/arrow-up.png';
 import { CoolingControls } from '../components/CoolingControls';
 import { Layout } from '../components/Layout';
 import { MotionTuneControls } from '../components/MotionTuneControls';
